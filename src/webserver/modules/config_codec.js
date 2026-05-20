@@ -255,9 +255,6 @@ function normalizeSensorOptions(options, precision) {
   if (precision !== "text" && configOptionEnabled(options, SENSOR_LARGE_NUMBERS_OPTION)) {
     out = setConfigOption(out, SENSOR_LARGE_NUMBERS_OPTION, true);
   }
-  if (configOptionEnabled(options, SENSOR_ACTIVE_COLOR_OPTION)) {
-    out = setConfigOption(out, SENSOR_ACTIVE_COLOR_OPTION, true);
-  }
   return out;
 }
 

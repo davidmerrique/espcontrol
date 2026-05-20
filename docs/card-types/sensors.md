@@ -33,15 +33,12 @@ For **Text** mode:
 1. Choose an **Icon**. This icon is always shown and does not change based on the sensor value.
 2. The live state from Home Assistant is shown where a Switch card label would normally appear.
 
-Under **Advanced**, turn on **Use On Colour When Active** if you want the card to use the normal active/on colour when the sensor state is `on`, `open`, `opening`, `closing`, `unlocked`, or similar. This is useful for door and window sensors while keeping the standard Sensor card layout.
-
 ## How It Works on the Panel
 
 - Numeric mode displays the current value in large text, with the unit beside it and the label underneath.
 - Numeric mode uses the **tertiary** colour from [Appearance](/features/appearance), so it remains visually distinct from Switch and Trigger cards.
 - Text mode uses the same tertiary colour as Numeric mode, while keeping the normal Switch-style icon and label layout.
 - Text mode capitalises each word in the Home Assistant text and preserves line breaks. Very long values are limited to roughly 256 characters so the panel stays responsive.
-- When **Use On Colour When Active** is enabled, the card background switches to the active/on colour only while the sensor reports an active state. It returns to the Sensor card colour when the sensor is off, closed, unknown, or unavailable.
 
 ## Example Sensors
 
