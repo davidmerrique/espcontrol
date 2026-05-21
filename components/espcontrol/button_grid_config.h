@@ -254,13 +254,12 @@ inline std::string garage_card_options_normalized(const std::string &options,
 }
 
 inline bool alarm_action_mode_valid(const std::string &mode) {
-  return mode == "away" || mode == "home" || mode == "night" || mode == "disarm";
+  return mode == "away" || mode == "home" || mode == "disarm";
 }
 
 inline const char *alarm_action_icon_name(const std::string &mode) {
   if (mode == "away") return "Shield Lock";
   if (mode == "home") return "Shield Home";
-  if (mode == "night") return "Weather Night";
   if (mode == "disarm") return "Shield Off";
   return "Alarm";
 }
@@ -268,7 +267,6 @@ inline const char *alarm_action_icon_name(const std::string &mode) {
 inline bool alarm_action_legacy_icon_name(const std::string &mode, const std::string &icon) {
   if (mode == "away") return icon == "Security";
   if (mode == "home") return icon == "Home";
-  if (mode == "night") return icon == "Weather Night";
   if (mode == "disarm") return icon == "Lock Open";
   return false;
 }

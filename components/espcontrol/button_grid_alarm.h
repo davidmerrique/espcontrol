@@ -111,7 +111,7 @@ inline bool alarm_pin_disarm_required(const std::string &options) {
 }
 
 inline bool alarm_action_valid(const std::string &mode) {
-  return mode == "away" || mode == "home" || mode == "night" || mode == "disarm";
+  return mode == "away" || mode == "home" || mode == "disarm";
 }
 
 inline bool alarm_action_visible(const std::string &options, const std::string &mode) {
@@ -139,7 +139,6 @@ inline bool alarm_action_requires_pin(const std::string &options, const std::str
 inline const char *alarm_action_label(const std::string &mode) {
   if (mode == "away") return "Arm Away";
   if (mode == "home") return "Arm Home";
-  if (mode == "night") return "Arm Night";
   if (mode == "disarm") return "Disarm";
   return "Alarm";
 }
@@ -160,7 +159,6 @@ inline void setup_alarm_action_card(BtnSlot &s, const ParsedCfg &p) {
 inline const char *alarm_action_service(const std::string &mode) {
   if (mode == "away") return "alarm_control_panel.alarm_arm_away";
   if (mode == "home") return "alarm_control_panel.alarm_arm_home";
-  if (mode == "night") return "alarm_control_panel.alarm_arm_night";
   if (mode == "disarm") return "alarm_control_panel.alarm_disarm";
   return nullptr;
 }
@@ -198,7 +196,6 @@ inline bool alarm_state_is_active(const std::string &state) {
 inline std::string alarm_action_achieved_state(const std::string &mode) {
   if (mode == "away") return "armed_away";
   if (mode == "home") return "armed_home";
-  if (mode == "night") return "armed_night";
   if (mode == "disarm") return "disarmed";
   return "";
 }

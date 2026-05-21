@@ -137,7 +137,6 @@ inline SubpageBtn normalize_subpage_btn(SubpageBtn b) {
     b.options = alarm_card_options_normalized(b.options);
     if (b.label.empty()) {
       if (b.sensor == "home") b.label = "Arm Home";
-      else if (b.sensor == "night") b.label = "Arm Night";
       else if (b.sensor == "disarm") b.label = "Disarm";
       else b.label = "Arm Away";
     }
