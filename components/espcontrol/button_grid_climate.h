@@ -1372,8 +1372,8 @@ inline void climate_control_open_modal(ClimateControlCtx *ctx) {
     ClimateControlModalUi &ui = climate_control_modal_ui();
     if (ui.active) climate_open_option_menu(ui.active, "hvac");
   }, LV_EVENT_CLICKED, nullptr);
-  ui.menu_preset_btn = climate_create_menu_tile(ui.menu_view, "\xE2\x80\xA2", "Preset",
-    ctx->option_title_font, ctx->option_title_font, ctx->option_value_font,
+  ui.menu_preset_btn = climate_create_menu_tile(ui.menu_view, find_icon("Air Filter"), "Preset",
+    ctx->icon_font, ctx->option_title_font, ctx->option_value_font,
     ctx->width_compensation_percent);
   lv_obj_add_event_cb(ui.menu_preset_btn, [](lv_event_t *) {
     ClimateControlModalUi &ui = climate_control_modal_ui();
@@ -1520,8 +1520,8 @@ inline void climate_control_open_modal(ClimateControlCtx *ctx) {
   ui.mode_chip = climate_create_option_chip(ui.chips, find_icon("Fire"), "Mode",
     ctx->icon_font, ctx->option_title_font, ctx->option_value_font,
     ctx->width_compensation_percent);
-  ui.preset_chip = climate_create_option_chip(ui.chips, "\xE2\x80\xA2", "Preset",
-    ctx->option_title_font, ctx->option_title_font, ctx->option_value_font,
+  ui.preset_chip = climate_create_option_chip(ui.chips, find_icon("Air Filter"), "Preset",
+    ctx->icon_font, ctx->option_title_font, ctx->option_value_font,
     ctx->width_compensation_percent);
   ui.fan_chip = climate_create_chip(ui.chips, "Fan None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent, true);
   ui.swing_chip = climate_create_chip(ui.chips, "Swing None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent, true);
