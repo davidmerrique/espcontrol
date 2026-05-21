@@ -174,7 +174,6 @@ var CLIMATE_NUMBER_DISPLAY_OPTION = "number_display";
 var ALARM_ACTIONS = [
   { value: "away", label: "Arm Away", service: "alarm_control_panel.alarm_arm_away", icon: "Shield Lock" },
   { value: "home", label: "Arm Home", service: "alarm_control_panel.alarm_arm_home", icon: "Shield Home" },
-  { value: "night", label: "Arm Night", service: "alarm_control_panel.alarm_arm_night", icon: "Weather Night" },
   { value: "disarm", label: "Disarm", service: "alarm_control_panel.alarm_disarm", icon: "Shield Off" },
 ];
 var ALARM_DEFAULT_ACTIONS = ["away", "home", "disarm"];
@@ -183,7 +182,6 @@ function alarmActionLegacyIcon(value) {
   if (value === "away") return "Security";
   if (value === "home") return "Home";
   if (value === "disarm") return "Lock Open";
-  if (value === "night") return "Weather Night";
   return "";
 }
 

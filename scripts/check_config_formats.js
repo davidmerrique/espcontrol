@@ -541,7 +541,7 @@ assertButtonMigration(hooks, "alarm clears ignored fields", "alarm_control_panel
   unit: "",
   type: "alarm",
   precision: "",
-  options: "pin_disarm=0,actions=home%7Cnight",
+  options: "pin_disarm=0,actions=home",
 });
 
 assertButtonRoundTrip(hooks, "alarm action button", {
