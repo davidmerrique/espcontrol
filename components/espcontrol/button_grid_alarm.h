@@ -461,7 +461,6 @@ inline void send_alarm_action(AlarmActionCtx *action, const std::string &code) {
 }
 
 inline uint32_t alarm_control_active_color(AlarmCardCtx *ctx, const std::string &mode) {
-  if (mode == "disarm") return DARK_CONTROL_NEUTRAL;
   return ctx ? ctx->on_color : DEFAULT_SLIDER_COLOR;
 }
 
