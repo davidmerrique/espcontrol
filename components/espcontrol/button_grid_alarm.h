@@ -11,6 +11,7 @@ struct AlarmCardCtx {
   std::string label;
   std::string options;
   std::string state;
+  std::string arm_mode;
   lv_obj_t *btn = nullptr;
   lv_obj_t *icon_lbl = nullptr;
   lv_obj_t *grid_page = nullptr;
@@ -190,9 +191,28 @@ inline std::string alarm_action_achieved_state(const std::string &mode) {
   return "";
 }
 
-inline bool alarm_action_state_matches(const std::string &mode, const std::string &state) {
+inline std::string alarm_normalized_arm_mode(const std::string &arm_mode) {
+  if (arm_mode == "away") return "armed_away";
+  if (arm_mode == "home") return "armed_home";
+  if (arm_mode == "night") return "armed_night";
+  if (arm_mode == "armed_away" || arm_mode == "armed_home" ||
+      arm_mode == "armed_night" || arm_mode == "armed_custom_bypass") {
+    return arm_mode;
+  }
+  return "";
+}
+
+inline std::string alarm_effective_state(const std::string &state,
+                                         const std::string &arm_mode) {
+  if (state != "arming") return state;
+  std::string normalized = alarm_normalized_arm_mode(arm_mode);
+  return normalized.empty() ? state : normalized;
+}
+
+inline bool alarm_action_state_matches(const std::string &mode, const std::string &state,
+                                       const std::string &arm_mode = "") {
   std::string achieved_state = alarm_action_achieved_state(mode);
-  return !achieved_state.empty() && state == achieved_state;
+  return !achieved_state.empty() && alarm_effective_state(state, arm_mode) == achieved_state;
 }
 
 inline bool alarm_state_releases_label(const std::string &state) {
@@ -238,12 +258,24 @@ inline void alarm_apply_home_state(AlarmCardCtx *ctx, const std::string &state) 
   alarm_control_update_modal(ctx);
 }
 
+inline void alarm_apply_home_arm_mode(AlarmCardCtx *ctx, const std::string &arm_mode) {
+  if (!ctx) return;
+  ctx->arm_mode = arm_mode;
+  alarm_control_update_modal(ctx);
+}
+
 inline void subscribe_alarm_state(AlarmCardCtx *ctx) {
   if (!ctx || ctx->entity_id.empty()) return;
   esphome::api::global_api_server->subscribe_home_assistant_state(
     ctx->entity_id, {},
     std::function<void(esphome::StringRef)>([ctx](esphome::StringRef state) {
       alarm_apply_home_state(ctx, string_ref_limited(state, HA_SHORT_STATE_MAX_LEN));
+    })
+  );
+  esphome::api::global_api_server->subscribe_home_assistant_state(
+    ctx->entity_id, std::string("arm_mode"),
+    std::function<void(esphome::StringRef)>([ctx](esphome::StringRef arm_mode) {
+      alarm_apply_home_arm_mode(ctx, string_ref_limited(arm_mode, HA_SHORT_STATE_MAX_LEN));
     })
   );
 }
@@ -259,8 +291,19 @@ inline void alarm_apply_action_state(AlarmCardCtx *ctx, const std::string &mode,
                                      const std::string &state) {
   alarm_apply_action_availability(ctx, state);
   if (!ctx || !ctx->btn) return;
+  ctx->state = state;
   bool unavailable = state.empty() || state == "unavailable" || state == "unknown";
-  bool active = !unavailable && alarm_action_state_matches(mode, state);
+  bool active = !unavailable && alarm_action_state_matches(mode, state, ctx->arm_mode);
+  if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
+  else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+}
+
+inline void alarm_apply_action_arm_mode(AlarmCardCtx *ctx, const std::string &mode,
+                                        const std::string &arm_mode) {
+  if (!ctx || !ctx->btn) return;
+  ctx->arm_mode = arm_mode;
+  bool unavailable = ctx->state.empty() || ctx->state == "unavailable" || ctx->state == "unknown";
+  bool active = !unavailable && alarm_action_state_matches(mode, ctx->state, ctx->arm_mode);
   if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
   else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
 }
@@ -283,6 +326,12 @@ inline void subscribe_alarm_action_state(AlarmCardCtx *ctx, const std::string &m
     ctx->entity_id, {},
     std::function<void(esphome::StringRef)>([ctx, mode](esphome::StringRef state) {
       alarm_apply_action_state(ctx, mode, string_ref_limited(state, HA_SHORT_STATE_MAX_LEN));
+    })
+  );
+  esphome::api::global_api_server->subscribe_home_assistant_state(
+    ctx->entity_id, std::string("arm_mode"),
+    std::function<void(esphome::StringRef)>([ctx, mode](esphome::StringRef arm_mode) {
+      alarm_apply_action_arm_mode(ctx, mode, string_ref_limited(arm_mode, HA_SHORT_STATE_MAX_LEN));
     })
   );
 }
@@ -420,7 +469,8 @@ inline void alarm_control_update_modal(AlarmCardCtx *ctx) {
   AlarmControlModalUi &ui = alarm_control_modal_ui();
   if (!ctx || ui.active != ctx) return;
 
-  std::string active_mode = alarm_state_control_mode(ctx->state);
+  std::string active_mode = alarm_state_control_mode(
+    alarm_effective_state(ctx->state, ctx->arm_mode));
   static const char *modes[3] = {"home", "away", "disarm"};
   for (int i = 0; i < 3; i++) {
     lv_obj_t *btn = ui.mode_btn[i];
