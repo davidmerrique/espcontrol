@@ -78,9 +78,13 @@ jobs:
 
   compile:
     name: Compile Firmware (${{ matrix.slug }})
+    needs:
+      - validate
+      - docs
     runs-on: self-hosted
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         slug:
           - guition-esp32-p4-jc1060p470
