@@ -370,6 +370,19 @@ inline uint32_t next_alarm_call_id() {
   return call_id++;
 }
 
+inline std::string alarm_action_failure_message(const esphome::api::ActionResponse &response) {
+  std::string error = response.get_error_message().str();
+  if (error.empty()) return "Alarm action failed";
+
+  const std::string prefix = "Alarm action failed: ";
+  const size_t max_len = 120;
+  if (prefix.length() + error.length() > max_len) {
+    size_t keep = max_len > prefix.length() + 3 ? max_len - prefix.length() - 3 : 0;
+    error = error.substr(0, keep) + "...";
+  }
+  return prefix + error;
+}
+
 inline void send_alarm_action(AlarmActionCtx *action, const std::string &code) {
   if (!action || !action->card || action->card->entity_id.empty() ||
       esphome::api::global_api_server == nullptr) return;
@@ -397,9 +410,10 @@ inline void send_alarm_action(AlarmActionCtx *action, const std::string &code) {
     req.call_id,
     [entity_id, service_name, card](const esphome::api::ActionResponse &response) {
       if (response.is_success()) return;
+      std::string message = alarm_action_failure_message(response);
       ESP_LOGW("alarm", "%s failed for %s: %s",
-        service_name.c_str(), entity_id.c_str(), response.get_error_message().c_str());
-      alarm_show_failure(card, "Alarm action failed");
+        service_name.c_str(), entity_id.c_str(), message.c_str());
+      alarm_show_failure(card, message);
     });
   esphome::api::global_api_server->send_homeassistant_action(req);
 }
