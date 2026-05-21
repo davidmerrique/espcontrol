@@ -1354,6 +1354,7 @@ function previewHtmlValue(typePreview, key, fallback) {
 }
 
 function buttonTypePickerOptionList(isSub, selectedTypeKey) {
+  if (!isSub && selectedTypeKey === "alarm_action") selectedTypeKey = "alarm";
   var typeOpts = [];
   var selectedHiddenExperimental = null;
   for (var k in BUTTON_TYPES) {
@@ -1978,6 +1979,7 @@ function renderButtonSettings(forceOpen) {
   }
   {
     var selectedTypeKey = (rawTypeDef && rawTypeDef.pickerKey) || (b.type || "");
+    if (!c.isSub && b.type === "alarm_action") selectedTypeKey = "alarm";
     var typeOpts = buttonTypePickerOptionList(c.isSub, selectedTypeKey);
     var tf = document.createElement("div");
     tf.className = "sp-field";
@@ -2025,6 +2027,7 @@ function renderButtonSettings(forceOpen) {
     toggleRow: toggleRow,
     cardSize: c.sizes[slot] || 1,
     idPrefix: idPrefix,
+    isSub: c.isSub,
   };
 
   if (typeDef && typeDef.renderSettingsBeforeLabel && (!c.isSub || typeDef.allowInSubpage)) {

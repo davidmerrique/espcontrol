@@ -18,6 +18,84 @@ function createAlarmActionButton(alarm, mode) {
   });
 }
 
+function alarmCardTypeOptions(includeFullSetup) {
+  var options = [];
+  if (includeFullSetup) options.push({ value: "alarm", label: "Full Setup" });
+  for (var i = 0; i < ALARM_ACTIONS.length; i++) options.push(ALARM_ACTIONS[i]);
+  return options;
+}
+
+function alarmLabelIsGenerated(label) {
+  if (!label) return true;
+  for (var i = 0; i < ALARM_ACTIONS.length; i++) {
+    if (label === ALARM_ACTIONS[i].label) return true;
+  }
+  return false;
+}
+
+function alarmIconIsGenerated(icon) {
+  if (!icon || icon === "Auto" || alarmUsesDefaultIcon(icon)) return true;
+  for (var i = 0; i < ALARM_ACTIONS.length; i++) {
+    if (icon === ALARM_ACTIONS[i].icon) return true;
+  }
+  return false;
+}
+
+function setAlarmCardType(b, value, helpers) {
+  var info = alarmActionInfo(value);
+  var wasAlarmAction = b.type === "alarm_action";
+
+  if (!info) {
+    b.type = "alarm";
+    b.sensor = "";
+    b.unit = "";
+    b.precision = "";
+    b.icon_on = "Auto";
+    if (alarmLabelIsGenerated(b.label)) b.label = "";
+    if (alarmIconIsGenerated(b.icon)) b.icon = "Security";
+    b.options = normalizeAlarmOptions(b.options);
+  } else {
+    var oldInfo = alarmActionInfo(b.sensor);
+    var shouldUseGeneratedLabel = !wasAlarmAction || alarmLabelIsGenerated(b.label);
+    var shouldUseGeneratedIcon = !wasAlarmAction || alarmIconIsGenerated(b.icon) ||
+      (oldInfo && b.icon === oldInfo.icon);
+
+    b.type = "alarm_action";
+    b.sensor = info.value;
+    b.unit = "";
+    b.precision = "";
+    b.icon_on = "Auto";
+    if (shouldUseGeneratedLabel) b.label = info.label;
+    if (shouldUseGeneratedIcon) b.icon = info.icon;
+    b.options = normalizeAlarmOptions(b.options);
+  }
+
+  helpers.saveField("type", b.type);
+  helpers.saveField("sensor", b.sensor || "");
+  helpers.saveField("unit", "");
+  helpers.saveField("precision", "");
+  helpers.saveField("icon_on", "Auto");
+  helpers.saveField("label", b.label || "");
+  helpers.saveField("icon", b.icon || "Auto");
+  helpers.saveField("options", b.options || "");
+  renderButtonSettings();
+}
+
+function renderAlarmCardTypeField(panel, b, helpers) {
+  var includeFullSetup = !helpers.isSub || b.type === "alarm";
+  var value = b.type === "alarm" ? "alarm" :
+    ((alarmActionInfo(b.sensor) || ALARM_ACTIONS[0]).value);
+  panel.appendChild(helpers.selectField(
+    "Type",
+    helpers.idPrefix + "alarm-card-type",
+    alarmCardTypeOptions(includeFullSetup),
+    value,
+    function () {
+      setAlarmCardType(b, this.value, helpers);
+    }
+  ).field);
+}
+
 function syncAlarmActionSubpage(slot, alarm) {
   if (!slot || !alarm) return;
   var sp = getSubpage(slot);
@@ -76,6 +154,8 @@ registerButtonType("alarm", {
       b.options = normalizedOptions;
       helpers.saveField("options", normalizedOptions);
     }
+
+    renderAlarmCardTypeField(panel, b, helpers);
 
     var entityField = helpers.entityField(
       "Alarm Entity",
@@ -197,22 +277,7 @@ registerButtonType("alarm_action", {
   },
   renderSettingsBeforeLabel: function (panel, b, slot, helpers) {
     b.sensor = alarmActionInfo(b.sensor) ? b.sensor : "away";
-    var actionField = helpers.selectField("Action", helpers.idPrefix + "alarm-action-mode", ALARM_ACTIONS, b.sensor);
-    panel.appendChild(actionField.field);
-    actionField.select.addEventListener("change", function () {
-      var info = alarmActionInfo(this.value) || ALARM_ACTIONS[0];
-      b.sensor = info.value;
-      if (!b.label || ALARM_ACTIONS.some(function (action) { return b.label === action.label; })) {
-        b.label = info.label;
-      }
-      if (!b.icon || b.icon === "Auto" || ALARM_ACTIONS.some(function (action) { return b.icon === action.icon; })) {
-        b.icon = info.icon;
-      }
-      helpers.saveField("sensor", b.sensor);
-      helpers.saveField("label", b.label);
-      helpers.saveField("icon", b.icon);
-      renderButtonSettings();
-    });
+    renderAlarmCardTypeField(panel, b, helpers);
   },
   renderSettings: function (panel, b, slot, helpers) {
     b.sensor = alarmActionInfo(b.sensor) ? b.sensor : "away";
