@@ -732,6 +732,7 @@ inline lv_obj_t *alarm_control_create_mode_button(
   lv_obj_set_style_border_width(content, 0, LV_PART_MAIN);
   lv_obj_set_style_shadow_width(content, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_all(content, 0, LV_PART_MAIN);
+  lv_obj_clear_flag(content, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(content, LV_OBJ_FLAG_SCROLLABLE);
 
   lv_obj_t *icon = lv_label_create(content);
@@ -740,6 +741,7 @@ inline lv_obj_t *alarm_control_create_mode_button(
   lv_obj_set_style_text_align(icon, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   if (icon_font) lv_obj_set_style_text_font(icon, icon_font, LV_PART_MAIN);
   apply_width_compensation(icon, ctx ? ctx->width_compensation_percent : 100);
+  lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_align(icon, LV_ALIGN_CENTER, 0, -height / 7);
 
   lv_obj_t *label = lv_label_create(content);
@@ -748,6 +750,7 @@ inline lv_obj_t *alarm_control_create_mode_button(
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   if (label_font) lv_obj_set_style_text_font(label, label_font, LV_PART_MAIN);
   apply_width_compensation(label, ctx ? ctx->width_compensation_percent : 100);
+  lv_obj_clear_flag(label, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_align(label, LV_ALIGN_CENTER, 0, height / 5);
 
   if (icon_out) *icon_out = icon;
