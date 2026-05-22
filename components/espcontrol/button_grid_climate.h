@@ -1229,7 +1229,7 @@ inline void climate_control_layout_modal(ClimateControlCtx *ctx) {
     (value_h / 2 + layout.title_gap + title_h / 2);
   bool roomy_landscape = layout.panel_w >= 900 && layout.panel_h <= 520;
   lv_coord_t chip_h = layout.short_side < 520
-    ? (roomy_landscape ? 86 : 72)
+    ? (roomy_landscape ? 76 : 72)
     : 94;
   lv_coord_t chip_gap = control_modal_scaled_px(24, layout.short_side);
   if (chip_gap < 16) chip_gap = 16;
