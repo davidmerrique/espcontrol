@@ -1270,7 +1270,7 @@ inline void climate_control_layout_modal(ClimateControlCtx *ctx) {
   lv_obj_set_height(ui.chips, chip_h);
   lv_obj_set_style_pad_column(ui.chips, chip_gap, LV_PART_MAIN);
   lv_coord_t option_chip_w = compensated_width(
-    layout.short_side < 520 && !roomy_landscape ? 180 : 240,
+    layout.short_side < 520 ? (roomy_landscape ? 224 : 180) : 240,
     ctx->width_compensation_percent);
   if (ui.mode_chip) {
     lv_obj_set_size(ui.mode_chip, option_chip_w, chip_h);
