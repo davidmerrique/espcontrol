@@ -9,6 +9,7 @@ const { loadBundledWebSource } = require("./web_source");
 
 const ROOT = path.resolve(__dirname, "..");
 const IMAGES_DIR = path.join(ROOT, "docs", "public", "images");
+const FIXED_PREVIEW_DATE = "2026-05-24T20:30:00Z";
 
 function installDocsHarness(source) {
   const marker = "\n})();";
@@ -225,7 +226,20 @@ async function main() {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EspControl docs screenshots</title>
 </head>
-<body><esp-app></esp-app><script>${source}</script></body>
+<body><esp-app></esp-app><script>
+(() => {
+  const RealDate = Date;
+  const fixedPreviewTime = new RealDate(${JSON.stringify(FIXED_PREVIEW_DATE)}).getTime();
+  function PreviewDate(...args) {
+    return args.length ? new RealDate(...args) : new RealDate(fixedPreviewTime);
+  }
+  PreviewDate.UTC = RealDate.UTC;
+  PreviewDate.parse = RealDate.parse;
+  PreviewDate.now = () => fixedPreviewTime;
+  PreviewDate.prototype = RealDate.prototype;
+  window.Date = PreviewDate;
+})();
+</script><script>${source}</script></body>
 </html>`;
   const { server, url } = await startServer(html);
   const browser = await chromium.launch();
