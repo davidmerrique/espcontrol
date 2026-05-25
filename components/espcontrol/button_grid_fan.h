@@ -282,9 +282,8 @@ inline void send_fan_preset_action(FanCardCtx *ctx, const std::string &mode) {
 
 inline void fan_preset_close() {
   FanPresetUi &ui = fan_preset_ui();
-  if (ui.overlay) lv_obj_del(ui.overlay);
+  control_modal_delete_overlay(ControlModalKind::FAN_PRESET, ui.overlay);
   ui = FanPresetUi();
-  control_modal_clear_active(ControlModalKind::FAN_PRESET);
 }
 
 inline void fan_preset_close_if_unsupported(FanCardCtx *ctx) {

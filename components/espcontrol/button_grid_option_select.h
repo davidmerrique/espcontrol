@@ -224,9 +224,8 @@ inline void send_option_select_action(OptionSelectCtx *ctx, const std::string &o
 
 inline void option_select_hide_modal() {
   OptionSelectModalUi &ui = option_select_modal_ui();
-  if (ui.overlay) lv_obj_del(ui.overlay);
+  control_modal_delete_overlay(ControlModalKind::OPTION_SELECT, ui.overlay);
   ui = OptionSelectModalUi();
-  control_modal_clear_active(ControlModalKind::OPTION_SELECT);
 }
 
 inline void option_select_open_modal(OptionSelectCtx *ctx) {

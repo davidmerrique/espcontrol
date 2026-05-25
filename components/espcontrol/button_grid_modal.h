@@ -48,6 +48,13 @@ inline void control_modal_clear_active(ControlModalKind kind) {
   if (active.kind == kind) control_modal_reset_active();
 }
 
+inline void control_modal_delete_overlay(ControlModalKind kind, lv_obj_t *&overlay) {
+  lv_obj_t *deleted = overlay;
+  overlay = nullptr;
+  if (deleted) lv_obj_del(deleted);
+  control_modal_clear_active(kind);
+}
+
 inline void control_modal_set_active(ControlModalKind kind, lv_obj_t *overlay,
                                      ControlModalCloseCallback close_callback) {
   ControlModalActive &active = control_modal_active();
@@ -158,6 +165,13 @@ inline void control_modal_reset_nested_menu() {
 inline void control_modal_clear_nested_menu(lv_obj_t *overlay) {
   ControlModalNestedActive &active = control_modal_nested_active();
   if (active.overlay == overlay) control_modal_reset_nested_menu();
+}
+
+inline void control_modal_delete_nested_overlay(lv_obj_t *&overlay) {
+  lv_obj_t *deleted = overlay;
+  overlay = nullptr;
+  if (deleted) lv_obj_del(deleted);
+  control_modal_clear_nested_menu(deleted);
 }
 
 inline void control_modal_close_nested_menu() {

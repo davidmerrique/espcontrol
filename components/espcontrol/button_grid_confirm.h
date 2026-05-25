@@ -49,9 +49,8 @@ inline const lv_font_t *switch_confirmation_icon_font(const lv_font_t *fallback)
 
 inline void switch_confirmation_hide_modal() {
   SwitchConfirmationModalUi &ui = switch_confirmation_modal_ui();
-  if (ui.overlay) lv_obj_del(ui.overlay);
+  control_modal_delete_overlay(ControlModalKind::SWITCH_CONFIRMATION, ui.overlay);
   ui = SwitchConfirmationModalUi();
-  control_modal_clear_active(ControlModalKind::SWITCH_CONFIRMATION);
 }
 
 inline void switch_confirmation_confirm() {
