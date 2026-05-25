@@ -26,6 +26,7 @@ var EspControlModel = (() => {
   var index_exports = {};
   __export(index_exports, {
     CARD_CONFIG_FIELDS: () => CARD_CONFIG_FIELDS,
+    MONTH_NAME_DEFAULTS: () => MONTH_NAME_DEFAULTS,
     applySpans: () => applySpans,
     backLabelFromOrder: () => backLabelFromOrder,
     backOrderToken: () => backOrderToken,
@@ -43,12 +44,27 @@ var EspControlModel = (() => {
     isBackOrderToken: () => isBackOrderToken,
     legacyButtonConfigSafe: () => legacyButtonConfigSafe,
     markSpannedCells: () => markSpannedCells,
+    normalizeClockBrightness: () => normalizeClockBrightness,
+    normalizeHour: () => normalizeHour,
+    normalizeMonthNames: () => normalizeMonthNames,
+    normalizeNtpServer: () => normalizeNtpServer,
+    normalizeScheduleClockBrightness: () => normalizeScheduleClockBrightness,
+    normalizeScheduleDimmedBrightness: () => normalizeScheduleDimmedBrightness,
+    normalizeScheduleMode: () => normalizeScheduleMode,
+    normalizeScheduleWakeBrightness: () => normalizeScheduleWakeBrightness,
+    normalizeScheduleWakeTimeout: () => normalizeScheduleWakeTimeout,
+    normalizeScreensaverAction: () => normalizeScreensaverAction,
+    normalizeScreensaverDimmedBrightness: () => normalizeScreensaverDimmedBrightness,
+    normalizeTemperatureUnit: () => normalizeTemperatureUnit,
     parseBackOrderToken: () => parseBackOrderToken,
     parseGridOrder: () => parseGridOrder,
     parseRawButtonConfig: () => parseRawButtonConfig,
     parseSubpageOrder: () => parseSubpageOrder,
     planBackupButtonLayout: () => planBackupButtonLayout,
+    scheduleModeOption: () => scheduleModeOption,
+    screensaverActionOption: () => screensaverActionOption,
     serializeGridOrder: () => serializeGridOrder,
+    serializeMonthNames: () => serializeMonthNames,
     serializeSubpageGrid: () => serializeSubpageGrid,
     sizeColSpan: () => sizeColSpan,
     sizeFitsAt: () => sizeFitsAt,
@@ -483,6 +499,119 @@ var EspControlModel = (() => {
       }
     }
     return order;
+  }
+
+  // src/webserver/model/settings.ts
+  var MONTH_NAME_DEFAULTS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ];
+  function normalizeTemperatureUnit(value) {
+    const unit = String(value == null ? "" : value).trim().toLowerCase();
+    if (unit === "f" || unit === "\xB0f" || unit === "fahrenheit") return "\xB0F";
+    if (unit === "c" || unit === "\xB0c" || unit === "celsius" || unit === "centigrade") return "\xB0C";
+    return "Auto";
+  }
+  function normalizeHour(value, fallback) {
+    const n = parseInt(String(value), 10);
+    if (!Number.isFinite(n)) return fallback;
+    if (n < 0) return 0;
+    if (n > 23) return 23;
+    return n;
+  }
+  function normalizeScheduleWakeTimeout(value) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return 60;
+    if (n < 10) return 10;
+    if (n > 3600) return 3600;
+    return Math.round(n);
+  }
+  function normalizeScheduleWakeBrightness(value) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return 10;
+    if (n < 10) return 10;
+    if (n > 100) return 100;
+    return Math.round(n);
+  }
+  function normalizeScheduleClockBrightness(value) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return 10;
+    if (n < 1) return 1;
+    if (n > 100) return 100;
+    return Math.round(n);
+  }
+  function normalizeScheduleDimmedBrightness(value) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return 10;
+    if (n < 1) return 1;
+    if (n > 100) return 100;
+    return Math.round(n);
+  }
+  function normalizeScheduleMode(value) {
+    const mode = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+    if (mode === "screen_dimmed" || mode === "dimmed" || mode === "always_on" || mode === "always") {
+      return "screen_dimmed";
+    }
+    if (mode === "clock") return "clock";
+    return "screen_off";
+  }
+  function normalizeScreensaverAction(value) {
+    const action = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+    if (action === "screen_dimmed" || action === "dimmed" || action === "dim") return "dim";
+    if (action === "clock") return "clock";
+    return "off";
+  }
+  function screensaverActionOption(value) {
+    const action = normalizeScreensaverAction(value);
+    if (action === "dim") return "Screen Dimmed";
+    if (action === "clock") return "Clock";
+    return "Display Off";
+  }
+  function scheduleModeOption(value) {
+    const mode = normalizeScheduleMode(value);
+    if (mode === "screen_dimmed") return "Screen Dimmed";
+    if (mode === "clock") return "Clock";
+    return "Screen off";
+  }
+  function normalizeClockBrightness(value, fallback) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    if (n < 1) return 1;
+    if (n > 100) return 100;
+    return Math.round(n);
+  }
+  function normalizeScreensaverDimmedBrightness(value) {
+    const n = parseFloat(String(value));
+    if (!Number.isFinite(n) || n <= 0) return 10;
+    if (n < 1) return 1;
+    if (n > 100) return 100;
+    return Math.round(n);
+  }
+  function normalizeNtpServer(value, fallback) {
+    const server = String(value == null ? "" : value).trim();
+    return server || fallback;
+  }
+  function normalizeMonthNames(value) {
+    const parts = Array.isArray(value) ? value.slice() : String(value == null ? "" : value).split(",");
+    const out = [];
+    for (let i = 0; i < 12; i += 1) {
+      const text = String(parts[i] == null ? "" : parts[i]).trim();
+      out.push(text || MONTH_NAME_DEFAULTS[i] || "");
+    }
+    return out;
+  }
+  function serializeMonthNames(value) {
+    return normalizeMonthNames(value).join(",");
   }
   return __toCommonJS(index_exports);
 })();

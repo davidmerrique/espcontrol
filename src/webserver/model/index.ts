@@ -42,6 +42,25 @@ export {
   subpageOrderForSerialize,
 } from "./subpage";
 
+export {
+  MONTH_NAME_DEFAULTS,
+  normalizeClockBrightness,
+  normalizeHour,
+  normalizeMonthNames,
+  normalizeNtpServer,
+  normalizeScheduleClockBrightness,
+  normalizeScheduleDimmedBrightness,
+  normalizeScheduleMode,
+  normalizeScheduleWakeBrightness,
+  normalizeScheduleWakeTimeout,
+  normalizeScreensaverAction,
+  normalizeScreensaverDimmedBrightness,
+  normalizeTemperatureUnit,
+  scheduleModeOption,
+  screensaverActionOption,
+  serializeMonthNames,
+} from "./settings";
+
 export type {
   BackupButtonLayoutPlan,
   BackupOrderSlots,

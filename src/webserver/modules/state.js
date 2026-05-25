@@ -172,10 +172,7 @@ function sortScreenRotationOptions(options) {
 }
 
 function normalizeTemperatureUnit(value) {
-  var unit = String(value == null ? "" : value).trim().toLowerCase();
-  if (unit === "f" || unit === "\u00B0f" || unit === "fahrenheit") return "\u00B0F";
-  if (unit === "c" || unit === "\u00B0c" || unit === "celsius" || unit === "centigrade") return "\u00B0C";
-  return "Auto";
+  return EspControlModel.normalizeTemperatureUnit(value);
 }
 
 function timezonePrefersFahrenheit(timezone) {
@@ -218,110 +215,59 @@ function appendScreenRotationOption(select, opt) {
 }
 
 function normalizeHour(value, fallback) {
-  var n = parseInt(value, 10);
-  if (!isFinite(n)) return fallback;
-  if (n < 0) return 0;
-  if (n > 23) return 23;
-  return n;
+  return EspControlModel.normalizeHour(value, fallback);
 }
 
 function normalizeScheduleWakeTimeout(value) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return 60;
-  if (n < 10) return 10;
-  if (n > 3600) return 3600;
-  return Math.round(n);
+  return EspControlModel.normalizeScheduleWakeTimeout(value);
 }
 
 function normalizeScheduleWakeBrightness(value) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return 10;
-  if (n < 10) return 10;
-  if (n > 100) return 100;
-  return Math.round(n);
+  return EspControlModel.normalizeScheduleWakeBrightness(value);
 }
 
 function normalizeScheduleClockBrightness(value) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return 10;
-  if (n < 1) return 1;
-  if (n > 100) return 100;
-  return Math.round(n);
+  return EspControlModel.normalizeScheduleClockBrightness(value);
 }
 
 function normalizeScheduleDimmedBrightness(value) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return 10;
-  if (n < 1) return 1;
-  if (n > 100) return 100;
-  return Math.round(n);
+  return EspControlModel.normalizeScheduleDimmedBrightness(value);
 }
 
 function normalizeScheduleMode(value) {
-  var v = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
-  if (v === "screen_dimmed" || v === "dimmed" || v === "always_on" || v === "always") {
-    return "screen_dimmed";
-  }
-  if (v === "clock") return "clock";
-  return "screen_off";
+  return EspControlModel.normalizeScheduleMode(value);
 }
 
 function normalizeScreensaverAction(value) {
-  var v = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
-  if (v === "screen_dimmed" || v === "dimmed" || v === "dim") return "dim";
-  if (v === "clock") return "clock";
-  return "off";
+  return EspControlModel.normalizeScreensaverAction(value);
 }
 
 function screensaverActionOption(value) {
-  var action = normalizeScreensaverAction(value);
-  if (action === "dim") return "Screen Dimmed";
-  if (action === "clock") return "Clock";
-  return "Display Off";
+  return EspControlModel.screensaverActionOption(value);
 }
 
 function scheduleModeOption(value) {
-  var mode = normalizeScheduleMode(value);
-  if (mode === "screen_dimmed") return "Screen Dimmed";
-  if (mode === "clock") return "Clock";
-  return "Screen off";
+  return EspControlModel.scheduleModeOption(value);
 }
 
 function normalizeClockBrightness(value, fallback) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return fallback;
-  if (n < 1) return 1;
-  if (n > 100) return 100;
-  return Math.round(n);
+  return EspControlModel.normalizeClockBrightness(value, fallback);
 }
 
 function normalizeScreensaverDimmedBrightness(value) {
-  var n = parseFloat(value);
-  if (!isFinite(n) || n <= 0) return 10;
-  if (n < 1) return 1;
-  if (n > 100) return 100;
-  return Math.round(n);
+  return EspControlModel.normalizeScreensaverDimmedBrightness(value);
 }
 
 function normalizeNtpServer(value, fallback) {
-  var v = String(value == null ? "" : value).trim();
-  return v || fallback;
+  return EspControlModel.normalizeNtpServer(value, fallback);
 }
 
 function normalizeMonthNames(value) {
-  var parts = Array.isArray(value)
-    ? value.slice()
-    : String(value == null ? "" : value).split(",");
-  var out = [];
-  for (var i = 0; i < 12; i++) {
-    var text = String(parts[i] == null ? "" : parts[i]).trim();
-    out.push(text || MONTH_NAME_DEFAULTS[i]);
-  }
-  return out;
+  return EspControlModel.normalizeMonthNames(value);
 }
 
 function serializeMonthNames(value) {
-  return normalizeMonthNames(value).join(",");
+  return EspControlModel.serializeMonthNames(value);
 }
 
 function hasCustomMonthNames() {
