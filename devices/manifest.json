@@ -620,6 +620,7 @@
           "wrapTallLabels": false
         },
         "package": {
+          "subpageConfigChunks": 4,
           "substitutions": {
             "screen_width": "\"480\"",
             "screen_height": "\"480\"",

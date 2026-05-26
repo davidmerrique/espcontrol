@@ -285,6 +285,11 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
         if key in package and not isinstance(package[key], bool):
             errors.append(device_error(slug, f"firmware.package.{key} must be true or false when set"))
 
+    if "subpageConfigChunks" in package:
+        chunks = package["subpageConfigChunks"]
+        if not isinstance(chunks, int) or isinstance(chunks, bool) or chunks not in (4, 8):
+            errors.append(device_error(slug, "firmware.package.subpageConfigChunks must be 4 or 8 when set"))
+
     substitutions = package.get("substitutions")
     if not isinstance(substitutions, dict) or not substitutions:
         errors.append(device_error(slug, "firmware.package.substitutions must be a non-empty object"))
@@ -451,6 +456,7 @@ def load_device_profiles(path: Path = DEVICE_MANIFEST) -> dict[str, dict[str, An
 
 def web_features(profile: dict[str, Any]) -> dict[str, Any]:
     features: dict[str, Any] = {}
+    package = profile["firmware"]["package"]
     rotation = profile.get("rotation") or {}
     if rotation.get("enabled"):
         features["screenRotation"] = True
@@ -461,6 +467,8 @@ def web_features(profile: dict[str, Any]) -> dict[str, Any]:
             features["screenRotationDisplayOffset"] = rotation["displayOffset"]
     if profile.get("internalRelays"):
         features["internalRelays"] = copy.deepcopy(profile["internalRelays"])
+    if package.get("subpageConfigChunks"):
+        features["subpageConfigChunks"] = package["subpageConfigChunks"]
     return features
 
 

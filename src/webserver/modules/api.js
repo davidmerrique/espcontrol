@@ -327,10 +327,17 @@ function saveButtonConfig(slot) {
   postText(entityNameForSlot("button_config", slot), serializeButtonConfig(b));
 }
 
+function subpageEntityKeys() {
+  var keys = ENTITY_CATALOG.groups.subpage_slot || [];
+  var count = (CFG.features && CFG.features.subpageConfigChunks) || keys.length;
+  count = Math.max(1, Math.min(keys.length, parseInt(count, 10) || keys.length));
+  return keys.slice(0, count);
+}
+
 function saveSubpageEntity(slot) {
   var sp = state.subpages[slot];
   var full = sp ? serializeSubpageConfig(sp) : "";
-  var keys = ENTITY_CATALOG.groups.subpage_slot;
+  var keys = subpageEntityKeys();
   var chunks = EspControlModel.splitSubpageConfigChunks(full, keys.length, 255);
   if (!chunks) {
     showBanner("Subpage is too large to save. Shorten labels or entity IDs.", "error");
@@ -738,7 +745,7 @@ function settingsStateEntities() {
 }
 
 function subpageStateEntities() {
-  return entityStateItemsForSlots(ENTITY_CATALOG.groups.subpage_slot);
+  return entityStateItemsForSlots(subpageEntityKeys());
 }
 
 function loadStateItems(items, handleState, concurrency) {

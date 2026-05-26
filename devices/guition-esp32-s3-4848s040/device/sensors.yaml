@@ -78,10 +78,6 @@ esphome:
             #define SP_EXT(n) subpage_##n##_config_ext
             #define SP_EXT2(n) subpage_##n##_config_ext_2
             #define SP_EXT3(n) subpage_##n##_config_ext_3
-            #define SP_EXT4(n) subpage_##n##_config_ext_4
-            #define SP_EXT5(n) subpage_##n##_config_ext_5
-            #define SP_EXT6(n) subpage_##n##_config_ext_6
-            #define SP_EXT7(n) subpage_##n##_config_ext_7
             BtnSlot slots[] = {
               BTN_SLOT(1),
               BTN_SLOT(2),
@@ -113,35 +109,11 @@ esphome:
               SP_EXT3(5), SP_EXT3(6), SP_EXT3(7), SP_EXT3(8),
               SP_EXT3(9),
             };
-            esphome::text::Text *sp_ext4[] = {
-              SP_EXT4(1), SP_EXT4(2), SP_EXT4(3), SP_EXT4(4),
-              SP_EXT4(5), SP_EXT4(6), SP_EXT4(7), SP_EXT4(8),
-              SP_EXT4(9),
-            };
-            esphome::text::Text *sp_ext5[] = {
-              SP_EXT5(1), SP_EXT5(2), SP_EXT5(3), SP_EXT5(4),
-              SP_EXT5(5), SP_EXT5(6), SP_EXT5(7), SP_EXT5(8),
-              SP_EXT5(9),
-            };
-            esphome::text::Text *sp_ext6[] = {
-              SP_EXT6(1), SP_EXT6(2), SP_EXT6(3), SP_EXT6(4),
-              SP_EXT6(5), SP_EXT6(6), SP_EXT6(7), SP_EXT6(8),
-              SP_EXT6(9),
-            };
-            esphome::text::Text *sp_ext7[] = {
-              SP_EXT7(1), SP_EXT7(2), SP_EXT7(3), SP_EXT7(4),
-              SP_EXT7(5), SP_EXT7(6), SP_EXT7(7), SP_EXT7(8),
-              SP_EXT7(9),
-            };
             #undef BTN_SLOT
             #undef SP_CFG
             #undef SP_EXT
             #undef SP_EXT2
             #undef SP_EXT3
-            #undef SP_EXT4
-            #undef SP_EXT5
-            #undef SP_EXT6
-            #undef SP_EXT7
             GridConfig cfg = {};
             cfg.num_slots = 9;
             cfg.cols = 3;
@@ -170,7 +142,7 @@ esphome:
             apply_width_compensation(id(temperatures), cfg.width_compensation_percent);
             apply_width_compensation(id(clock_label), cfg.width_compensation_percent);
             // END GENERATED PHASE 2 GRID WIRING
-            grid_phase2(slots, cfg, sp_cfgs, sp_ext, sp_ext2, sp_ext3, sp_ext4, sp_ext5, sp_ext6, sp_ext7,
+            grid_phase2(slots, cfg, sp_cfgs, sp_ext, sp_ext2, sp_ext3,
               id(button_order).state,
               id(button_on_color).state,
               id(button_off_color).state,

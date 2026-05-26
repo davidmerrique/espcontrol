@@ -985,10 +985,10 @@ function serializeCompactSubpageConfig(sp) {
 
 function applySubpageRaw(slot) {
   var raw = state.subpageRaw[slot];
-  var combined = (raw ? raw.main : "") + (raw ? raw.ext : "") +
-    (raw ? raw.ext2 : "") + (raw ? raw.ext3 : "") +
-    (raw ? raw.ext4 : "") + (raw ? raw.ext5 : "") +
-    (raw ? raw.ext6 : "") + (raw ? raw.ext7 : "");
+  var combined = (raw && raw.main || "") + (raw && raw.ext || "") +
+    (raw && raw.ext2 || "") + (raw && raw.ext3 || "") +
+    (raw && raw.ext4 || "") + (raw && raw.ext5 || "") +
+    (raw && raw.ext6 || "") + (raw && raw.ext7 || "");
   var pending = state.subpageSavePending[slot];
   if (pending) {
     if (combined !== pending) {
