@@ -91,6 +91,9 @@ function normalizeButtonConfig(b) {
   if (b && b.type === "webhook") {
     if (typeof normalizeWebhookConfig === "function") normalizeWebhookConfig(b);
   }
+  if (b && b.type === "todo") {
+    if (typeof normalizeTodoConfig === "function") normalizeTodoConfig(b);
+  }
   if (b && b.type === "light_switch") {
     b.sensor = "";
     b.unit = "";
@@ -125,7 +128,7 @@ function normalizeButtonConfig(b) {
     if (!b.icon || b.icon === "Auto") b.icon = doorWindowClosedIcon(b.precision);
     if (!b.icon_on || b.icon_on === "Auto") b.icon_on = doorWindowOpenIcon(b.precision);
     b.options = normalizeDoorWindowOptions(b.options);
-  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && !cardLargeNumbersSupported(b)) {
+  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "todo" && !cardLargeNumbersSupported(b)) {
     b.options = "";
   }
   return b;

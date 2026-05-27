@@ -178,9 +178,16 @@ assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", 
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_oscillate", true, true), false);
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("option_select", false, false), false);
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("option_select", false, true), false);
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", false, false), false);
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", true, false), true);
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", true, true), true);
 assert(
   hooks.buttonTypePickerKeysForExperimental(false, false, "fan_speed").includes("fan_speed"),
   "saved fan cards remain represented while hidden"
+);
+assert(
+  hooks.buttonTypePickerKeysForExperimental(false, false, "todo").includes("todo"),
+  "saved todo cards remain represented while hidden"
 );
 
 assert.strictEqual(hooks.normalizeTemperatureUnit("fahrenheit"), "\u00b0F");
@@ -317,6 +324,17 @@ const sensorTextPreview = hooks.buttonTypePreviewFor("sensor", {
 });
 assert(sensorTextPreview.iconHtml.includes("mdi-washing-machine"), "sensor text preview uses the selected icon");
 assert(sensorTextPreview.labelHtml.includes("mdi-format-text"), "sensor text preview uses the text badge");
+
+const todoPreview = hooks.buttonTypePreviewFor("todo", {
+  entity: "todo.shopping",
+  label: "Shopping",
+  icon: "Check",
+  type: "todo",
+});
+assert(todoPreview.iconHtml.includes("sp-sensor-value"), "todo preview shows an item count");
+assert(todoPreview.labelHtml.includes("Shopping"), "todo preview uses the configured label");
+assert(todoPreview.labelHtml.includes("mdi-check"), "todo preview uses the check badge");
+assert.deepStrictEqual(Array.from(hooks.buttonTypeRuntimeSpec("todo").domains), ["todo"], "todo entity field is limited to todo entities");
 
 const legacyForecastPreview = hooks.buttonTypePreviewFor("weather_forecast", {
   entity: "weather.forecast_home",

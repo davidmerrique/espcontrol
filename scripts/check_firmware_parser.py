@@ -96,6 +96,13 @@ int main() {
   assert(switch_confirmation_yes_text(confirm) == "Power Down");
   assert(switch_confirmation_no_text(confirm) == "No");
 
+  auto todo = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo");
+  assert(todo.entity == "todo.shopping");
+  assert(todo.label == "Shopping");
+  assert(todo.icon == "Check");
+  assert(todo.icon_on == "Auto");
+  assert(todo.type == "todo");
+
   assert(cfg_option_token_present("large_numbers,active_color", "active_color"));
   assert(cfg_option_value("state_entity=sensor.room%2Ctemp,state_unit=%25", "state_entity") == "sensor.room,temp");
   assert(cfg_option_value("state_entity=sensor.room%2Ctemp,state_unit=%25", "state_unit") == "%");

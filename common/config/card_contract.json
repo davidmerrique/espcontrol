@@ -677,6 +677,23 @@
         "options": ""
       }
     },
+    "todo": {
+      "label": "Todo",
+      "allowInSubpage": true,
+      "experimental": "developer",
+      "domains": ["todo"],
+      "default": {
+        "entity": "",
+        "label": "",
+        "icon": "Check",
+        "icon_on": "Auto",
+        "sensor": "",
+        "unit": "",
+        "type": "todo",
+        "precision": "",
+        "options": ""
+      }
+    },
     "sensor": {
       "label": "Sensor",
       "allowInSubpage": true,
@@ -914,6 +931,7 @@
     "climate": "H",
     "push": "P",
     "webhook": "WH",
+    "todo": "TD",
     "internal": "I",
     "subpage": "G"
   }

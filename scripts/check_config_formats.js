@@ -268,6 +268,7 @@ assertButtonTypeSpecBacked("timezone", "timezone card");
 assertButtonTypeSpecBacked("weather", "weather card");
 assertButtonTypeSpecBacked("push", "push card");
 assertButtonTypeSpecBacked("webhook", "webhook card");
+assertButtonTypeSpecBacked("todo", "todo card");
 assertButtonTypeSpecBacked("internal", "internal relay card");
 assertButtonTypeSpecBacked("garage", "garage card");
 assertButtonTypeSpecBacked("lock", "lock card");
@@ -1474,6 +1475,31 @@ assert.strictEqual(
   true,
   "saved fan type remains selectable while hidden");
 
+assertButtonRoundTrip(hooks, "todo button", {
+  entity: "todo.shopping",
+  label: "Shopping",
+  icon: "Check",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "todo",
+  precision: "",
+  options: "",
+}, false);
+assert.deepStrictEqual(Array.from(hooks.cardContractDomains("todo")), ["todo"], "todo card only accepts todo entities");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", false, false), false, "todo picker hidden without developer flag");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", true, false), true, "todo picker visible with developer flag");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", true, true), true, "todo picker visible in subpages with developer flag");
+assert.strictEqual(
+  loadHooks("?developer=experimental").buttonTypeVisibleInPickerForExperimental("todo", false, false),
+  true,
+  "todo picker visible with developer URL flag"
+);
+assert.strictEqual(
+  hooks.buttonTypePickerKeysForExperimental(false, false, "todo").indexOf("todo") >= 0,
+  true,
+  "saved todo type remains selectable while hidden");
+
 const subpageStateOff = buttonShape({
   label: "Windows",
   icon: "Window Closed",
@@ -2208,6 +2234,19 @@ assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|WH,https%3A//
     }),
   ],
 }, "compact webhook subpage parse");
+
+assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|TD,todo.shopping,Shopping,Check")), {
+  order: ["1", "B"],
+  buttons: [
+    buttonShape({
+      entity: "todo.shopping",
+      label: "Shopping",
+      icon: "Check",
+      icon_on: "Auto",
+      type: "todo",
+    }),
+  ],
+}, "compact todo subpage parse");
 
 assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|U,input_select.house_mode,House%20Mode,Chevron%20Down")), {
   order: ["1", "B"],

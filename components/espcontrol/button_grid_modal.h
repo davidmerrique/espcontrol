@@ -23,6 +23,7 @@ enum class ControlModalKind {
   NETWORK_STATUS,
   ALARM_PIN,
   ALARM_CONTROL,
+  TODO_LIST,
 };
 
 using ControlModalCloseCallback = void (*)();

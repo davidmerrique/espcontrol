@@ -227,6 +227,10 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
     setup_option_select_card(s, p, palette.has_sensor_color, palette.sensor_val);
     return;
   }
+  if (p.type == "todo") {
+    setup_todo_card(s, p, palette.has_sensor_color, palette.sensor_val);
+    return;
+  }
   if (p.type == "media") {
     setup_media_card(s, p,
       palette.has_on ? palette.on_val : DEFAULT_SLIDER_COLOR,
@@ -828,6 +832,20 @@ inline void grid_phase2(
       }
       continue;
     }
+    if (p.type == "todo") {
+      if (!p.entity.empty()) {
+        TodoCardCtx *ctx = create_todo_card_context(
+          s, p,
+          has_on ? on_val : DEFAULT_SLIDER_COLOR,
+          has_off ? off_val : DEFAULT_OFF_COLOR,
+          lv_obj_get_style_text_font(s.text_lbl, LV_PART_MAIN),
+          display_icon_font(display),
+          display_main_width_percent(display));
+        subscribe_todo_state(ctx);
+        subscribe_todo_friendly_name(ctx);
+      }
+      continue;
+    }
     if (p.type == "media") {
       if (!p.entity.empty()) {
         std::string mode = media_card_mode(p.sensor);
@@ -1336,6 +1354,24 @@ inline void grid_phase2(
           ParsedCfg *c = (ParsedCfg *)lv_event_get_user_data(e);
           if (c) send_webhook_action(*c);
         }, LV_EVENT_CLICKED, ctx);
+        continue;
+      }
+      if (sb_cfg.type == "todo") {
+        if (!sb_cfg.entity.empty()) {
+          TodoCardCtx *ctx = create_todo_card_context(
+            sub_slot, sb_cfg,
+            has_on ? on_val : DEFAULT_SLIDER_COLOR,
+            has_off ? off_val : DEFAULT_OFF_COLOR,
+            lv_obj_get_style_text_font(sub_slot.text_lbl, LV_PART_MAIN),
+            display_icon_font(display),
+            display_main_width_percent(display));
+          subscribe_todo_state(ctx);
+          subscribe_todo_friendly_name(ctx);
+          lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
+            TodoCardCtx *ctx = (TodoCardCtx *)lv_event_get_user_data(e);
+            if (todo_card_context_valid(ctx)) todo_card_open_modal(ctx);
+          }, LV_EVENT_CLICKED, ctx);
+        }
         continue;
       }
       if (sb_cfg.type == "option_select") {
