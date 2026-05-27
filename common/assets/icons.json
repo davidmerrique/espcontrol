@@ -22,6 +22,24 @@
       "codepoint": "F0156",
       "mdi": "close",
       "comment": "Modal close button"
+    },
+    {
+      "name": "Download",
+      "codepoint": "F01DA",
+      "mdi": "download",
+      "comment": "Firmware install update entity"
+    },
+    {
+      "name": "Tag",
+      "codepoint": "F04F9",
+      "mdi": "tag",
+      "comment": "Firmware version entity"
+    },
+    {
+      "name": "Update",
+      "codepoint": "F06B0",
+      "mdi": "update",
+      "comment": "Firmware update entities"
     }
   ],
   "icons": [
