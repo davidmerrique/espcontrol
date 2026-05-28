@@ -90,6 +90,14 @@ var MEDIA_CARD_METADATA = {
       ["play_pause", "Play/Pause"],
     ],
   },
+  largeNumbers: {
+    label: "Large Media Numbers",
+    idSuffix: "large-media-numbers",
+    supported: function (b) {
+      var mode = mediaEditorMode(b && b.sensor);
+      return mode === "volume" || mode === "position";
+    },
+  },
   preview: {
     badge: "speaker",
   },
@@ -269,6 +277,10 @@ registerButtonType("media", {
     panel.appendChild(displayField);
     syncDisplayField();
 
+    if (b.sensor === "position") {
+      helpers.renderCardLargeNumbersToggle(panel, b, helpers, MEDIA_CARD_METADATA);
+    }
+
     if (b.sensor === "now_playing") {
       var controls = helpers.renderCardSegmentControl(panel, b, helpers, {
         segment: Object.assign({}, MEDIA_CARD_METADATA.nowPlayingControls, {
@@ -305,6 +317,7 @@ registerButtonType("media", {
     }
 
     if (b.sensor === "volume") {
+      helpers.renderCardLargeNumbersToggle(panel, b, helpers, MEDIA_CARD_METADATA);
       var maxField = helpers.renderCardNumberField(panel, b, helpers, {
         label: "Maximum Volume",
         idSuffix: "volume-max",
@@ -357,12 +370,14 @@ registerButtonType("media", {
       var bgColor = (typeof state !== "undefined" && state.offColor) ? state.offColor : "313131";
       var progressColor = "444444";
       var positionLabel = b.precision === "state" ? "Paused" : label;
+      var positionClass = "sp-sensor-preview sp-media-position-time" +
+        (cardLargeNumbersEnabled(b) ? " sp-sensor-preview-large" : "");
       return {
         iconHtml:
           '<span class="sp-slider-preview" style="inset:-2px;background:#' + helpers.escHtml(bgColor) + '">' +
           '<span class="sp-slider-track"><span class="sp-slider-fill" style="width:50%;height:100%;background:#' +
           helpers.escHtml(progressColor) + '"></span></span></span>' +
-          '<span class="sp-sensor-preview sp-media-position-time">' +
+          '<span class="' + positionClass + '">' +
           '<span class="sp-sensor-value">0:00</span></span>',
         labelHtml: cardBadgeLabelHtml(helpers, positionLabel, MEDIA_CARD_METADATA.preview.badge),
       };

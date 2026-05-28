@@ -17,6 +17,11 @@
       "domains": ["light", "switch", "input_boolean", "fan"],
       "options": [
         {
+          "name": "large_numbers",
+          "label": "Large Active Display Numbers",
+          "kind": "flag"
+        },
+        {
           "name": "confirmation_mode",
           "label": "Confirmation Required",
           "kind": "choice",
@@ -64,6 +69,13 @@
       "label": "Action",
       "allowInSubpage": true,
       "domains": ["scene", "script", "automation", "button", "vacuum", "input_button", "input_boolean", "input_number", "input_select", "select"],
+      "options": [
+        {
+          "name": "large_numbers",
+          "label": "Large State Numbers",
+          "kind": "flag"
+        }
+      ],
       "default": {
         "entity": "",
         "label": "",
@@ -189,7 +201,7 @@
           "name": "date_time_mode",
           "label": "Type",
           "kind": "choice",
-          "values": ["datetime", "", "timezone"],
+          "values": ["clock", "datetime", "", "timezone"],
           "defaultValue": ""
         },
         {
@@ -206,6 +218,37 @@
         "sensor": "",
         "unit": "",
         "type": "calendar",
+        "precision": "",
+        "options": ""
+      }
+    },
+    "clock": {
+      "label": "Date & Time",
+      "allowInSubpage": true,
+      "pickerKey": "calendar",
+      "domains": [],
+      "options": [
+        {
+          "name": "date_time_mode",
+          "label": "Type",
+          "kind": "choice",
+          "values": ["clock", "datetime", "", "timezone"],
+          "defaultValue": "clock"
+        },
+        {
+          "name": "large_numbers",
+          "label": "Large Date / Time Numbers",
+          "kind": "flag"
+        }
+      ],
+      "default": {
+        "entity": "",
+        "label": "",
+        "icon": "Auto",
+        "icon_on": "Auto",
+        "sensor": "",
+        "unit": "",
+        "type": "clock",
         "precision": "",
         "options": ""
       }
@@ -228,6 +271,11 @@
           "kind": "choice",
           "values": ["icon", "actual", "target"],
           "defaultValue": "target"
+        },
+        {
+          "name": "large_numbers",
+          "label": "Large Temperature Numbers",
+          "kind": "flag"
         }
       ],
       "behavior": {
@@ -595,6 +643,11 @@
           "max": 100,
           "step": 1,
           "defaultValue": "100"
+        },
+        {
+          "name": "large_numbers",
+          "label": "Large Media Numbers",
+          "kind": "flag"
         }
       ],
       "behavior": {
@@ -712,6 +765,11 @@
           "kind": "choice",
           "values": ["show", "hide"],
           "defaultValue": "show"
+        },
+        {
+          "name": "large_numbers",
+          "label": "Large Item Count",
+          "kind": "flag"
         }
       ],
       "default": {
@@ -782,6 +840,13 @@
       "label": "Subpage",
       "allowInSubpage": false,
       "domains": [],
+      "options": [
+        {
+          "name": "large_numbers",
+          "label": "Large State Numbers",
+          "kind": "flag"
+        }
+      ],
       "default": {
         "entity": "",
         "label": "",
@@ -797,13 +862,14 @@
     "timezone": {
       "label": "Date & Time",
       "allowInSubpage": true,
+      "pickerKey": "calendar",
       "domains": [],
       "options": [
         {
           "name": "date_time_mode",
           "label": "Type",
           "kind": "choice",
-          "values": ["datetime", "", "timezone"],
+          "values": ["clock", "datetime", "", "timezone"],
           "defaultValue": "timezone"
         },
         {
@@ -922,6 +988,8 @@
     }
   },
   "largeNumbers": {
+    "": true,
+    "action": true,
     "sensor": {
       "excludedPrecisions": [
         "text"
@@ -934,11 +1002,17 @@
       ]
     },
     "calendar": true,
+    "clock": true,
+    "climate": true,
+    "media": true,
+    "todo": true,
+    "subpage": true,
     "timezone": true
   },
   "subpageTypeCodes": {
     "action": "A",
     "calendar": "D",
+    "clock": "CK",
     "timezone": "T",
     "sensor": "S",
     "door_window": "X",

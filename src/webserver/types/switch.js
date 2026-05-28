@@ -21,6 +21,13 @@ var SWITCH_CARD_METADATA = {
     idSuffix: "sensor-when-on-toggle",
     checked: function (b) { return !!b.sensor; },
   },
+  largeNumbers: {
+    label: "Large Active Display Numbers",
+    idSuffix: "large-active-display-numbers",
+    supported: function (b) {
+      return !!(b && b.sensor && b.precision !== "text");
+    },
+  },
   sensorMode: {
     label: "Type",
     options: [
@@ -154,6 +161,7 @@ registerButtonType("", {
     });
     var precisionSelect = precisionField.select;
     numericSection.appendChild(precisionField.field);
+    helpers.renderCardLargeNumbersToggle(numericSection, b, helpers, SWITCH_CARD_METADATA);
     sensorSection.appendChild(numericSection);
 
     panel.appendChild(sensorSection);
@@ -262,9 +270,13 @@ registerButtonType("", {
     var badgeIcon = b.sensor
       ? (b.precision === "text" ? SWITCH_CARD_METADATA.preview.textBadge : SWITCH_CARD_METADATA.preview.numericBadge)
       : SWITCH_CARD_METADATA.preview.switchBadge;
-    return {
+    var preview = {
       labelHtml: cardBadgeLabelHtml(helpers, label, badgeIcon),
     };
+    if (b.sensor && b.precision !== "text" && cardLargeNumbersEnabled(b)) {
+      preview.iconHtml = cardSensorPreviewHtml(b, helpers, "42", b.unit || "");
+    }
+    return preview;
   },
 });
 

@@ -179,6 +179,18 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
     }
     return;
   }
+  if (p.type == "clock") {
+    setup_clock_card(s, p, palette.has_sensor_color, palette.sensor_val);
+    if (large_date_time_card_layout(row_span, col_span) &&
+        card_large_numbers_enabled(p) && display_large_sensor_font(display)) {
+      apply_large_sensor_number_style(
+        s, display_large_sensor_font(display), display_large_sensor_unit_offset_percent(display));
+      if (wide_large_date_time_card_layout(row_span, col_span)) {
+        apply_wide_large_date_time_card_layout(s);
+      }
+    }
+    return;
+  }
   if (p.type == "timezone") {
     setup_timezone_card(s, p, palette.has_sensor_color, palette.sensor_val);
     if (large_date_time_card_layout(row_span, col_span) &&
@@ -321,7 +333,7 @@ inline bool bind_passive_card_sources(BtnSlot &s, const ParsedCfg &p) {
     subscribe_calendar_date_source(p.entity);
     return true;
   }
-  if (p.type == "timezone" || weather_card_shows_forecast(p)) {
+  if (p.type == "clock" || p.type == "timezone" || weather_card_shows_forecast(p)) {
     return true;
   }
   if (p.type == "weather") {

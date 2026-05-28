@@ -208,6 +208,14 @@ const climatePreviewC = hooks.buttonTypePreviewFor("climate", climatePreviewButt
 });
 assert.strictEqual(climatePreviewC.buttonClass, "sp-climate-temp-card", "climate temperature preview uses temperature card class");
 assert(climatePreviewC.iconHtml.includes("\u00b0C"), "climate preview uses Celsius unit");
+const climateLargePreview = hooks.buttonTypePreviewFor("climate", {
+  ...climatePreviewButton,
+  options: "large_numbers",
+}, {
+  cardSize: 4,
+  temperatureUnit: "\u00b0C",
+});
+assert(climateLargePreview.iconHtml.includes("sp-sensor-preview-large"), "climate temperature preview supports large numbers");
 const climatePreviewF = hooks.buttonTypePreviewFor("climate", climatePreviewButton, {
   temperatureUnit: "\u00b0F",
 });
@@ -268,6 +276,27 @@ const wideDateTimePreview = hooks.buttonTypePreviewFor("calendar", {
 });
 assert(wideDateTimePreview.iconHtml.includes("sp-sensor-preview-large"), "date/time wide preview supports large numbers");
 assert.strictEqual(wideDateTimePreview.labelHtml, "", "date/time wide large preview hides the date label");
+
+const clockPreview = hooks.buttonTypePreviewFor("clock", {
+  type: "clock",
+  options: "large_numbers",
+}, {
+  cardSize: 4,
+  clockFormat: "24h",
+});
+assert(clockPreview.iconHtml.includes("sp-sensor-preview-large"), "clock preview supports large numbers");
+assert(previewSensorValue(clockPreview).includes(":"), "clock preview renders a time value");
+assert.strictEqual(clockPreview.labelHtml, "", "clock preview does not render a date label");
+
+const wideClockPreview = hooks.buttonTypePreviewFor("clock", {
+  type: "clock",
+  options: "large_numbers",
+}, {
+  cardSize: 3,
+  clockFormat: "24h",
+});
+assert(wideClockPreview.iconHtml.includes("sp-sensor-preview-large"), "clock wide preview supports large numbers");
+assert.strictEqual(wideClockPreview.labelHtml, "", "clock wide preview does not render a date label");
 
 const timezonePreview = hooks.buttonTypePreviewFor("timezone", {
   entity: "America/New_York (GMT-5)",
@@ -366,6 +395,14 @@ const todoPreview = hooks.buttonTypePreviewFor("todo", {
 assert(todoPreview.iconHtml.includes("sp-sensor-value"), "todo preview shows an item count");
 assert(todoPreview.labelHtml.includes("Shopping"), "todo preview uses the configured label");
 assert(todoPreview.labelHtml.includes("mdi-check"), "todo preview uses the check badge");
+const todoLargePreview = hooks.buttonTypePreviewFor("todo", {
+  entity: "todo.shopping",
+  label: "Shopping",
+  icon: "Check",
+  type: "todo",
+  options: "large_numbers",
+}, { cardSize: 4 });
+assert(todoLargePreview.iconHtml.includes("sp-sensor-preview-large"), "todo item count preview supports large numbers");
 const todoIconPreview = hooks.buttonTypePreviewFor("todo", {
   entity: "todo.shopping",
   label: "Shopping",
@@ -425,6 +462,15 @@ const actionPreview = hooks.buttonTypePreviewFor("action", {
 });
 assert(actionPreview.iconHtml.includes("mdi-flash"), "action preview uses the selected action icon");
 assert(actionPreview.labelHtml.includes("mdi-flash"), "action preview uses the action badge");
+const actionLargePreview = hooks.buttonTypePreviewFor("action", {
+  entity: "script.kitchen_lights",
+  label: "Kitchen Lights",
+  icon: "Flash",
+  sensor: "script.turn_on",
+  type: "action",
+  options: "state_entity=sensor.kitchen_power,state_unit=W,state_precision=1,large_numbers",
+}, { cardSize: 4 });
+assert(actionLargePreview.iconHtml.includes("sp-sensor-preview-large"), "action numeric state preview supports large numbers");
 
 const actionOptionPreview = hooks.buttonTypePreviewFor("action", {
   entity: "select.wled_preset",
@@ -477,6 +523,14 @@ const switchNumericPreview = hooks.buttonTypePreviewFor("", {
   unit: "W",
 });
 assert(switchNumericPreview.labelHtml.includes("mdi-gauge"), "switch numeric active display preview uses the gauge badge");
+const switchLargePreview = hooks.buttonTypePreviewFor("", {
+  entity: "switch.washing_machine",
+  label: "Washer",
+  sensor: "sensor.washer_power",
+  unit: "W",
+  options: "large_numbers",
+}, { cardSize: 4 });
+assert(switchLargePreview.iconHtml.includes("sp-sensor-preview-large"), "switch numeric active display preview supports large numbers");
 
 const switchTextPreview = hooks.buttonTypePreviewFor("", {
   entity: "switch.washing_machine",
@@ -679,6 +733,15 @@ const subpageNumericPreview = hooks.buttonTypePreviewFor("subpage", {
 });
 assert(subpageNumericPreview.iconHtml.includes("sp-sensor-preview"), "subpage numeric preview uses the shared number preview");
 assert(subpageNumericPreview.labelHtml.includes("mdi-chevron-right"), "subpage numeric preview uses the chevron badge");
+const subpageLargePreview = hooks.buttonTypePreviewFor("subpage", {
+  label: "Open Windows",
+  icon: "Window Closed",
+  sensor: "sensor.open_windows",
+  unit: "%",
+  type: "subpage",
+  options: "large_numbers",
+}, { cardSize: 4 });
+assert(subpageLargePreview.iconHtml.includes("sp-sensor-preview-large"), "subpage numeric preview supports large numbers");
 
 const subpageTextPreview = hooks.buttonTypePreviewFor("subpage", {
   label: "Washer",
@@ -699,6 +762,23 @@ const mediaVolumePreview = hooks.buttonTypePreviewFor("media", {
 });
 assert(mediaVolumePreview.iconHtml.includes("sp-sensor-preview"), "media volume preview uses the shared number preview");
 assert(mediaVolumePreview.labelHtml.includes("mdi-speaker"), "media volume preview uses the speaker badge");
+const mediaVolumeLargePreview = hooks.buttonTypePreviewFor("media", {
+  entity: "media_player.kitchen",
+  label: "Kitchen",
+  sensor: "volume",
+  type: "media",
+  options: "large_numbers",
+}, { cardSize: 4 });
+assert(mediaVolumeLargePreview.iconHtml.includes("sp-sensor-preview-large"), "media volume preview supports large numbers");
+
+const mediaPositionLargePreview = hooks.buttonTypePreviewFor("media", {
+  entity: "media_player.office",
+  label: "Office",
+  sensor: "position",
+  type: "media",
+  options: "large_numbers",
+}, { cardSize: 4 });
+assert(mediaPositionLargePreview.iconHtml.includes("sp-sensor-preview-large"), "media position preview supports large numbers");
 
 const mediaNowPlayingPreview = hooks.buttonTypePreviewFor("media", {
   entity: "media_player.office",

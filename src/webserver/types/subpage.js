@@ -54,6 +54,13 @@ var SUBPAGE_CARD_METADATA = {
     bindName: "unit",
     rerender: false,
   },
+  largeNumbers: {
+    label: "Large State Numbers",
+    idSuffix: "large-state-numbers",
+    supported: function (b) {
+      return subpageStateDisplayMode(b) === "numeric";
+    },
+  },
   preview: {
     badge: "chevron-right",
   },
@@ -154,6 +161,7 @@ registerButtonType("subpage", {
     });
     var precisionSelect = precisionField.select;
     numericSection.appendChild(precisionField.field);
+    helpers.renderCardLargeNumbersToggle(numericSection, b, helpers, SUBPAGE_CARD_METADATA);
 
     sensorField.appendChild(numericSection);
     stateCond.appendChild(sensorField);

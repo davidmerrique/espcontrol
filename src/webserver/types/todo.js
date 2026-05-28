@@ -60,6 +60,13 @@ var TODO_CARD_METADATA = {
       cardHelpers.saveField("options", button.options);
     },
   },
+  largeNumbers: {
+    label: "Large Item Count",
+    idSuffix: "large-item-count",
+    supported: function (b) {
+      return todoCardStatusMode(b) === "count";
+    },
+  },
   preview: {
     badge: "check",
   },
@@ -112,6 +119,7 @@ registerButtonType("todo", {
         scheduleRender();
       },
     }));
+    helpers.renderCardLargeNumbersToggle(panel, b, helpers, TODO_CARD_METADATA);
     var iconSection = condField();
     iconSection.classList.add("sp-climate-settings-gap");
     helpers.renderCardIconPicker(iconSection, b, helpers, TODO_CARD_METADATA.icon);

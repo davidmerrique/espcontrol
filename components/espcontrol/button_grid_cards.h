@@ -266,6 +266,7 @@ struct TimezoneCardRef {
   lv_obj_t *label_lbl;
   std::string timezone;
   std::string label;
+  bool show_label;
 };
 
 inline TimezoneCardRef *timezone_card_refs() {
@@ -316,7 +317,9 @@ inline void apply_timezone_card_text(const TimezoneCardRef &ref,
                                      const std::string &active_timezone,
                                      bool use_12h) {
   std::string tz_option = ref.timezone.empty() ? active_timezone : ref.timezone;
-  std::string label = ref.label.empty() ? timezone_city_label(tz_option) : ref.label;
+  std::string label = ref.show_label
+    ? (ref.label.empty() ? timezone_city_label(tz_option) : ref.label)
+    : std::string("");
   const char *value_text = "--:--";
   const char *unit_text = "";
   char value_buf[8];
@@ -346,13 +349,14 @@ inline void apply_timezone_card_text(const TimezoneCardRef &ref,
 inline void register_timezone_card(lv_obj_t *value_lbl, lv_obj_t *unit_lbl,
                                    lv_obj_t *label_lbl,
                                    const std::string &timezone,
-                                   const std::string &label) {
+                                   const std::string &label,
+                                   bool show_label = true) {
   int &count = timezone_card_count();
   if (count >= MAX_GRID_SLOTS + MAX_SUBPAGE_ITEMS) {
     ESP_LOGW("timezone", "Too many timezone cards; skipping time updates");
     return;
   }
-  timezone_card_refs()[count++] = {value_lbl, unit_lbl, label_lbl, timezone, label};
+  timezone_card_refs()[count++] = {value_lbl, unit_lbl, label_lbl, timezone, label, show_label};
   apply_timezone_card_text(timezone_card_refs()[count - 1], false, 0, timezone, false);
 }
 
@@ -400,6 +404,21 @@ inline void setup_timezone_card(BtnSlot &s, const ParsedCfg &p,
   std::string label = p.label.empty() ? timezone_city_label(p.entity) : p.label;
   lv_label_set_text(s.text_lbl, label.c_str());
   register_timezone_card(s.sensor_lbl, s.unit_lbl, s.text_lbl, p.entity, p.label);
+}
+
+inline void setup_clock_card(BtnSlot &s, const ParsedCfg &p,
+                             bool has_sensor_color, uint32_t sensor_val) {
+  if (has_sensor_color) {
+    lv_obj_set_style_bg_color(s.btn, lv_color_hex(sensor_val),
+      static_cast<lv_style_selector_t>(LV_PART_MAIN) | static_cast<lv_style_selector_t>(LV_STATE_DEFAULT));
+  }
+  lv_obj_clear_flag(s.btn, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(s.icon_lbl, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_flag(s.sensor_container, LV_OBJ_FLAG_HIDDEN);
+  lv_label_set_text(s.sensor_lbl, "--:--");
+  lv_label_set_text(s.unit_lbl, "");
+  lv_label_set_text(s.text_lbl, "");
+  register_timezone_card(s.sensor_lbl, s.unit_lbl, s.text_lbl, p.entity, "", false);
 }
 
 inline void setup_weather_card(BtnSlot &s, bool has_sensor_color, uint32_t sensor_val) {

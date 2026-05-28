@@ -42,7 +42,7 @@ The **Type** dropdown uses these card names on the device:
 | **[Cover](/card-types/covers)** | Controls blinds, shutters, and similar cover entities with a slider or tap action. | Yes |
 | **[Garage Door](/card-types/garage-doors)** | Controls a garage door cover entity with an open/close tap action. | Yes |
 | **[Lock](/card-types/locks)** | Locks, unlocks, or toggles a Home Assistant lock entity. | Yes |
-| **[Date & Time](/card-types/calendar)** | Shows the local date, date and time, or a world clock. | No |
+| **[Date & Time](/card-types/calendar)** | Shows the local clock, date, date and time, or a world clock. | No |
 | **[Weather](/card-types/weather)** | Shows the current condition or today's/tomorrow's forecast from a weather entity. | Yes, as **Weather Entity** |
 | **[Media](/card-types/media)** | Controls playback, volume, track position, or now-playing details for a media player. | Yes, as a media player entity |
 | **[Climate](/card-types/climate)** | Controls a Home Assistant thermostat or HVAC entity. | Yes, as a climate entity |
@@ -51,7 +51,7 @@ The **Type** dropdown uses these card names on the device:
 
 For cards that use Home Assistant, enter the entity name from Home Assistant in the **Entity** field, such as `light.living_room`, `switch.garden_lights`, `scene.movie_mode`, or `weather.forecast_home`. Some card types use a more specific label, such as **Sensor Entity**, **Weather Entity**, or **Climate Entity**. You can find entity names under **Settings > Devices & Services** in Home Assistant.
 
-Some card names group several related controls together. **Lights** contains Switch, Brightness, and Colour Temperature options. **Action** contains scene, script, helper, and Option Select actions. **Date & Time** contains Date, Time & Date, and World Clock options. Experimental cards such as **Todo** only appear when Developer Experimental Features are enabled.
+Some card names group several related controls together. **Lights** contains Switch, Brightness, and Colour Temperature options. **Action** contains scene, script, helper, and Option Select actions. **Date & Time** contains Clock, Date, Time & Date, and World Clock options. Experimental cards such as **Todo** only appear when Developer Experimental Features are enabled.
 
 For the generated list of current card domains, subpage support, grouping, and options, see the [Card Capability Reference](/generated/cards/capabilities).
 

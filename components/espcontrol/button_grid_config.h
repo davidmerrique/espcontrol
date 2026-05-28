@@ -153,10 +153,6 @@ struct ParsedCfg {
   std::string options;     // 8  comma-delimited card options
 };
 
-inline bool card_large_numbers_supported(const ParsedCfg &p) {
-  return card_runtime_large_numbers_supported(p.type, p.precision);
-}
-
 inline bool brightness_slider_type(const std::string &type) {
   return card_runtime_brightness_slider_type(type);
 }
@@ -216,10 +212,18 @@ inline int normalize_media_volume_max_percent(const std::string &value) {
 
 inline std::string media_card_options_normalized(const std::string &options,
                                                  const std::string &mode) {
-  if (mode != "volume") return "";
+  if (mode != "volume" && mode != "position") return "";
+  std::string out;
   int max_pct = normalize_media_volume_max_percent(
     cfg_option_value(options, "volume_max"));
-  return max_pct < 100 ? "volume_max=" + std::to_string(max_pct) : "";
+  if (mode == "volume" && max_pct < 100) {
+    out = "volume_max=" + std::to_string(max_pct);
+  }
+  if (cfg_option_token_present(options, "large_numbers")) {
+    if (!out.empty()) out += ",";
+    out += "large_numbers";
+  }
+  return out;
 }
 
 inline std::string sensor_card_options_normalized(const std::string &options,
@@ -278,6 +282,10 @@ inline std::string todo_card_options_normalized(const std::string &options) {
     if (!out.empty()) out += ",";
     out += "completed_display=hide";
   }
+  if (count_display == "count" && cfg_option_token_present(options, "large_numbers")) {
+    if (!out.empty()) out += ",";
+    out += "large_numbers";
+  }
   return out;
 }
 
@@ -314,7 +322,32 @@ inline std::string climate_card_options_normalized(const std::string &options) {
     if (!out.empty()) out += ",";
     out += "number_display=" + number_display;
   }
+  if (number_display != "icon" && cfg_option_token_present(options, "large_numbers")) {
+    if (!out.empty()) out += ",";
+    out += "large_numbers";
+  }
   return out;
+}
+
+inline bool action_card_large_numbers_supported(const ParsedCfg &p) {
+  if (p.type != "action") return false;
+  std::string precision = cfg_option_value(p.options, "state_precision");
+  return precision == "0" || precision == "1" || precision == "2" ||
+         !cfg_option_value(p.options, "state_unit").empty();
+}
+
+inline bool card_large_numbers_supported(const ParsedCfg &p) {
+  if (p.type.empty()) return !p.sensor.empty() && p.precision != "text";
+  if (p.type == "action") return action_card_large_numbers_supported(p);
+  if (p.type == "media") return p.sensor == "volume" || p.sensor == "position";
+  if (p.type == "climate") {
+    return normalize_climate_number_display(cfg_option_value(p.options, "number_display")) != "icon";
+  }
+  if (p.type == "todo") {
+    return normalize_todo_count_display(cfg_option_value(p.options, "count_display")) == "count";
+  }
+  if (p.type == "subpage") return !p.sensor.empty() && p.sensor != "indicator" && p.precision != "text";
+  return card_runtime_large_numbers_supported(p.type, p.precision);
 }
 
 inline std::string normalize_garage_label_display(const std::string &value) {

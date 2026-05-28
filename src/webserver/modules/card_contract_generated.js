@@ -15,6 +15,11 @@ var CARD_CONTRACT_CARDS = {
     ],
     "options": [
       {
+        "name": "large_numbers",
+        "label": "Large Active Display Numbers",
+        "kind": "flag"
+      },
+      {
         "name": "confirmation_mode",
         "label": "Confirmation Required",
         "kind": "choice",
@@ -80,6 +85,13 @@ var CARD_CONTRACT_CARDS = {
       "input_number",
       "input_select",
       "select"
+    ],
+    "options": [
+      {
+        "name": "large_numbers",
+        "label": "Large State Numbers",
+        "kind": "flag"
+      }
     ],
     "default": {
       "entity": "",
@@ -232,6 +244,7 @@ var CARD_CONTRACT_CARDS = {
         "label": "Type",
         "kind": "choice",
         "values": [
+          "clock",
           "datetime",
           "",
           "timezone"
@@ -252,6 +265,42 @@ var CARD_CONTRACT_CARDS = {
       "sensor": "",
       "unit": "",
       "type": "calendar",
+      "precision": "",
+      "options": ""
+    }
+  },
+  "clock": {
+    "label": "Date & Time",
+    "allowInSubpage": true,
+    "pickerKey": "calendar",
+    "domains": [],
+    "options": [
+      {
+        "name": "date_time_mode",
+        "label": "Type",
+        "kind": "choice",
+        "values": [
+          "clock",
+          "datetime",
+          "",
+          "timezone"
+        ],
+        "defaultValue": "clock"
+      },
+      {
+        "name": "large_numbers",
+        "label": "Large Date / Time Numbers",
+        "kind": "flag"
+      }
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Auto",
+      "icon_on": "Auto",
+      "sensor": "",
+      "unit": "",
+      "type": "clock",
       "precision": "",
       "options": ""
     }
@@ -285,6 +334,11 @@ var CARD_CONTRACT_CARDS = {
           "target"
         ],
         "defaultValue": "target"
+      },
+      {
+        "name": "large_numbers",
+        "label": "Large Temperature Numbers",
+        "kind": "flag"
       }
     ],
     "behavior": {
@@ -722,6 +776,11 @@ var CARD_CONTRACT_CARDS = {
         "max": 100,
         "step": 1,
         "defaultValue": "100"
+      },
+      {
+        "name": "large_numbers",
+        "label": "Large Media Numbers",
+        "kind": "flag"
       }
     ],
     "behavior": {
@@ -857,6 +916,11 @@ var CARD_CONTRACT_CARDS = {
           "hide"
         ],
         "defaultValue": "show"
+      },
+      {
+        "name": "large_numbers",
+        "label": "Large Item Count",
+        "kind": "flag"
       }
     ],
     "default": {
@@ -936,6 +1000,13 @@ var CARD_CONTRACT_CARDS = {
     "label": "Subpage",
     "allowInSubpage": false,
     "domains": [],
+    "options": [
+      {
+        "name": "large_numbers",
+        "label": "Large State Numbers",
+        "kind": "flag"
+      }
+    ],
     "default": {
       "entity": "",
       "label": "",
@@ -951,6 +1022,7 @@ var CARD_CONTRACT_CARDS = {
   "timezone": {
     "label": "Date & Time",
     "allowInSubpage": true,
+    "pickerKey": "calendar",
     "domains": [],
     "options": [
       {
@@ -958,6 +1030,7 @@ var CARD_CONTRACT_CARDS = {
         "label": "Type",
         "kind": "choice",
         "values": [
+          "clock",
           "datetime",
           "",
           "timezone"
@@ -1074,6 +1147,7 @@ var CARD_CONTRACT_OPTION_SELECT_ACTIONS = ["input_select.select_option", "select
 var CARD_CONTRACT_SUBPAGE_TYPE_CODES = {
   "action": "A",
   "calendar": "D",
+  "clock": "CK",
   "timezone": "T",
   "sensor": "S",
   "door_window": "X",
@@ -1105,6 +1179,7 @@ var CARD_CONTRACT_SUBPAGE_TYPE_CODES = {
 var CARD_CONTRACT_SUBPAGE_TYPES_BY_CODE = {
   "A": "action",
   "D": "calendar",
+  "CK": "clock",
   "T": "timezone",
   "S": "sensor",
   "X": "door_window",
@@ -1134,6 +1209,8 @@ var CARD_CONTRACT_SUBPAGE_TYPES_BY_CODE = {
   "G": "subpage"
 };
 var CARD_CONTRACT_LARGE_NUMBERS = {
+  "": true,
+  "action": true,
   "sensor": {
     "excludedPrecisions": [
       "text"
@@ -1146,6 +1223,11 @@ var CARD_CONTRACT_LARGE_NUMBERS = {
     ]
   },
   "calendar": true,
+  "clock": true,
+  "climate": true,
+  "media": true,
+  "todo": true,
+  "subpage": true,
   "timezone": true
 };
 

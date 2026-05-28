@@ -22,7 +22,7 @@ A subpage has one fewer usable slot than the home screen because it includes a *
 
 You can also right-click an empty space on the home screen and choose **Create Subpage**.
 
-Subpages can contain Switch, Lights, Action, Trigger, Sensor, Doors & Windows, Slider, Cover, Garage Door, Lock, Date & Time, World Clock, Weather, Media, Climate, and Internal Switches cards. Subpages cannot contain another Subpage card.
+Subpages can contain Switch, Lights, Action, Trigger, Sensor, Doors & Windows, Slider, Cover, Garage Door, Lock, Date & Time, Clock, World Clock, Weather, Media, Climate, and Internal Switches cards. Subpages cannot contain another Subpage card.
 
 ## Open a Page From Home Assistant
 
@@ -94,7 +94,7 @@ Subpage cards can show state in three ways:
 - **Numeric** shows a Home Assistant sensor value in the large number style used by Sensor cards. Choose a **Sensor Entity**, **Unit**, and **Unit Precision**.
 - **Text** shows a Home Assistant sensor state where the card label normally appears. Choose a **Sensor Entity**.
 
-Read-only cards such as Sensor, Date, World Clock, and Weather do not affect Icon mode. Numeric and Text modes use the sensor entity you enter on the Subpage card. They do not automatically count the cards inside the subpage; use a Home Assistant helper or template sensor for that.
+Read-only cards such as Sensor, Date, Clock, World Clock, and Weather do not affect Icon mode. Numeric and Text modes use the sensor entity you enter on the Subpage card. They do not automatically count the cards inside the subpage; use a Home Assistant helper or template sensor for that.
 
 ## Moving Cards Between Pages
 

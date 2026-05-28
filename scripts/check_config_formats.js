@@ -55,6 +55,7 @@ function subpageTypeFromCode(code) {
     A: "action",
     U: "option_select",
     D: "calendar",
+    CK: "clock",
     T: "timezone",
     S: "sensor",
     X: "door_window",
@@ -264,6 +265,7 @@ assertButtonTypeSpecBacked("light_brightness", "light brightness card");
 assertButtonTypeSpecBacked("light_switch", "light switch card");
 assertButtonTypeSpecBacked("light_temperature", "light temperature card");
 assertButtonTypeSpecBacked("calendar", "calendar card");
+assertButtonTypeSpecBacked("clock", "clock card");
 assertButtonTypeSpecBacked("timezone", "timezone card");
 assertButtonTypeSpecBacked("weather", "weather card");
 assertButtonTypeSpecBacked("push", "push card");
@@ -278,9 +280,10 @@ assertButtonTypeSpecBacked("alarm_action", "alarm action card");
 assertButtonTypeSpecBacked("climate", "climate card");
 assert.deepStrictEqual(
   Array.from(hooks.dateTimeModeOptionValues()),
-  ["datetime", "", "timezone"],
+  ["clock", "datetime", "", "timezone"],
   "date/time mode options are spec-backed"
 );
+assert.strictEqual(hooks.normalizeDateTimeCardMode("clock"), "clock", "date/time clock mode is allowed by spec");
 assert.strictEqual(hooks.normalizeDateTimeCardMode("timezone"), "timezone", "date/time world clock mode is allowed by spec");
 assert.strictEqual(hooks.normalizeDateTimeCardMode("bad"), "", "date/time invalid mode falls back to date mode");
 assert.deepStrictEqual(
@@ -419,7 +422,7 @@ const switchOptionSpecs = hooks.cardContractOptions("");
 const switchOptionByName = Object.fromEntries(switchOptionSpecs.map((option) => [option.name, option]));
 assert.deepStrictEqual(
   Array.from(switchOptionSpecs, (option) => option.name),
-  ["confirmation_mode", "confirm_message", "confirm_yes", "confirm_no"],
+  ["large_numbers", "confirmation_mode", "confirm_message", "confirm_yes", "confirm_no"],
   "switch option specs preserve current option order"
 );
 assert.deepStrictEqual(
@@ -437,6 +440,7 @@ assert.strictEqual(
   "Turn on this device?",
   "switch confirmation message spec exposes mode-specific defaults"
 );
+assert.strictEqual(switchOptionByName.large_numbers.kind, "flag", "switch large-number option is a flag");
 assert.strictEqual(switchOptionByName.confirm_yes.defaultValue, "Yes", "switch confirm text spec exposes current default");
 assert.strictEqual(switchOptionByName.confirm_no.defaultValue, "No", "switch cancel text spec exposes current default");
 const sensorOptionSpecs = hooks.cardContractOptions("sensor");
@@ -1029,6 +1033,29 @@ assertButtonRoundTrip(hooks, "calendar large numbers option", {
   options: "large_numbers",
 }, false);
 
+assertButtonRoundTrip(hooks, "clock card", {
+  entity: "",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "clock",
+  precision: "",
+}, false);
+
+assertButtonRoundTrip(hooks, "clock large numbers option", {
+  entity: "",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "clock",
+  precision: "",
+  options: "large_numbers",
+}, false);
+
 assertButtonRoundTrip(hooks, "timezone card", {
   entity: "America/New_York (GMT-5)",
   label: "",
@@ -1351,6 +1378,7 @@ assertButtonMigration(hooks, "climate clears legacy options", "climate.living_ro
   unit: "",
   type: "climate",
   precision: "1",
+  options: "large_numbers",
 });
 
 assertButtonRoundTrip(hooks, "light temperature card", {
@@ -1537,7 +1565,7 @@ assertButtonRoundTrip(hooks, "todo button hide completed items", {
 assert.deepStrictEqual(Array.from(hooks.cardContractDomains("todo")), ["todo"], "todo card only accepts todo entities");
 assert.deepStrictEqual(
   Array.from(hooks.cardContractOptions("todo"), (option) => option.name),
-  ["count_display", "label_display", "completed_display"],
+  ["count_display", "label_display", "completed_display", "large_numbers"],
   "todo card exposes display options"
 );
 assert.strictEqual(hooks.todoCardShowCount({ type: "todo", options: "" }), true, "todo shows item count by default");
@@ -1924,9 +1952,10 @@ const backOnlyFromGrid = hooks.serializeSubpageConfig({
 assert.strictEqual(backOnlyFromGrid, "B", "new back-only subpage serializes from its grid");
 
 assertSubpageRoundTrip(hooks, "date time large numbers subpage", {
-  order: ["1", "B", "2"],
+  order: ["1", "B", "2", "3"],
   buttons: [
     buttonShape({ type: "calendar", precision: "datetime", options: "large_numbers" }),
+    buttonShape({ type: "clock", options: "large_numbers" }),
     buttonShape({ entity: "America/New_York (GMT-5)", type: "timezone", options: "large_numbers" }),
   ],
 }, true);
@@ -2194,6 +2223,13 @@ assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|D")), {
     buttonShape({ type: "calendar" }),
   ],
 }, "compact calendar subpage parse");
+
+assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|CK")), {
+  order: ["1", "B"],
+  buttons: [
+    buttonShape({ type: "clock" }),
+  ],
+}, "compact clock subpage parse");
 
 assert.deepStrictEqual(subpageShape(hooks.parseSubpageConfig("~1,B|T,America/New_York%20%28GMT-5%29")), {
   order: ["1", "B"],

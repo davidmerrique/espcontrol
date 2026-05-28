@@ -26,6 +26,13 @@ var CLIMATE_CARD_METADATA = {
       ["target", "Target Temp"],
     ],
   },
+  largeNumbers: {
+    label: "Large Temperature Numbers",
+    idSuffix: "large-temperature-numbers",
+    supported: function (b) {
+      return climateNumberDisplayMode(b) !== "icon";
+    },
+  },
   preview: {
     badge: "thermostat",
   },
@@ -107,6 +114,7 @@ registerButtonType("climate", {
         },
       }),
     });
+    helpers.renderCardLargeNumbersToggle(panel, b, helpers, CLIMATE_CARD_METADATA);
 
     var iconFields = condField();
     iconFields.classList.add("sp-climate-settings-gap");

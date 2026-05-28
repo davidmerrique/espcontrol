@@ -114,6 +114,13 @@ var ACTION_CARD_METADATA = {
       ["text", "Text"],
     ],
   },
+  largeNumbers: {
+    label: "Large State Numbers",
+    idSuffix: "large-state-numbers",
+    supported: function (b) {
+      return !actionCardIsOptionSelect(b) && actionCardStateDisplayMode(b) === "numeric";
+    },
+  },
   stateUnitField: {
     label: "Unit",
     idSuffix: "action-state-unit",
@@ -254,6 +261,7 @@ registerButtonType("action", {
     );
     var statePrecisionSelect = statePrecisionField.select;
     numericSection.appendChild(statePrecisionField.field);
+    helpers.renderCardLargeNumbersToggle(numericSection, b, helpers, ACTION_CARD_METADATA);
     panel.appendChild(numericSection);
 
     function saveStateOptions() {
@@ -308,6 +316,12 @@ registerButtonType("action", {
       };
     }
     var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "flash";
+    if (actionCardStateEntity(b) && actionCardStateDisplayMode(b) === "numeric" && cardLargeNumbersEnabled(b)) {
+      return {
+        iconHtml: cardSensorPreviewHtml(b, helpers, "42", actionCardStateUnit(b) || ""),
+        labelHtml: cardBadgeLabelHtml(helpers, label, ACTION_CARD_METADATA.preview.actionBadge),
+      };
+    }
     var stateBadge = actionCardStateEntity(b)
       ? '<span class="sp-sensor-badge mdi mdi-' +
         (actionCardStateDisplayMode(b) === "text" ? "format-text" : "gauge") +

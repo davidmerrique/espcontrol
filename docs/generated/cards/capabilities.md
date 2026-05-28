@@ -9,12 +9,13 @@ This generated reference lists stable setup facts from the shared card contract.
 
 | Card | Type | Entity domains | Subpages | Picker grouping | Main modes and options | Status |
 |---|---|---|---|---|---|---|
-| Switch | switch | light, switch, input_boolean, fan | Yes | Own picker item | Confirmation Required: default, off, on, both; Message; Confirm Button; Cancel Button | Visible |
-| Action | action | scene, script, automation, button, vacuum, input_button, input_boolean, input_number, input_select, select | Yes | Own picker item | None | Visible |
+| Switch | switch | light, switch, input_boolean, fan | Yes | Own picker item | Large Active Display Numbers; Confirmation Required: default, off, on, both; Message; Confirm Button; Cancel Button | Visible |
+| Action | action | scene, script, automation, button, vacuum, input_button, input_boolean, input_number, input_select, select | Yes | Own picker item | Large State Numbers | Visible |
 | Alarm | alarm | alarm_control_panel | Yes | Own picker item | Type: control_panel, away, home, disarm; PIN required for arming; PIN required for disarming; Visible Actions: away, home, disarm; Icon Display: static, status; Label Display: name, status | Visible |
 | Alarm | alarm_action | alarm_control_panel | Yes | Alarm (alarm) | None | Visible |
-| Date & Time | calendar | sensor | Yes | Own picker item | Type: datetime, default, timezone; Large Date / Time Numbers | Visible |
-| Climate | climate | climate | Yes | Own picker item | Label Display: label, status, actual, target; Icon & Temperatures: icon, actual, target | Visible |
+| Date & Time | calendar | sensor | Yes | Own picker item | Type: clock, datetime, default, timezone; Large Date / Time Numbers | Visible |
+| Date & Time | clock | None | Yes | Date & Time (calendar) | Type: clock, datetime, default, timezone; Large Date / Time Numbers | Visible |
+| Climate | climate | climate | Yes | Own picker item | Label Display: label, status, actual, target; Icon & Temperatures: icon, actual, target; Large Temperature Numbers | Visible |
 | Cover | cover | cover | Yes | Own picker item | Type: default, tilt, toggle, open, close, stop, set_position; Position: 0-100 | Visible |
 | Doors & Windows | door_window | binary_sensor, sensor | Yes | Own picker item | None | Visible |
 | Fans | fan_direction | fan | Yes | Fans (fan_speed) | None | Experimental |
@@ -28,14 +29,14 @@ This generated reference lists stable setup facts from the shared card contract.
 | Lights | light_switch | light | Yes | Lights (light_brightness) | None | Visible |
 | Lights | light_temperature | light | Yes | Lights (light_brightness) | None | Visible |
 | Lock | lock | lock | Yes | Own picker item | Type: default, lock, unlock | Visible |
-| Media | media | media_player | Yes | Own picker item | Type: play_pause, previous, next, volume, position, now_playing; Type: default, state; Controls: default, progress, play_pause; Maximum Volume: 1-100 | Visible |
+| Media | media | media_player | Yes | Own picker item | Type: play_pause, previous, next, volume, position, now_playing; Type: default, state; Controls: default, progress, play_pause; Maximum Volume: 1-100; Large Media Numbers | Visible |
 | Option Select | option_select | select, input_select | Yes | Own picker item | None | Hidden |
 | Trigger | push | None | Yes | Own picker item | None | Visible |
 | Webhook | webhook | None | Yes | Own picker item | Headers | Visible |
-| Todo | todo | todo | Yes | Own picker item | Status: icon, count, top_task; Card Label: label, count; Show Completed Items: show, hide | Experimental |
+| Todo | todo | todo | Yes | Own picker item | Status: icon, count, top_task; Card Label: label, count; Show Completed Items: show, hide; Large Item Count | Experimental |
 | Sensor | sensor | sensor, binary_sensor, text_sensor | Yes | Own picker item | Large Sensor Numbers; Active Color | Visible |
 | Slider | slider | light, fan | Yes | Own picker item | None | Visible |
-| Subpage | subpage | None | No | Own picker item | None | Visible |
-| Date & Time | timezone | None | Yes | Own picker item | Type: datetime, default, timezone; Large Date / Time Numbers | Visible |
+| Subpage | subpage | None | No | Own picker item | Large State Numbers | Visible |
+| Date & Time | timezone | None | Yes | Date & Time (calendar) | Type: clock, datetime, default, timezone; Large Date / Time Numbers | Visible |
 | Weather | weather | weather | Yes | Own picker item | Type: default, today, tomorrow; Large Temperature Numbers | Visible |
 | Weather Forecast | weather_forecast | weather | Yes | Own picker item | None | Hidden |

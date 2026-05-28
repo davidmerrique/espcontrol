@@ -83,6 +83,11 @@ int main() {
   assert(compact.precision == "1");
   assert(card_large_numbers_enabled(compact));
 
+  auto clock = parse_cfg(";;;;;;clock;;large_numbers");
+  assert(clock.type == "clock");
+  assert(clock.options == "large_numbers");
+  assert(card_large_numbers_enabled(clock));
+
   auto migrated = parse_cfg("media_player.living:Living:Speaker:Auto:controls::media");
   assert(migrated.type.empty());
   auto media = parse_cfg("media_player.living;Living;Speaker;Auto;controls;;media");
@@ -94,15 +99,42 @@ int main() {
   assert(volume.sensor == "volume");
   assert(volume.options == "volume_max=40");
   assert(media_volume_max_percent(volume) == 40);
+  auto volume_large = parse_cfg("media_player.kitchen;Kitchen;Auto;Auto;volume;;media;;large_numbers");
+  assert(volume_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(volume_large));
+  auto position_large = parse_cfg("media_player.office;Office;Progress Clock;Auto;position;;media;;large_numbers");
+  assert(position_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(position_large));
+  auto now_playing_large = parse_cfg("media_player.office;;Auto;Auto;now_playing;;media;;large_numbers");
+  assert(now_playing_large.options == "");
+  assert(!card_large_numbers_enabled(now_playing_large));
   auto volume_uncapped = parse_cfg("media_player.kitchen;Kitchen;Auto;Auto;volume;;media;;volume_max=150");
   assert(volume_uncapped.options == "");
   assert(media_volume_max_percent(volume_uncapped) == 100);
+
+  auto action_large = parse_cfg("script.kitchen_lights;Kitchen Lights;Flash;Auto;script.turn_on;;action;;state_entity=sensor.kitchen_power,state_unit=W,state_precision=1,large_numbers");
+  assert(action_large.options == "state_entity=sensor.kitchen_power,state_unit=W,state_precision=1,large_numbers");
+  assert(card_large_numbers_enabled(action_large));
+
+  auto climate_large = parse_cfg("climate.living_room;Living;Thermostat;Auto;;;climate;1;large_numbers");
+  assert(climate_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(climate_large));
+  auto climate_icon_large = parse_cfg("climate.living_room;Living;Thermostat;Radiator;;;climate;1;number_display=icon,large_numbers");
+  assert(climate_icon_large.options == "number_display=icon");
+  assert(!card_large_numbers_enabled(climate_icon_large));
 
   auto confirm = parse_cfg("switch.printer;Printer;Printer 3D;Auto;;;;;confirm_off,confirm_message=Stop%20print%3F,confirm_yes=Power%20Down");
   assert(switch_confirmation_enabled(confirm));
   assert(switch_confirmation_message(confirm) == "Stop print?");
   assert(switch_confirmation_yes_text(confirm) == "Power Down");
   assert(switch_confirmation_no_text(confirm) == "No");
+
+  auto switch_large = parse_cfg("switch.washer;Washer;Power Plug;Power;sensor.washer_power;W;;;large_numbers");
+  assert(switch_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(switch_large));
+  auto subpage_large = parse_cfg(";Open Windows;Window Closed;Auto;sensor.open_windows;%;subpage;;large_numbers");
+  assert(subpage_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(subpage_large));
 
   auto todo = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo");
   assert(todo.entity == "todo.shopping");
@@ -111,6 +143,9 @@ int main() {
   assert(todo.icon_on == "Auto");
   assert(todo.type == "todo");
   assert(todo.options == "");
+  auto todo_large = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;large_numbers");
+  assert(todo_large.options == "large_numbers");
+  assert(card_large_numbers_enabled(todo_large));
 
   auto todo_icon = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;count_display=icon");
   assert(todo_icon.options == "count_display=icon");
@@ -120,6 +155,9 @@ int main() {
   assert(todo_top_task.options == "count_display=top_task");
   assert(todo_card_show_count(todo_top_task));
   assert(todo_card_shows_top_task(todo_top_task));
+  auto todo_top_task_large = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;count_display=top_task,large_numbers");
+  assert(todo_top_task_large.options == "count_display=top_task");
+  assert(!card_large_numbers_enabled(todo_top_task_large));
 
   auto todo_label_count = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;label_display=count");
   assert(todo_label_count.options == "label_display=count");

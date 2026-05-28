@@ -177,6 +177,7 @@ inline const char *card_contract_card_label(const std::string &type) {
   if (type == "alarm") return "Alarm";
   if (type == "alarm_action") return "Alarm";
   if (type == "calendar") return "Date & Time";
+  if (type == "clock") return "Date & Time";
   if (type == "climate") return "Climate";
   if (type == "cover") return "Cover";
   if (type == "door_window") return "Doors & Windows";
@@ -211,6 +212,7 @@ inline bool card_contract_allow_in_subpage(const std::string &type) {
   if (type == "alarm") return true;
   if (type == "alarm_action") return true;
   if (type == "calendar") return true;
+  if (type == "clock") return true;
   if (type == "climate") return true;
   if (type == "cover") return true;
   if (type == "door_window") return true;
@@ -245,6 +247,7 @@ inline const char *card_contract_default_icon_name(const std::string &type) {
   if (type == "alarm") return "Security";
   if (type == "alarm_action") return "Shield Lock";
   if (type == "calendar") return "Auto";
+  if (type == "clock") return "Auto";
   if (type == "climate") return "Thermostat";
   if (type == "cover") return "Blinds";
   if (type == "door_window") return "Door";
@@ -279,6 +282,7 @@ inline const char *card_contract_default_icon_on_name(const std::string &type) {
   if (type == "alarm") return "Auto";
   if (type == "alarm_action") return "Auto";
   if (type == "calendar") return "Auto";
+  if (type == "clock") return "Auto";
   if (type == "climate") return "Auto";
   if (type == "cover") return "Blinds Open";
   if (type == "door_window") return "Door Open";
@@ -332,12 +336,15 @@ inline const char *card_contract_fan_default_icon_on_name(const std::string &typ
 inline bool card_contract_large_numbers_supported(const std::string &type, const std::string &precision) {
   if (type == "sensor") return precision != "text";
   if (type == "weather") return precision == "today" || precision == "tomorrow";
-  return type == "calendar" || type == "timezone";
+  return type == "" || type == "action" || type == "calendar" || type == "clock" ||
+         type == "climate" || type == "media" || type == "todo" ||
+         type == "subpage" || type == "timezone";
 }
 
 inline const char *card_contract_subpage_type_code(const std::string &type) {
   if (type == "action") return "A";
   if (type == "calendar") return "D";
+  if (type == "clock") return "CK";
   if (type == "timezone") return "T";
   if (type == "sensor") return "S";
   if (type == "door_window") return "X";
@@ -371,6 +378,7 @@ inline const char *card_contract_subpage_type_code(const std::string &type) {
 inline std::string card_contract_subpage_type_from_code(const std::string &code) {
   if (code == "A") return "action";
   if (code == "D") return "calendar";
+  if (code == "CK") return "clock";
   if (code == "T") return "timezone";
   if (code == "S") return "sensor";
   if (code == "X") return "door_window";
