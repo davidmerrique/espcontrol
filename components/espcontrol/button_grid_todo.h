@@ -368,15 +368,6 @@ inline lv_obj_t *todo_modal_create_list_item_row(
   apply_width_compensation(value, width_compensation_percent);
   lv_obj_align(value, LV_ALIGN_LEFT_MID, label_x, 0);
 
-  lv_obj_t *divider = lv_obj_create(row);
-  lv_obj_set_size(divider, lv_pct(100), 1);
-  lv_obj_set_style_bg_color(divider, lv_color_hex(DARK_BACKGROUND_SECONDARY), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_border_width(divider, 0, LV_PART_MAIN);
-  lv_obj_set_style_shadow_width(divider, 0, LV_PART_MAIN);
-  lv_obj_clear_flag(divider, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_clear_flag(divider, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_align(divider, LV_ALIGN_BOTTOM_MID, 0, 0);
   return row;
 }
 
