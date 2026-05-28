@@ -710,7 +710,7 @@ inline void subscribe_todo_state(TodoCardCtx *ctx) {
       apply_control_availability(ctx->btn, ctx->btn, ctx->available);
       todo_apply_card_text(ctx);
       if (todo_modal_ui().active == ctx && !ctx->available) todo_modal_set_status("Could not load");
-      else if (todo_modal_ui().active == ctx) request_todo_items(ctx);
+      else if (todo_modal_ui().active == ctx) return;
       else request_todo_top_task(ctx);
     })
   );
