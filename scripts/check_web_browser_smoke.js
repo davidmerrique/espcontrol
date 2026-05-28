@@ -58,8 +58,7 @@ const BUTTON_FIXTURES = [
   "sensor.energy;Energy;Gauge;Auto;sensor.energy;W;sensor;0",
   "climate.hall;Hall;Thermostat;Auto;;;climate;;",
   "media_player.living;Media;Auto;Auto;play_pause;;media;;",
-  "fan.ceiling;Fan;Fan Off;Fan;;;fan_switch;;",
-  ";Rooms;Home;Auto;;;subpage;;",
+  "todo.shopping;Shopping;Check;Auto;;;todo;;count_display=top_task",
 ];
 
 function htmlFor(slug) {
@@ -150,9 +149,12 @@ async function installFakeEventSource(page) {
   });
 }
 
-function seededEvents() {
+function seededEvents(testCase) {
+  const buttonOrder = testCase && testCase.exerciseInteractions
+    ? "5b,,1,,,,,2,3,4"
+    : "1,2,3w,4,5";
   const events = [
-    { id: "text-button_order", state: "1,2,3w,4,5,6" },
+    { id: "text-button_order", state: buttonOrder },
     { id: "text-button_on_color", state: "FF8C00" },
     { id: "text-button_off_color", state: "313131" },
     { id: "text-sensor_card_color", state: "212121" },
@@ -162,6 +164,7 @@ function seededEvents() {
     { id: "select-screen__clock_format", state: "24h", value: "24h", option: ["12h", "24h"] },
     { id: "select-screen__rotation", state: "0", value: "0", option: ["0", "90", "180", "270"] },
     { id: "number-screensaver_timeout", state: "300", value: 300, min: 10, max: 3600 },
+    { id: "switch-developer__experimental_features", state: "ON", value: true },
     { id: "text-subpage_6_config", state: "1,B|media_player.living:Living:Speaker:Auto:play_pause::media" },
   ];
   BUTTON_FIXTURES.forEach((state, index) => {
@@ -294,6 +297,25 @@ async function assertEmptyCellSettings(page, label) {
     modalLayout.documentScrollWidth <= modalLayout.windowWidth + 1,
     `${label}: card settings modal introduced horizontal overflow`
   );
+  await page.locator(".sp-settings-close").click();
+  await page.waitForFunction(() => {
+    var overlay = document.querySelector(".sp-settings-overlay");
+    return overlay && !overlay.classList.contains("sp-visible");
+  });
+}
+
+async function assertTodoLargeItemCountVisibility(page, label) {
+  await page.getByRole("tab", { name: "Screen" }).click();
+  await page.waitForSelector("#sp-screen.sp-page.active");
+  await page.locator(".sp-main .sp-btn").filter({ hasText: "Shopping" }).first().click();
+  await page.getByRole("button", { name: /Edit/ }).click();
+
+  const largeItemCount = page.getByText("Large Item Count", { exact: true });
+  assert(!(await largeItemCount.isVisible()), `${label}: todo top-task status hides large item count setting`);
+
+  await page.getByRole("button", { name: "Item Counter" }).click();
+  assert(await largeItemCount.isVisible(), `${label}: todo item-counter status shows large item count setting`);
+
   await page.locator(".sp-settings-close").click();
   await page.waitForFunction(() => {
     var overlay = document.querySelector(".sp-settings-overlay");
@@ -563,7 +585,7 @@ async function runCase(browser, testCase) {
     await page.goto(`http://espcontrol.test/${testCase.slug}?events=1`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#sp-app");
     await page.waitForFunction(() => window.__eventSources && window.__eventSources.length > 0);
-    await page.evaluate((events) => window.__seedEspState(events), seededEvents());
+    await page.evaluate((events) => window.__seedEspState(events), seededEvents(testCase));
     await page.waitForSelector(".sp-main > .sp-btn");
     await page.waitForTimeout(100);
 
@@ -573,6 +595,7 @@ async function runCase(browser, testCase) {
     assertNoLayoutBreaks(await measureCoreLayout(page), `${testCase.name} after settings`);
     await assertEmptyCellSettings(page, testCase.name);
     if (testCase.exerciseInteractions) {
+      await assertTodoLargeItemCountVisibility(page, testCase.name);
       await assertBackupImportSmoke(page, posts, testCase.slug);
       await assertEditAndApplySmoke(page, posts, errors);
     }

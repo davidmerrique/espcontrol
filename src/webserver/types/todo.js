@@ -116,10 +116,11 @@ registerButtonType("todo", {
         setTodoCardStatusMode(button, value);
         cardHelpers.saveField("options", button.options);
         syncIconPicker();
+        syncLargeItemCount();
         scheduleRender();
       },
     }));
-    helpers.renderCardLargeNumbersToggle(panel, b, helpers, TODO_CARD_METADATA);
+    var largeNumbersToggle = helpers.renderCardLargeNumbersToggle(panel, b, helpers, TODO_CARD_METADATA);
     var iconSection = condField();
     iconSection.classList.add("sp-climate-settings-gap");
     helpers.renderCardIconPicker(iconSection, b, helpers, TODO_CARD_METADATA.icon);
@@ -129,7 +130,11 @@ registerButtonType("todo", {
     function syncIconPicker() {
       iconSection.classList.toggle("sp-visible", !todoCardShowCount(b));
     }
+    function syncLargeItemCount() {
+      helpers.syncCardLargeNumbersToggle(largeNumbersToggle, b, helpers, todoCardStatusMode(b) === "count");
+    }
     syncIconPicker();
+    syncLargeItemCount();
   },
   renderPreview: function (b, helpers) {
     var label = todoCardLabelShowsCount(b) ? "3" : (b.label || b.entity || "Todo");
