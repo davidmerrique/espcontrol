@@ -1023,7 +1023,7 @@ inline void reset_weather_forecast_cards() {
 
 constexpr int WEATHER_FORECAST_TEMP_MISSING = 32767;
 constexpr int WEATHER_FORECAST_PENDING_MAX = 8;
-constexpr uint32_t WEATHER_FORECAST_REQUEST_TIMEOUT_MS = 20000;
+constexpr uint32_t WEATHER_FORECAST_REQUEST_TIMEOUT_MS = 60000;
 
 struct WeatherForecastPendingRequest {
   uint32_t call_id = 0;
@@ -1087,6 +1087,20 @@ inline void apply_weather_forecast_to_entity(const std::string &entity_id,
   }
 }
 
+inline void apply_weather_forecast_unavailable_for_entity(const std::string &entity_id) {
+  WeatherForecastCardRef *refs = weather_forecast_card_refs();
+  int count = weather_forecast_card_count();
+  for (int i = 0; i < count; i++) {
+    if (refs[i].entity_id == entity_id) {
+      refs[i].valid = false;
+      refs[i].high = 0;
+      refs[i].low = 0;
+      refs[i].source_unit = "";
+      apply_weather_forecast_card_text(refs[i], false, 0, 0, "");
+    }
+  }
+}
+
 inline bool weather_forecast_request_matches(const std::string &entity_id,
                                              const std::string &day,
                                              const std::string &other_entity_id,
@@ -1127,42 +1141,61 @@ inline bool parse_weather_forecast_temp(const std::string &value, int &out) {
   return true;
 }
 
+struct WeatherForecastPayload {
+  bool today_valid = false;
+  int today_high = WEATHER_FORECAST_TEMP_MISSING;
+  int today_low = WEATHER_FORECAST_TEMP_MISSING;
+  bool tomorrow_valid = false;
+  int tomorrow_high = WEATHER_FORECAST_TEMP_MISSING;
+  int tomorrow_low = WEATHER_FORECAST_TEMP_MISSING;
+  std::string unit;
+};
+
 inline bool parse_weather_forecast_payload(const std::string &payload,
-                                           int &high, int &low,
-                                           std::string &unit) {
+                                           WeatherForecastPayload &out) {
   size_t p1 = payload.find('|');
   if (p1 == std::string::npos) return false;
   size_t p2 = payload.find('|', p1 + 1);
   if (p2 == std::string::npos) return false;
-  std::string high_text = payload.substr(0, p1);
-  std::string low_text = payload.substr(p1 + 1, p2 - p1 - 1);
-  unit = payload.substr(p2 + 1);
-  high = WEATHER_FORECAST_TEMP_MISSING;
-  low = WEATHER_FORECAST_TEMP_MISSING;
-  bool has_high = parse_weather_forecast_temp(high_text, high);
-  bool has_low = parse_weather_forecast_temp(low_text, low);
-  return has_high || has_low;
+  size_t p3 = payload.find('|', p2 + 1);
+  if (p3 == std::string::npos) return false;
+  size_t p4 = payload.find('|', p3 + 1);
+  if (p4 == std::string::npos) return false;
+
+  std::string today_high_text = payload.substr(0, p1);
+  std::string today_low_text = payload.substr(p1 + 1, p2 - p1 - 1);
+  std::string tomorrow_high_text = payload.substr(p2 + 1, p3 - p2 - 1);
+  std::string tomorrow_low_text = payload.substr(p3 + 1, p4 - p3 - 1);
+  out.unit = payload.substr(p4 + 1);
+
+  bool today_has_high = parse_weather_forecast_temp(today_high_text, out.today_high);
+  bool today_has_low = parse_weather_forecast_temp(today_low_text, out.today_low);
+  bool tomorrow_has_high = parse_weather_forecast_temp(tomorrow_high_text, out.tomorrow_high);
+  bool tomorrow_has_low = parse_weather_forecast_temp(tomorrow_low_text, out.tomorrow_low);
+  out.today_valid = today_has_high || today_has_low;
+  out.tomorrow_valid = tomorrow_has_high || tomorrow_has_low;
+  return out.today_valid || out.tomorrow_valid;
 }
 
-inline std::string weather_forecast_response_template(const std::string &entity_id,
-                                                      const std::string &day) {
-  const char *target_date_template = day == "today"
-    ? "now().date().isoformat()"
-    : "(now().date() + timedelta(days=1)).isoformat()";
+inline std::string weather_forecast_response_template(const std::string &entity_id) {
   return std::string("{% set entity = '") + entity_id + "' %}"
     "{% set forecasts = response.get(entity, {}).get('forecast', []) %}"
-    "{% set target_date = " + target_date_template + " %}"
-    "{% set ns = namespace(forecast=none) %}"
+    "{% set today_date = now().date().isoformat() %}"
+    "{% set tomorrow_date = (now().date() + timedelta(days=1)).isoformat() %}"
+    "{% set ns = namespace(today=none, tomorrow=none) %}"
     "{% for item in forecasts %}"
-    "{% if ns.forecast is none and item.datetime is defined and item.datetime[:10] == target_date %}"
-    "{% set ns.forecast = item %}"
-    "{% endif %}"
+    "{% if item.datetime is defined and item.datetime[:10] == today_date and ns.today is none %}"
+    "{% set ns.today = item %}{% endif %}"
+    "{% if item.datetime is defined and item.datetime[:10] == tomorrow_date and ns.tomorrow is none %}"
+    "{% set ns.tomorrow = item %}{% endif %}"
     "{% endfor %}"
-    "{% set fallback_index = 0 if target_date == now().date().isoformat() else 1 %}"
-    "{% set f = ns.forecast if ns.forecast is not none else (forecasts[fallback_index] if forecasts|length > fallback_index else (forecasts[0] if forecasts|length > 0 else none)) %}"
-    "{% set high = f.temperature if f is not none and f.temperature is defined else (f.temperature_high if f is not none and f.temperature_high is defined else (f.high_temperature if f is not none and f.high_temperature is defined else (f.high if f is not none and f.high is defined else ''))) %}"
-    "{% set low = f.templow if f is not none and f.templow is defined else (f.temperature_low if f is not none and f.temperature_low is defined else (f.low_temperature if f is not none and f.low_temperature is defined else (f.low if f is not none and f.low is defined else ''))) %}"
-    "{{ high }}|{{ low }}|"
+    "{% set today = ns.today if ns.today is not none else (forecasts[0] if forecasts|length > 0 else none) %}"
+    "{% set tomorrow = ns.tomorrow if ns.tomorrow is not none else (forecasts[1] if forecasts|length > 1 else (forecasts[0] if forecasts|length > 0 else none)) %}"
+    "{% set today_high = today.temperature if today is not none and today.temperature is defined else (today.temperature_high if today is not none and today.temperature_high is defined else (today.high_temperature if today is not none and today.high_temperature is defined else (today.high if today is not none and today.high is defined else ''))) %}"
+    "{% set today_low = today.templow if today is not none and today.templow is defined else (today.temperature_low if today is not none and today.temperature_low is defined else (today.low_temperature if today is not none and today.low_temperature is defined else (today.low if today is not none and today.low is defined else ''))) %}"
+    "{% set tomorrow_high = tomorrow.temperature if tomorrow is not none and tomorrow.temperature is defined else (tomorrow.temperature_high if tomorrow is not none and tomorrow.temperature_high is defined else (tomorrow.high_temperature if tomorrow is not none and tomorrow.high_temperature is defined else (tomorrow.high if tomorrow is not none and tomorrow.high is defined else ''))) %}"
+    "{% set tomorrow_low = tomorrow.templow if tomorrow is not none and tomorrow.templow is defined else (tomorrow.temperature_low if tomorrow is not none and tomorrow.temperature_low is defined else (tomorrow.low_temperature if tomorrow is not none and tomorrow.low_temperature is defined else (tomorrow.low if tomorrow is not none and tomorrow.low is defined else ''))) %}"
+    "{{ today_high }}|{{ today_low }}|{{ tomorrow_high }}|{{ tomorrow_low }}|"
     "{{ state_attr(entity, 'temperature_unit') or '' }}";
 }
 
@@ -1314,56 +1347,57 @@ inline bool weather_forecast_cancel_stale_requests() {
 inline void request_weather_forecast_entity(const std::string &entity_id,
                                             const std::string &day) {
   if (!weather_forecast_entity_id_safe(entity_id) || !ha_api_state_connected()) {
-    apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+    apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
 
   esphome::api::HomeassistantActionRequest req;
   uint32_t call_id = next_weather_forecast_call_id();
   if (!ha_action_begin(req, "weather.get_forecasts", false, 2, call_id)) {
-    apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+    apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
   req.wants_response = true;
-  std::string response_template = weather_forecast_response_template(entity_id, day);
+  std::string response_template = weather_forecast_response_template(entity_id);
   req.response_template = decltype(req.response_template)(response_template);
   ha_action_add_entity(req, entity_id);
   ha_action_add_data(req, "type", "daily");
 
   if (!ha_register_action_response_callback(
     req.call_id,
-    [entity_id, day, call_id = req.call_id](const esphome::api::ActionResponse &response) {
+    [entity_id, call_id = req.call_id](const esphome::api::ActionResponse &response) {
       weather_forecast_clear_pending(call_id);
       if (!response.is_success()) {
         ESP_LOGW("weather_forecast", "Forecast request failed for %s: %s",
           entity_id.c_str(), response.get_error_message().c_str());
-        apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+        apply_weather_forecast_unavailable_for_entity(entity_id);
         weather_forecast_send_next_queued();
         return;
       }
       auto json = response.get_json();
       const char *payload = json["response"].as<const char *>();
       if (payload == nullptr) {
-        apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+        apply_weather_forecast_unavailable_for_entity(entity_id);
         weather_forecast_send_next_queued();
         return;
       }
-      int high = 0;
-      int low = 0;
-      std::string unit;
-      bool valid = parse_weather_forecast_payload(payload, high, low, unit);
+      WeatherForecastPayload forecast;
+      bool valid = parse_weather_forecast_payload(payload, forecast);
       if (!valid) {
         ESP_LOGW("weather_forecast", "No usable forecast temperatures for %s", entity_id.c_str());
       }
-      apply_weather_forecast_to_entity(entity_id, day, valid, high, low, unit);
+      apply_weather_forecast_to_entity(entity_id, "today", forecast.today_valid,
+        forecast.today_high, forecast.today_low, forecast.unit);
+      apply_weather_forecast_to_entity(entity_id, "tomorrow", forecast.tomorrow_valid,
+        forecast.tomorrow_high, forecast.tomorrow_low, forecast.unit);
       weather_forecast_send_next_queued();
     })) {
-    apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+    apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
   if (!weather_forecast_track_pending(req.call_id, entity_id, day)) {
     ha_cancel_action_response_callback(req.call_id, "too many pending forecasts");
-    apply_weather_forecast_to_entity(entity_id, day, false, 0, 0, "");
+    apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
   if (!ha_action_send(req)) {
@@ -1390,8 +1424,7 @@ inline void refresh_weather_forecast_cards() {
   for (int i = 0; i < count; i++) {
     const std::string &entity_id = refs[i].entity_id;
     if (entity_id.empty()) continue;
-    const std::string &day = refs[i].day;
-    std::string request_key = entity_id + "|" + day;
+    std::string request_key = entity_id;
     bool already_requested = false;
     for (const auto &existing : requested) {
       if (existing == request_key) {
@@ -1401,7 +1434,7 @@ inline void refresh_weather_forecast_cards() {
     }
     if (already_requested) continue;
     requested.push_back(request_key);
-    weather_forecast_enqueue(entity_id, day);
+    weather_forecast_enqueue(entity_id, "");
   }
   weather_forecast_send_next_queued();
 }
