@@ -1291,7 +1291,7 @@ inline std::string weather_forecast_response_template(const std::string &entity_
 }
 
 inline uint32_t next_weather_forecast_call_id() {
-  static uint32_t call_id = 100000;
+  static uint32_t call_id = 1;
   return call_id++;
 }
 
