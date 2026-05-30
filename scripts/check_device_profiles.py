@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import device_matrix
@@ -107,6 +108,28 @@ def test_setup_icon_glyphs() -> None:
         assert glyph in glyphs, f"shared icon font missing {icon_name} for OTA update screen"
 
 
+def test_trmnl_epaper_icon_literals() -> None:
+    icons = (ROOT / "components" / "espcontrol" / "icons.h").read_text(encoding="utf-8")
+    icon_names = set(re.findall(r'\{"([^"]+)",\s+"\\U[0-9A-Fa-f]+"\}', icons))
+    epaper = (ROOT / "components" / "espcontrol_epaper" / "epaper_dashboard.h").read_text(encoding="utf-8")
+    missing = sorted({
+        name for name in re.findall(r'find_icon\("([^"]+)"\)', epaper)
+        if name != "Auto" and name not in icon_names
+    })
+    assert not missing, f"TRMNL e-paper renderer references missing icon names: {', '.join(missing)}"
+
+    glyphs = (ROOT / "common" / "assets" / "icon_glyphs.yaml").read_text(encoding="utf-8")
+    trmnl_yaml = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "devices" / "trmnl-75-og" / "device").glob("*.yaml")
+    )
+    missing_glyphs = sorted({
+        glyph for glyph in re.findall(r'\\U[0-9A-Fa-f]{8}', trmnl_yaml)
+        if f'"{glyph.upper()}"' not in glyphs
+    })
+    assert not missing_glyphs, f"TRMNL hard-coded icon glyphs missing from icon font: {', '.join(missing_glyphs)}"
+
+
 def test_firmware_matrices(profile_slugs: list[str]) -> None:
     profiles = load_device_profiles()
     release = device_matrix.release_matrix(profiles)
@@ -129,6 +152,7 @@ def main() -> int:
     test_generated_web(profile_slugs)
     test_generated_yaml(profiles)
     test_setup_icon_glyphs()
+    test_trmnl_epaper_icon_literals()
     test_firmware_matrices(profile_slugs)
     test_public_firmware_slugs(profile_slugs)
     print("Device profile cross-checks passed.")

@@ -228,9 +228,40 @@ inline bool epaper_dashboard_sensor_card_type(const EpaperDashboardTile &tile) {
          (!tile.entity.empty() && !epaper_dashboard_command_only_type(tile));
 }
 
+inline bool epaper_dashboard_value_replaces_icon(const EpaperDashboardTile &tile) {
+  return tile.type == "sensor" || tile.type == "weather" || tile.type == "weather_forecast" ||
+         tile.type == "calendar" || tile.type == "clock" || tile.type == "timezone";
+}
+
 inline const char *epaper_dashboard_icon(const EpaperDashboardTile &tile, bool active) {
   std::string icon = active && !tile.icon_on.empty() && tile.icon_on != "Auto" ? tile.icon_on : tile.icon;
   if (!icon.empty() && icon != "Auto") return find_icon(icon.c_str());
+  if (tile.type == "action") return find_icon("Flash");
+  if (tile.type == "alarm" || tile.type == "alarm_action") return find_icon("Security");
+  if (tile.type == "climate") return find_icon("Thermostat");
+  if (tile.type == "cover") {
+    if (tile.sensor == "open") return find_icon("Blinds Open");
+    return find_icon("Blinds Horizontal");
+  }
+  if (tile.type == "door_window") return find_icon(active ? "Door Open" : "Door");
+  if (tile.type == "fan_speed" || tile.type == "fan_switch" ||
+      tile.type == "fan_oscillate" || tile.type == "fan_direction" ||
+      tile.type == "fan_preset") return find_icon("Fan");
+  if (tile.type == "garage") return find_icon(active || tile.sensor == "open" ? "Garage Open" : "Garage");
+  if (tile.type == "light_brightness" || tile.type == "light_switch" ||
+      tile.type == "light_temperature") return find_icon("Lightbulb");
+  if (tile.type == "lock") return find_icon(active || tile.sensor == "unlock" ? "Lock Open" : "Lock");
+  if (tile.type == "media") {
+    if (tile.sensor == "previous") return find_icon("Skip Previous");
+    if (tile.sensor == "next") return find_icon("Skip Next");
+    if (tile.sensor == "volume") return find_icon("Volume High");
+    if (tile.sensor == "position") return find_icon("Progress Clock");
+    if (tile.sensor == "now_playing") return find_icon("Music");
+    return find_icon("Play Pause");
+  }
+  if (tile.type == "presence") return find_icon("Account");
+  if (tile.type == "push" || tile.type == "webhook") return find_icon("Gesture Tap");
+  if (tile.type == "slider") return find_icon("Gauge");
   size_t dot = tile.entity.find('.');
   if (dot != std::string::npos) return domain_default_icon(tile.entity.substr(0, dot));
   return find_icon("Auto");
@@ -272,16 +303,21 @@ inline void epaper_dashboard_update_lvgl_page(int page) {
     bool active = configured && epaper_dashboard_state_active(active_value);
     bool show_value = configured && !epaper_dashboard_command_only_type(tile) &&
         epaper_dashboard_sensor_card_type(tile);
+    bool value_replaces_icon = show_value && epaper_dashboard_value_replaces_icon(tile);
     epaper_dashboard_style_lvgl_tile(slot.tile, slot.icon, slot.label, slot.value, slot.unit, configured, active);
     lv_obj_set_grid_cell(slot.tile, LV_GRID_ALIGN_STRETCH, col, 1, LV_GRID_ALIGN_STRETCH, row, 1);
     if (slot.icon) {
       lv_label_set_text(slot.icon, configured ? epaper_dashboard_icon(tile, active) : find_icon("Auto"));
-      if (show_value) lv_obj_add_flag(slot.icon, LV_OBJ_FLAG_HIDDEN);
+      if (value_replaces_icon) lv_obj_add_flag(slot.icon, LV_OBJ_FLAG_HIDDEN);
       else lv_obj_clear_flag(slot.icon, LV_OBJ_FLAG_HIDDEN);
     }
     if (slot.sensor_container) {
-      if (show_value) lv_obj_clear_flag(slot.sensor_container, LV_OBJ_FLAG_HIDDEN);
-      else lv_obj_add_flag(slot.sensor_container, LV_OBJ_FLAG_HIDDEN);
+      if (show_value) {
+        lv_obj_clear_flag(slot.sensor_container, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_align(slot.sensor_container, value_replaces_icon ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT, 0, 0);
+      } else {
+        lv_obj_add_flag(slot.sensor_container, LV_OBJ_FLAG_HIDDEN);
+      }
     }
     if (slot.label) {
       lv_label_set_text(slot.label, configured ? tile.label.c_str() : "Configure");
