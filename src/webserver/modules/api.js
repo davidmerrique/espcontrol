@@ -40,7 +40,7 @@ function entityStateItems(keys) {
 
 function entityStateItemsForSlots(keys) {
   var items = [];
-  for (var i = 1; i <= NUM_SLOTS; i++) {
+  for (var i = 1; i <= TOTAL_SLOTS; i++) {
     keys.forEach(function (key) {
       items.push([entityDef(key).domain, entityNameForSlot(key, i)]);
     });

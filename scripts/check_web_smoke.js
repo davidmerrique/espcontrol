@@ -116,6 +116,17 @@ for (const [slug, device] of Object.entries(manifest.devices || {})) {
   );
 }
 
+{
+  const slug = "trmnl-75-og";
+  const webOutput = path.join(WEB_OUTPUT_DIR, slug, "www.js");
+  const generated = fs.readFileSync(webOutput, "utf8");
+  assert(generated.includes("monochromeDisplay:!0"), "TRMNL web UI must enable monochrome preview styling");
+  assert(generated.includes("epaperDisplay:!0"), "TRMNL web UI must expose e-paper capability");
+  assert(generated.includes("dashboardPages:4"), "TRMNL web UI must expose four dashboard pages");
+  assert(generated.includes('disabledCardTypes:["subpage"]'), "TRMNL web UI must hide subpage cards");
+  assert(generated.includes("slots:20,cols:5,rows:4"), "TRMNL web UI must use a 5x4 page layout");
+}
+
 const button = {
   entity: "light.kitchen",
   label: "Kitchen",

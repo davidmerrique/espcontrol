@@ -79,7 +79,10 @@ def test_generated_yaml(profiles: dict[str, dict]) -> None:
         sensors = sensor_path.read_text(encoding="utf-8")
         assert f'device_slug: "{slug}"' in package, f"{slug}: packages.yaml missing device slug"
         assert f'firmware_manifest_slug: "{slug}"' in package, f"{slug}: packages.yaml missing manifest slug"
-        assert f"cfg.num_slots = {profile['slots']};" in sensors, f"{slug}: sensors.yaml missing slot count"
+        if (profile["firmware"].get("display") or {}).get("mode") == "monochrome":
+            assert "epaper_dashboard_set_config" in sensors, f"{slug}: sensors.yaml missing e-paper dashboard config"
+        else:
+            assert f"cfg.num_slots = {profile['slots']};" in sensors, f"{slug}: sensors.yaml missing slot count"
 
 
 def test_setup_icon_glyphs() -> None:

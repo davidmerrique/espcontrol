@@ -1,0 +1,24 @@
+# =============================================================================
+# CONFIG: BUTTON CONFIG ONLY TEMPLATE (parameterized by ${num})
+# =============================================================================
+# Used by display-only devices that do not support touch subpages. Stores the
+# same per-card config string as the touch-panel firmware so the web UI can
+# reuse the existing card editor.
+# =============================================================================
+
+text:
+  - platform: template
+    name: "${entity_button_config_prefix}${num}${entity_button_config_suffix}"
+    internal: true
+    id: button_${num}_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button

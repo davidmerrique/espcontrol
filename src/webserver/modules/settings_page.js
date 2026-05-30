@@ -10,26 +10,33 @@ function buildSettingsPage(parent) {
 
   var appearBody = document.createElement("div");
 
-  appearBody.appendChild(fieldLabel("Primary"));
-  var onColor = colorField("sp-set-on-color", "FF8C00", function (hex) {
-    postText(entityName("button_on_color"), hex);
-  });
-  appearBody.appendChild(onColor);
-  els.setOnColor = onColor;
+  if (CFG.features && CFG.features.monochromeDisplay) {
+    var mono = document.createElement("div");
+    mono.className = "sp-field-hint";
+    mono.textContent = "E-paper theme: black and white, filled active states, outlined inactive states.";
+    appearBody.appendChild(mono);
+  } else {
+    appearBody.appendChild(fieldLabel("Primary"));
+    var onColor = colorField("sp-set-on-color", "FF8C00", function (hex) {
+      postText(entityName("button_on_color"), hex);
+    });
+    appearBody.appendChild(onColor);
+    els.setOnColor = onColor;
 
-  appearBody.appendChild(fieldLabel("Secondary"));
-  var offColor = colorField("sp-set-off-color", "313131", function (hex) {
-    postText(entityName("button_off_color"), hex);
-  });
-  appearBody.appendChild(offColor);
-  els.setOffColor = offColor;
+    appearBody.appendChild(fieldLabel("Secondary"));
+    var offColor = colorField("sp-set-off-color", "313131", function (hex) {
+      postText(entityName("button_off_color"), hex);
+    });
+    appearBody.appendChild(offColor);
+    els.setOffColor = offColor;
 
-  appearBody.appendChild(fieldLabel("Tertiary"));
-  var sensorColor = colorField("sp-set-sensor-color", "212121", function (hex) {
-    postText(entityName("sensor_card_color"), hex);
-  });
-  appearBody.appendChild(sensorColor);
-  els.setSensorColor = sensorColor;
+    appearBody.appendChild(fieldLabel("Tertiary"));
+    var sensorColor = colorField("sp-set-sensor-color", "212121", function (hex) {
+      postText(entityName("sensor_card_color"), hex);
+    });
+    appearBody.appendChild(sensorColor);
+    els.setSensorColor = sensorColor;
+  }
 
   config.appendChild(makeCollapsibleCard("Appearance", appearBody, true));
 

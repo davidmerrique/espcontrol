@@ -18,6 +18,7 @@ DEVICES_DIR = ROOT / "devices"
 VALID_CHIP_FAMILIES = {"ESP32-P4", "ESP32-S3"}
 VALID_DRAG_MODES = {"swap", "displace"}
 VALID_ROTATIONS = {"0", "90", "180", "270"}
+VALID_DISPLAY_MODES = {"color", "monochrome"}
 REQUIRED_FONT_ROLES = (
     "icon",
     "sensor",
@@ -185,6 +186,10 @@ def validate_display(slug: str, device: dict[str, Any], errors: list[str]) -> No
 
     if not isinstance(display.get("wrapTallLabels"), bool):
         errors.append(device_error(slug, "firmware.display.wrapTallLabels must be true or false"))
+
+    if "mode" in display and display["mode"] not in VALID_DISPLAY_MODES:
+        valid = ", ".join(sorted(VALID_DISPLAY_MODES))
+        errors.append(device_error(slug, f"firmware.display.mode must be one of {valid} when set"))
 
     for key in ("widthCompensationPercent", "volumeWidthCompensationPercent"):
         if key in display and not is_number(display[key]):
@@ -360,6 +365,9 @@ def validate_web(slug: str, device: dict[str, Any], errors: list[str]) -> None:
     ):
         errors.append(device_error(slug, "web.disabledCardTypes must be a list of non-empty strings"))
 
+    if "dashboardPages" in web and not is_positive_int(web["dashboardPages"]):
+        errors.append(device_error(slug, "web.dashboardPages must be a positive integer when set"))
+
     validate_screen_box(slug, errors, web.get("screen"), "web.screen")
 
     portrait = web.get("portrait")
@@ -480,6 +488,12 @@ def web_features(profile: dict[str, Any]) -> dict[str, Any]:
         features["internalRelays"] = copy.deepcopy(profile["internalRelays"])
     if package.get("subpageConfigChunks"):
         features["subpageConfigChunks"] = package["subpageConfigChunks"]
+    display = profile["firmware"].get("display") or {}
+    if display.get("mode") == "monochrome":
+        features["monochromeDisplay"] = True
+        features["epaperDisplay"] = True
+    if profile["web"].get("dashboardPages"):
+        features["dashboardPages"] = profile["web"]["dashboardPages"]
     return features
 
 
@@ -524,6 +538,7 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
         "climate_option_title_font": fonts.get("climateOptionTitle"),
         "climate_option_value_font": fonts.get("climateOptionValue"),
         "wrap_tall_labels": display["wrapTallLabels"],
+        "display_mode": display.get("mode", "color"),
         "package": firmware.get("package"),
     }
     if "portraitCols" in layout:
@@ -556,7 +571,7 @@ def slot_devices(path: Path = DEVICE_MANIFEST) -> list[dict[str, Any]]:
 
 def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
     package = profile["firmware"]["package"]
-    return {
+    capability = {
         "slug": profile["slug"],
         "installSlug": profile["slug"],
         "name": profile["public"]["name"],
@@ -574,6 +589,12 @@ def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
         "rotation": bool((profile.get("rotation") or {}).get("enabled")),
         "ethernetManualInstall": bool(package.get("ethernetSelectable")),
     }
+    display = profile["firmware"].get("display") or {}
+    if display.get("mode") == "monochrome":
+        capability["monochrome"] = True
+    if profile["web"].get("dashboardPages"):
+        capability["dashboardPages"] = profile["web"]["dashboardPages"]
+    return capability
 
 
 def public_device_capabilities(path: Path = DEVICE_MANIFEST) -> dict[str, Any]:

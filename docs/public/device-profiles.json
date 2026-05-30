@@ -90,6 +90,26 @@
       "relays": 3,
       "rotation": true,
       "ethernetManualInstall": false
+    },
+    {
+      "slug": "trmnl-75-og",
+      "installSlug": "trmnl-75-og",
+      "name": "TRMNL 7.5 OG",
+      "docsPath": "/screens/trmnl-75-og",
+      "screenSize": "7.5 inches",
+      "resolution": "800 x 480",
+      "orientation": "Landscape",
+      "slots": 20,
+      "grid": {
+        "rows": 4,
+        "cols": 5
+      },
+      "chipFamily": "ESP32-S3",
+      "relays": 0,
+      "rotation": false,
+      "ethernetManualInstall": false,
+      "monochrome": true,
+      "dashboardPages": 4
     }
   ]
 }

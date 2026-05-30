@@ -1,0 +1,165 @@
+# =============================================================================
+# DEVICE - TRMNL 7.5 OG e-paper hardware definition
+# =============================================================================
+
+substitutions:
+  espcontrol_component_url: "https://github.com/jtenniswood/espcontrol"
+  espcontrol_component_ref: "main"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+
+external_components:
+  - source:
+      type: git
+      url: ${espcontrol_component_url}
+      ref: ${espcontrol_component_ref}
+      path: components
+    components: [espcontrol_epaper]
+    refresh: 1s
+
+espcontrol_epaper:
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    - priority: -100
+      then:
+        - script.execute: trmnl_sync_dashboard_config
+        - component.update: epaper
+
+logger:
+
+api:
+  reboot_timeout: 0s
+  homeassistant_states: true
+  on_client_connected:
+    - delay: 2s
+    - script.execute: trmnl_sync_dashboard_config
+    - component.update: epaper
+
+ota:
+  - platform: esphome
+
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+  include_internal: true
+  js_url: https://jtenniswood.github.io/espcontrol/webserver/${device_slug}/www.js?v=${firmware_version}&ui=20260530-trmnl
+  sorting_groups:
+    - id: sg_button
+      name: "Dashboard Configuration"
+      sorting_weight: 10
+    - id: sg_firmware
+      name: "Firmware"
+      sorting_weight: 40
+
+button:
+  - platform: template
+    name: "Apply Configuration"
+    internal: true
+    disabled_by_default: true
+    icon: mdi:restart
+    entity_category: config
+    on_press:
+      then:
+        - lambda: |-
+            global_preferences->sync();
+            App.safe_reboot();
+
+spi:
+  clk_pin: GPIO7
+  mosi_pin: GPIO9
+
+globals:
+  - id: trmnl_current_page
+    type: int
+    restore_value: true
+    initial_value: "0"
+
+binary_sensor:
+  - platform: gpio
+    id: trmnl_key_prev
+    name: "TRMNL Previous Page"
+    internal: true
+    pin:
+      number: GPIO2
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      then:
+        - lambda: |-
+            id(trmnl_current_page) = espcontrol::epaper_dashboard_wrap_page(id(trmnl_current_page) - 1);
+            espcontrol::epaper_dashboard_mark_dirty();
+        - component.update: epaper
+
+  - platform: gpio
+    id: trmnl_key_home
+    name: "TRMNL Home Page"
+    internal: true
+    pin:
+      number: GPIO3
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      then:
+        - lambda: |-
+            id(trmnl_current_page) = 0;
+            espcontrol::epaper_dashboard_mark_dirty();
+        - component.update: epaper
+
+  - platform: gpio
+    id: trmnl_key_next
+    name: "TRMNL Next Page"
+    internal: true
+    pin:
+      number: GPIO5
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      then:
+        - lambda: |-
+            id(trmnl_current_page) = espcontrol::epaper_dashboard_wrap_page(id(trmnl_current_page) + 1);
+            espcontrol::epaper_dashboard_mark_dirty();
+        - component.update: epaper
+
+display:
+  - platform: waveshare_epaper
+    id: epaper
+    model: 7.50inv2
+    cs_pin: GPIO44
+    dc_pin: GPIO10
+    reset_pin: GPIO38
+    busy_pin:
+      number: GPIO4
+      inverted: true
+    update_interval: never
+    rotation: 0
+    lambda: |-
+      espcontrol::epaper_dashboard_render(
+        it,
+        id(font_trmnl_header_20),
+        id(font_trmnl_label_14),
+        id(font_trmnl_value_24),
+        id(trmnl_current_page));
+      espcontrol::epaper_dashboard_clear_dirty();

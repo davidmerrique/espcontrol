@@ -13,6 +13,11 @@ function buttonTypeRegistryValue(typeDef, key, fallback) {
   return value == null ? fallback : value;
 }
 
+function buttonTypeDisabledForDevice(key) {
+  var disabled = CFG.disabledCardTypes || [];
+  return disabled.indexOf(key || "") !== -1;
+}
+
 function buttonTypePickerOptionList(isSub, selectedTypeKey) {
   var typeOpts = [];
   var selectedHiddenExperimental = null;
@@ -22,6 +27,7 @@ function buttonTypePickerOptionList(isSub, selectedTypeKey) {
     var allowInSubpage = !!buttonTypeRegistryValue(td, "allowInSubpage", false);
     var experimental = buttonTypeRegistryValue(td, "experimental", "");
     var label = buttonTypeRegistryValue(td, "label", td.key || "Toggle");
+    if (buttonTypeDisabledForDevice(td.key) || buttonTypeDisabledForDevice(pickerKey)) continue;
     if (pickerKey && pickerKey !== td.key) continue;
     if (isSub && !allowInSubpage) continue;
     if (td.isAvailable && !td.isAvailable({ isSub: isSub }) && selectedTypeKey !== td.key) continue;

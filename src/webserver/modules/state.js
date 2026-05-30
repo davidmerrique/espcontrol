@@ -24,6 +24,7 @@ var state = {
   offColor: "313131",
   sensorColor: "212121",
   selectedSlots: [],
+  dashboardPage: 0,
   lastClickedSlot: -1,
   activeTab: "screen",
   _indoorOn: false,
@@ -115,7 +116,7 @@ var state = {
   entityNames: {},
 };
 
-for (var i = 0; i < NUM_SLOTS; i++) {
+for (var i = 0; i < TOTAL_SLOTS; i++) {
   state.grid.push(0);
   state.buttons.push({ entity: "", label: "", icon: "Auto", icon_on: "Auto", sensor: "", unit: "", type: "", precision: "", options: "" });
 }

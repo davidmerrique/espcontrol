@@ -377,7 +377,7 @@ function connectEvents() {
       re: /^text-button_(\d+)_config$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         var b = state.buttons[slot - 1];
         var migrateConfig = buttonConfigNeedsMigration(val || "");
         var parsed = parseButtonConfig(val || "");
@@ -398,7 +398,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].main = val || "";
         applySubpageRaw(slot);
@@ -408,7 +408,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext = val || "";
         applySubpageRaw(slot);
@@ -418,7 +418,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_2$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext2 = val || "";
         applySubpageRaw(slot);
@@ -428,7 +428,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_3$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext3 = val || "";
         applySubpageRaw(slot);
@@ -438,7 +438,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_4$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext4 = val || "";
         applySubpageRaw(slot);
@@ -448,7 +448,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_5$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext5 = val || "";
         applySubpageRaw(slot);
@@ -458,7 +458,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_6$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext6 = val || "";
         applySubpageRaw(slot);
@@ -468,7 +468,7 @@ function connectEvents() {
       re: /^text-subpage_(\d+)_config_ext_7$/,
       fn: function (m, val) {
         var slot = parseInt(m[1], 10);
-        if (slot < 1 || slot > NUM_SLOTS) return;
+        if (slot < 1 || slot > TOTAL_SLOTS) return;
         if (!state.subpageRaw[slot]) state.subpageRaw[slot] = { main: "", ext: "", ext2: "", ext3: "", ext4: "", ext5: "", ext6: "", ext7: "" };
         state.subpageRaw[slot].ext7 = val || "";
         applySubpageRaw(slot);

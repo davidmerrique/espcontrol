@@ -1,0 +1,24 @@
+# =============================================================================
+# ESPHOME ENTRY POINT - TRMNL 7.5 OG
+# =============================================================================
+# User-facing config file. Set your device name and WiFi credentials here.
+# The remote package reference pulls in the full device configuration from
+# GitHub so the device stays up-to-date automatically.
+# =============================================================================
+
+substitutions:
+  name: "trmnl-75-og"
+  friendly_name: "TRMNL 7.5 OG"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "trmnl-75-og-fallback"
+    password: "changeme123"
+
+packages:
+  setup:
+    url: https://github.com/jtenniswood/espcontrol/
+    file: devices/trmnl-75-og/packages.yaml
+    refresh: 1s

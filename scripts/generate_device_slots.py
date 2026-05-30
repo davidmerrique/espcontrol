@@ -519,6 +519,8 @@ def main() -> int:
 
     changed: list[Path] = []
     for device in slot_devices():
+        if device.get("display_mode") == "monochrome":
+            continue
         slug = device["slug"]
         package_path = ROOT / "devices" / slug / "packages.yaml"
         sensor_path = ROOT / "devices" / slug / "device" / "sensors.yaml"
