@@ -49,8 +49,22 @@ inline bool &epaper_dashboard_dirty_flag() {
   return dirty;
 }
 
+inline bool &epaper_dashboard_dark_theme_flag() {
+  static bool dark = false;
+  return dark;
+}
+
+inline bool epaper_dashboard_dark_theme() {
+  return epaper_dashboard_dark_theme_flag();
+}
+
 inline void epaper_dashboard_mark_dirty() {
   epaper_dashboard_dirty_flag() = true;
+}
+
+inline void epaper_dashboard_set_dark_theme(bool dark) {
+  if (epaper_dashboard_dark_theme_flag() != dark) epaper_dashboard_mark_dirty();
+  epaper_dashboard_dark_theme_flag() = dark;
 }
 
 inline bool epaper_dashboard_is_dirty() {
@@ -220,6 +234,12 @@ inline bool epaper_dashboard_command_only_type(const EpaperDashboardTile &tile) 
          tile.type == "push" || tile.type == "webhook" || tile.type == "internal";
 }
 
+inline bool epaper_dashboard_tile_configured(const EpaperDashboardTile &tile) {
+  if (tile.config.empty()) return false;
+  if (!tile.entity.empty() || !tile.sensor.empty() || !tile.action_state_entity.empty()) return true;
+  return tile.type == "clock" || tile.type == "timezone";
+}
+
 inline bool epaper_dashboard_sensor_card_type(const EpaperDashboardTile &tile) {
   return tile.type == "sensor" || tile.type == "weather" || tile.type == "weather_forecast" ||
          tile.type == "calendar" || tile.type == "clock" || tile.type == "timezone" ||
@@ -271,11 +291,17 @@ inline void epaper_dashboard_style_lvgl_tile(lv_obj_t *tile, lv_obj_t *icon, lv_
                                             lv_obj_t *value, lv_obj_t *unit,
                                             bool configured, bool active) {
   if (!tile) return;
-  uint32_t bg = active ? 0x000000 : 0xFFFFFF;
-  uint32_t fg = active ? 0xFFFFFF : 0x000000;
+  bool dark = epaper_dashboard_dark_theme();
+  uint32_t bg = dark ? 0x000000 : 0xFFFFFF;
+  uint32_t fg = dark ? 0xFFFFFF : 0x000000;
+  if (active) {
+    bg = dark ? 0xFFFFFF : 0x000000;
+    fg = dark ? 0x000000 : 0xFFFFFF;
+  }
+  uint32_t border = dark ? 0xFFFFFF : 0x000000;
   lv_obj_set_style_bg_color(tile, lv_color_hex(bg), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(tile, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_border_color(tile, lv_color_hex(0x000000), LV_PART_MAIN);
+  lv_obj_set_style_border_color(tile, lv_color_hex(border), LV_PART_MAIN);
   lv_obj_set_style_border_width(tile, configured ? 2 : 1, LV_PART_MAIN);
   lv_obj_set_style_radius(tile, 6, LV_PART_MAIN);
   lv_obj_set_style_shadow_width(tile, 0, LV_PART_MAIN);
@@ -298,7 +324,7 @@ inline void epaper_dashboard_update_lvgl_page(int page) {
     if (!slot.tile) continue;
     int col = i % EPAPER_DASHBOARD_COLS;
     int row = i / EPAPER_DASHBOARD_COLS;
-    bool configured = !tile.config.empty();
+    bool configured = epaper_dashboard_tile_configured(tile);
     lv_obj_set_grid_cell(slot.tile, LV_GRID_ALIGN_STRETCH, col, 1, LV_GRID_ALIGN_STRETCH, row, 1);
     if (!configured) {
       lv_obj_add_flag(slot.tile, LV_OBJ_FLAG_HIDDEN);
@@ -396,6 +422,11 @@ inline void epaper_dashboard_set_config(int index, const std::string &config) {
     tile.action_state_entity = epaper_dashboard_option_value(tile.options, "state_entity");
     std::string action_unit = epaper_dashboard_option_value(tile.options, "state_unit");
     if (!action_unit.empty()) tile.unit = action_unit;
+  }
+  if (!epaper_dashboard_tile_configured(tile)) {
+    tile = EpaperDashboardTile{};
+    epaper_dashboard_mark_dirty();
+    return;
   }
   if (tile.label.empty()) tile.label = epaper_dashboard_title_from_entity(!tile.sensor.empty() ? tile.sensor : tile.entity);
   epaper_dashboard_subscribe(index);

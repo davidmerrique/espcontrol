@@ -38,6 +38,15 @@ script:
     then:
       - script.execute: trmnl_update_clock_bar
       - lambda: |-
+          bool dark = id(screen_theme).current_option() == "Dark";
+          espcontrol::epaper_dashboard_set_dark_theme(dark);
+          lv_color_t bg = lv_color_hex(dark ? 0x000000 : 0xFFFFFF);
+          lv_color_t fg = lv_color_hex(dark ? 0xFFFFFF : 0x000000);
+          lv_obj_set_style_bg_color(id(main_page)->obj, bg, LV_PART_MAIN);
+          lv_obj_set_style_bg_opa(id(main_page)->obj, LV_OPA_COVER, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(temperatures), fg, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(display_time), fg, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(network_status_icon_label), fg, LV_PART_MAIN);
           espcontrol::epaper_dashboard_update_lvgl_page(id(trmnl_current_page));
           if (id(trmnl_force_full_refresh)) {
             id(epaper).set_full_update_every(1);
@@ -96,6 +105,14 @@ interval:
             lambda: "return espcontrol::epaper_dashboard_is_dirty();"
           then:
             - script.execute: trmnl_refresh_display_partial
+
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            lambda: "return espcontrol::epaper_dashboard_dark_theme() != (id(screen_theme).current_option() == \"Dark\");"
+          then:
+            - script.execute: trmnl_refresh_display_full
 
   - interval: 30min
     then:

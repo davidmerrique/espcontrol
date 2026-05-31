@@ -68,9 +68,7 @@ function connectEvents() {
       scheduleRender();
     },
     "select-screen__theme": function (val, d) {
-      state.theme = normalizeTheme(d.value || val);
-      if (d.option && Array.isArray(d.option)) state.themeOptions = d.option;
-      syncThemeUi();
+      syncThemeFromDevice(d.value || val, d.option);
     },
     "text-button_on_color": function (val) {
       state.onColor = val;

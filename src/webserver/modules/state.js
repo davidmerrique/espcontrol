@@ -522,6 +522,7 @@ function normalizeTheme(value) {
 
 function syncThemeUi() {
   if (els.setTheme) els.setTheme.value = normalizeTheme(state.theme);
+  if (els.root) els.root.setAttribute("data-screen-theme", normalizeTheme(state.theme).toLowerCase());
 }
 
 function syncColorUi() {
@@ -545,6 +546,18 @@ function applyThemePreset(theme, postChanges) {
     postText(entityName("button_off_color"), state.offColor);
     postText(entityName("sensor_card_color"), state.sensorColor);
   }
+}
+
+function syncThemeFromDevice(theme, options) {
+  state.theme = normalizeTheme(theme);
+  if (options && Array.isArray(options)) state.themeOptions = options;
+  var preset = THEME_PRESETS[state.theme];
+  state.onColor = preset.on;
+  state.offColor = preset.off;
+  state.sensorColor = preset.sensor;
+  syncThemeUi();
+  syncColorUi();
+  renderPreview();
 }
 
 function syncClockBarUi() {

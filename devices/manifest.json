@@ -697,7 +697,7 @@
         "topbar": {
           "height": 7.5,
           "padding": "1.1cqw 1.4cqw",
-          "fontSize": 2.1
+          "fontSize": 2.5
         },
         "grid": {
           "top": 8.5,
@@ -711,8 +711,8 @@
         "btn": {
           "radius": 0.2,
           "padding": 1.1,
-          "iconSize": 3.6,
-          "labelSize": 1.45,
+          "iconSize": 4,
+          "labelSize": 2,
           "labelLines": 2,
           "labelLinesDouble": 3
         },

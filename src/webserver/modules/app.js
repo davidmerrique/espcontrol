@@ -43,6 +43,7 @@ function init() {
 
   buildUI();
   addSupportButton();
+  syncThemeUi();
   syncClockBarUi();
   setupPreviewEvents();
   renderPreview();
