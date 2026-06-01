@@ -93,6 +93,9 @@ int main() {
   assert(sensor_state_display_text(state_labels, "high") == "Please empty");
   assert(sensor_state_display_text(state_labels, "High") == "Please empty");
   assert(sensor_state_display_text(state_labels, "medium") == "Medium");
+  assert(sensor_state_display_text(state_labels, "medium-high") == "Medium-High");
+  assert(text_sensor_display_text("pre-wash") == "Pre-Wash");
+  assert(text_sensor_display_text("pre_wash") == "Pre Wash");
   auto legacy_state_labels = parse_cfg(";;;;sensor.bin_level;;sensor;text;state_labels,state_high_label=Please%20empty");
   assert(legacy_state_labels.options == "state_labels,state_input=high,state_output=Please empty");
   auto numeric_state_labels = parse_cfg(";;;;sensor.bin_level;;sensor;0;state_labels,state_high_label=Please%20empty");

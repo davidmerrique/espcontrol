@@ -867,7 +867,13 @@ inline std::string text_sensor_display_text(esphome::StringRef value,
       last_space = false;
       continue;
     }
-    if (ch == '_' || ch == '-' || std::isspace(c)) {
+    if (ch == '-' && !out.empty() && out.back() != '\n' && out.back() != ' ') {
+      out.push_back(ch);
+      cap_next = true;
+      last_space = false;
+      continue;
+    }
+    if (ch == '_' || std::isspace(c)) {
       if (!out.empty() && !last_space && out.back() != '\n') {
         out.push_back(' ');
         last_space = true;
