@@ -170,12 +170,29 @@ inline void apply_card_label_line_clamp(lv_obj_t *label, const GridConfig &cfg,
   lv_obj_align(label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 }
 
+inline bool card_slot_static_child(const BtnSlot &s, lv_obj_t *child) {
+  return child == s.icon_lbl || child == s.sensor_container ||
+         child == s.text_lbl || child == s.subpage_lbl;
+}
+
+inline void reset_card_slot_dynamic_children(BtnSlot &s) {
+  if (!s.btn) return;
+  if (s.sensor_container) lv_obj_set_user_data(s.sensor_container, nullptr);
+  int32_t count = static_cast<int32_t>(lv_obj_get_child_cnt(s.btn));
+  for (int32_t i = count - 1; i >= 0; i--) {
+    lv_obj_t *child = lv_obj_get_child(s.btn, i);
+    if (!child || card_slot_static_child(s, child)) continue;
+    lv_obj_del(child);
+  }
+}
+
 inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
                               const GridConfig &cfg,
                               const CardPalette &palette,
                               int row_span = 1,
                               int col_span = 1) {
   const DisplayProfile display = display_profile_from_grid_config(cfg);
+  reset_card_slot_dynamic_children(s);
   apply_button_colors(s.btn, palette.has_on, palette.on_val,
     palette.has_off, palette.off_val);
   if (s.sensor_lbl && display_sensor_font(display)) {

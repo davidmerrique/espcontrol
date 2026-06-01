@@ -277,6 +277,15 @@ def test_weather_card_visual_matches_preview() -> None:
     assert 'lv_label_set_text(ref.unit_lbl, normalized_unit.c_str())' in config, (
         "forecast weather unavailable state should keep showing the configured unit"
     )
+    grid = (ROOT / "components" / "espcontrol" / "button_grid_grid.h").read_text(encoding="utf-8")
+    setup_match = re.search(r"inline void setup_card_visual\([\s\S]*?if \(is_text_sensor_card", grid)
+    assert (
+        "inline void reset_card_slot_dynamic_children" in grid
+        and "lv_obj_del(child);" in grid
+        and "lv_obj_set_user_data(s.sensor_container, nullptr);" in grid
+        and setup_match
+        and "reset_card_slot_dynamic_children(s);" in setup_match.group(0)
+    ), "weather cards must clear stale slider/media child widgets before rendering"
     assert "inline std::string normalize_weather_state" in config, (
         "current weather device cards should normalize equivalent weather state spellings before mapping icons"
     )
