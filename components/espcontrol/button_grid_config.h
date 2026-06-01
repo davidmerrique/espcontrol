@@ -1163,6 +1163,11 @@ inline std::string weather_forecast_unit_symbol(const std::string &unit) {
   return display_temperature_unit_symbol();
 }
 
+inline int weather_forecast_display_temp(int value, const std::string &unit) {
+  if (value == WEATHER_FORECAST_TEMP_MISSING) return value;
+  return convert_temperature_value_for_display(value, unit);
+}
+
 inline void apply_weather_forecast_card_text(const WeatherForecastCardRef &ref,
                                              bool valid, int high, int low,
                                              const std::string &unit) {
@@ -1184,9 +1189,9 @@ inline void apply_weather_forecast_card_text(const WeatherForecastCardRef &ref,
   char high_buf[12];
   char low_buf[12];
   if (high == WEATHER_FORECAST_TEMP_MISSING) snprintf(high_buf, sizeof(high_buf), "--");
-  else snprintf(high_buf, sizeof(high_buf), "%d", high);
+  else snprintf(high_buf, sizeof(high_buf), "%d", weather_forecast_display_temp(high, unit));
   if (low == WEATHER_FORECAST_TEMP_MISSING) snprintf(low_buf, sizeof(low_buf), "--");
-  else snprintf(low_buf, sizeof(low_buf), "%d", low);
+  else snprintf(low_buf, sizeof(low_buf), "%d", weather_forecast_display_temp(low, unit));
   snprintf(buf, sizeof(buf), "%s/%s", high_buf, low_buf);
   lv_label_set_text(ref.value_lbl, buf);
   std::string normalized_unit = weather_forecast_unit_symbol(unit);

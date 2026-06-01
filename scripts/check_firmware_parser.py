@@ -71,6 +71,7 @@ inline void lv_label_set_text(lv_obj_t *, const char *) {}
 inline void lv_obj_align(lv_obj_t *, int, int, int) {}
 inline void lv_obj_move_foreground(lv_obj_t *) {}
 
+#include "temperature_unit.h"
 #include "button_grid_config_pure.h"
 #include "button_grid_layout.h"
 
@@ -124,6 +125,12 @@ int main() {
   assert(legacy_weather_forecast.type == "weather");
   assert(legacy_weather_forecast.precision == "tomorrow");
   assert(legacy_weather_forecast.label == "");
+  set_display_temperature_unit("\u00B0F", "UTC (GMT+0)");
+  assert(convert_temperature_value_for_display(10, "\u00B0C") == 50);
+  assert(convert_temperature_value_for_display(50, "\u00B0F") == 50);
+  set_display_temperature_unit("\u00B0C", "UTC (GMT+0)");
+  assert(convert_temperature_value_for_display(50, "\u00B0F") == 10);
+  assert(convert_temperature_value_for_display(10, "\u00B0C") == 10);
 
   auto migrated = parse_cfg("media_player.living:Living:Speaker:Auto:controls::media");
   assert(migrated.type.empty());
@@ -290,6 +297,7 @@ def main() -> int:
     with TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         (tmp_path / "button_grid_config_pure.h").write_text(pure_config_header(), encoding="utf-8")
+        shutil.copy2(ROOT / "components" / "espcontrol" / "temperature_unit.h", tmp_path / "temperature_unit.h")
         shutil.copy2(CONTRACT_HEADER, tmp_path / "button_grid_contract_generated.h")
         shutil.copy2(CARD_RUNTIME_HEADER, tmp_path / "button_grid_card_runtime.h")
         shutil.copy2(LAYOUT_HEADER, tmp_path / "button_grid_layout.h")
