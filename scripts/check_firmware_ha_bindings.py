@@ -256,6 +256,8 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
         or "native_temperature_unit" not in text
     ):
         errors.append(f"{rel}: accept native Home Assistant forecast temperature fields and units")
+    if "item_unit" not in text or "today['temperature_unit']" not in text or "tomorrow['native_temperature_unit']" not in text:
+        errors.append(f"{rel}: preserve forecast temperature units from individual forecast items")
     if "parse_weather_forecast_temp" in text and "std::isfinite(parsed)" not in text:
         errors.append(f"{rel}: reject non-finite weather forecast temperatures before rendering")
     if (
