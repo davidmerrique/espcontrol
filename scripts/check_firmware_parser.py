@@ -110,6 +110,21 @@ int main() {
   assert(clock.options == "large_numbers");
   assert(card_large_numbers_enabled(clock));
 
+  auto weather_today = parse_cfg("weather.home;;;;;;weather;today;large_numbers");
+  assert(weather_today.type == "weather");
+  assert(weather_today.precision == "today");
+  assert(weather_today.options == "large_numbers");
+  assert(card_large_numbers_enabled(weather_today));
+  auto weather_invalid_mode = parse_cfg("weather.home;;;;;;weather;bad;large_numbers");
+  assert(weather_invalid_mode.type == "weather");
+  assert(weather_invalid_mode.precision == "");
+  assert(weather_invalid_mode.options == "");
+  assert(!card_large_numbers_enabled(weather_invalid_mode));
+  auto legacy_weather_forecast = parse_cfg("weather.home;Weather;Auto;Auto;;;weather_forecast");
+  assert(legacy_weather_forecast.type == "weather");
+  assert(legacy_weather_forecast.precision == "tomorrow");
+  assert(legacy_weather_forecast.label == "");
+
   auto migrated = parse_cfg("media_player.living:Living:Speaker:Auto:controls::media");
   assert(migrated.type.empty());
   auto media = parse_cfg("media_player.living;Living;Speaker;Auto;controls;;media");

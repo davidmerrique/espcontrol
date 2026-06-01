@@ -535,6 +535,9 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     p.precision = "tomorrow";
     if (p.label == "Weather") p.label.clear();
   }
+  if (p.type == "weather" && !card_runtime_weather_forecast_precision(p.precision)) {
+    p.precision.clear();
+  }
   if (p.type == "media") {
     if (p.sensor == "controls") {
       if (p.icon.empty() || p.icon == "Speaker") p.icon = "Auto";
