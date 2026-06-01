@@ -283,14 +283,20 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
   }
   if (p.type == "action") {
     if (action_card_option_select(p)) {
-      setup_option_select_card(s, p, palette.has_sensor_color, palette.sensor_val);
+      setup_option_select_card(
+        s, p, palette.has_sensor_color, palette.sensor_val,
+        display_media_title_font_or(
+          display, s.text_lbl ? lv_obj_get_style_text_font(s.text_lbl, LV_PART_MAIN) : nullptr));
       return;
     }
     setup_action_card(s, p);
     return;
   }
   if (p.type == "option_select") {
-    setup_option_select_card(s, p, palette.has_sensor_color, palette.sensor_val);
+    setup_option_select_card(
+      s, p, palette.has_sensor_color, palette.sensor_val,
+      display_media_title_font_or(
+        display, s.text_lbl ? lv_obj_get_style_text_font(s.text_lbl, LV_PART_MAIN) : nullptr));
     return;
   }
   if (p.type == "todo") {
