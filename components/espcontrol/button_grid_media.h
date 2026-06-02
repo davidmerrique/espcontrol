@@ -489,8 +489,7 @@ inline void subscribe_media_state(lv_obj_t *btn_ptr,
         bool unavailable = ha_state_unavailable_ref(state);
         apply_control_availability(btn_ptr, btn_ptr, !unavailable);
         bool playing = state_text == "playing";
-        if (playing) lv_obj_add_state(btn_ptr, LV_STATE_CHECKED);
-        else lv_obj_clear_state(btn_ptr, LV_STATE_CHECKED);
+        set_card_checked_state(btn_ptr, playing);
         if (status_lbl) {
           std::string label = media_status_text(state_text);
           lv_label_set_text(status_lbl, label.c_str());

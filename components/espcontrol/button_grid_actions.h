@@ -496,7 +496,7 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
     } else if (garage_command_mode(p.sensor)) {
       send_cover_command_action(p);
     } else if (!p.entity.empty()) {
-      lv_obj_add_state(btn_obj, LV_STATE_CHECKED);
+      set_card_checked_state(btn_obj, true);
       send_toggle_action(p.entity);
     }
   } else if (p.type == "lock") {
@@ -511,7 +511,7 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
     send_cover_command_action(p);
   } else if (p.type == "cover" && cover_toggle_mode(p.sensor)) {
     if (!p.entity.empty()) {
-      lv_obj_add_state(btn_obj, LV_STATE_CHECKED);
+      set_card_checked_state(btn_obj, true);
       send_toggle_action(p.entity);
     }
   } else if (p.type == "internal") {

@@ -98,6 +98,8 @@ struct BtnSlot {
   lv_obj_t *subpage_lbl = nullptr;  // small chevron marker for subpage cards
 };
 
+inline void set_card_checked_state(lv_obj_t *btn, bool checked);
+
 // Extract the Nth semicolon-delimited field from a config string
 inline std::string cfg_field(const std::string &cfg, int idx) {
   size_t start = 0;
@@ -2046,8 +2048,7 @@ inline void apply_internal_relay_state(lv_obj_t *btn, lv_obj_t *icon_lbl,
                                        bool on, bool has_icon_on,
                                        const char *icon_off, const char *icon_on) {
   if (btn) {
-    if (on) lv_obj_add_state(btn, LV_STATE_CHECKED);
-    else lv_obj_clear_state(btn, LV_STATE_CHECKED);
+    set_card_checked_state(btn, on);
   }
   if (icon_lbl && has_icon_on)
     lv_label_set_text(icon_lbl, on ? icon_on : icon_off);
@@ -2063,11 +2064,11 @@ inline void apply_internal_relay_parent_indicator(InternalRelayWatcher &w, bool 
     *w.child_was_on = false;
   }
   if (w.sp_on_count[w.parent_idx] > 0) {
-    lv_obj_add_state(w.parent_btn, LV_STATE_CHECKED);
+    set_card_checked_state(w.parent_btn, true);
     if (w.parent_has_alt_icon && w.parent_icon)
       lv_label_set_text(w.parent_icon, w.parent_on_glyph);
   } else {
-    lv_obj_clear_state(w.parent_btn, LV_STATE_CHECKED);
+    set_card_checked_state(w.parent_btn, false);
     if (w.parent_has_alt_icon && w.parent_icon)
       lv_label_set_text(w.parent_icon, w.parent_off_glyph);
   }

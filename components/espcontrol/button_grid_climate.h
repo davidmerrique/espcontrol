@@ -665,8 +665,7 @@ inline void climate_update_card(ClimateControlCtx *ctx) {
     climate_layout_card_label(ctx->label_lbl);
   }
   if (ctx->btn) {
-    if (climate_is_active(ctx)) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
-    else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+    set_card_checked_state(ctx->btn, climate_is_active(ctx));
   }
 }
 

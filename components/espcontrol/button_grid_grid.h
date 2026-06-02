@@ -178,6 +178,7 @@ inline bool card_slot_static_child(const BtnSlot &s, lv_obj_t *child) {
 inline void reset_card_slot_dynamic_children(BtnSlot &s) {
   if (!s.btn) return;
   lv_obj_clear_state(s.btn, LV_STATE_CHECKED);
+  sync_card_checked_text_color(s.btn, false);
   lv_obj_clear_state(s.btn, LV_STATE_DISABLED);
   lv_obj_set_style_opa(s.btn, LV_OPA_COVER, LV_PART_MAIN);
   if (s.sensor_container) lv_obj_set_user_data(s.sensor_container, nullptr);
@@ -1277,7 +1278,7 @@ inline void grid_phase2(
       if (set_checked) {
         lv_obj_add_event_cb(btn, [](lv_event_t *e) {
           lv_obj_t *target = static_cast<lv_obj_t *>(lv_event_get_target(e));
-          lv_obj_add_state(target, LV_STATE_CHECKED);
+          set_card_checked_state(target, true);
           std::string *en = (std::string *)lv_event_get_user_data(e);
           if (en && !en->empty()) send_toggle_action(*en);
         }, LV_EVENT_CLICKED, &sp_entity_ids[eid_idx]);

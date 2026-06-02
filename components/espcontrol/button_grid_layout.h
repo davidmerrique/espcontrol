@@ -147,6 +147,32 @@ inline void apply_button_colors(lv_obj_t *btn, bool has_on, uint32_t on_val,
   }
 }
 
+inline void apply_card_descendant_text_color(lv_obj_t *obj, lv_color_t color) {
+  if (!obj) return;
+  int32_t count = static_cast<int32_t>(lv_obj_get_child_cnt(obj));
+  for (int32_t i = 0; i < count; i++) {
+    lv_obj_t *child = lv_obj_get_child(obj, i);
+    if (!child) continue;
+    lv_obj_set_style_text_color(child, color, LV_PART_MAIN);
+    apply_card_descendant_text_color(child, color);
+  }
+}
+
+inline void sync_card_checked_text_color(lv_obj_t *btn, bool checked) {
+  if (!btn) return;
+  lv_style_selector_t selector = static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+    static_cast<lv_style_selector_t>(checked ? LV_STATE_CHECKED : LV_STATE_DEFAULT);
+  apply_card_descendant_text_color(
+    btn, lv_obj_get_style_text_color(btn, selector));
+}
+
+inline void set_card_checked_state(lv_obj_t *btn, bool checked) {
+  if (!btn) return;
+  if (checked) lv_obj_add_state(btn, LV_STATE_CHECKED);
+  else lv_obj_clear_state(btn, LV_STATE_CHECKED);
+  sync_card_checked_text_color(btn, checked);
+}
+
 // Match the main-page button widget label behavior so longer titles wrap
 // instead of running off the edge of the tile.
 inline void configure_button_label_wrap(lv_obj_t *label) {

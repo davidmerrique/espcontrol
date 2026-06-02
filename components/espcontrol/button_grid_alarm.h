@@ -426,8 +426,7 @@ inline void alarm_apply_home_state(AlarmCardCtx *ctx, const std::string &state) 
   bool triggered = state == "triggered";
   bool active = alarm_state_is_active(state) || triggered;
   alarm_set_card_state_colors(ctx, triggered ? ALARM_TRIGGERED_COLOR : ctx->on_color);
-  if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
-  else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+  set_card_checked_state(ctx->btn, active);
 
   alarm_apply_card_status_icon(ctx);
   transient_status_label_show_if_changed(
@@ -494,8 +493,7 @@ inline void alarm_apply_action_state(AlarmCardCtx *ctx, const std::string &mode,
   ctx->state = state;
   bool unavailable = state.empty() || state == "unavailable" || state == "unknown";
   bool active = !unavailable && alarm_action_state_matches(mode, state, ctx->arm_mode);
-  if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
-  else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+  set_card_checked_state(ctx->btn, active);
   alarm_clear_pending_action_if_progressed(ctx);
 }
 
@@ -505,8 +503,7 @@ inline void alarm_apply_action_arm_mode(AlarmCardCtx *ctx, const std::string &mo
   ctx->arm_mode = arm_mode;
   bool unavailable = ctx->state.empty() || ctx->state == "unavailable" || ctx->state == "unknown";
   bool active = !unavailable && alarm_action_state_matches(mode, ctx->state, ctx->arm_mode);
-  if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
-  else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+  set_card_checked_state(ctx->btn, active);
   alarm_clear_pending_action_if_progressed(ctx);
 }
 

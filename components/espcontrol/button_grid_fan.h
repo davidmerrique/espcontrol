@@ -202,8 +202,7 @@ inline void fan_apply_card_visual(FanCardCtx *ctx) {
   else if (ctx->type == "fan_direction") active = ctx->direction == "reverse";
   else if (ctx->type == "fan_preset") active = fan_preset_active(ctx->preset_mode);
 
-  if (active) lv_obj_add_state(ctx->btn, LV_STATE_CHECKED);
-  else lv_obj_clear_state(ctx->btn, LV_STATE_CHECKED);
+  set_card_checked_state(ctx->btn, active);
 
   if (ctx->icon_lbl) {
     if (ctx->type == "fan_switch" && active && ctx->icon_on_glyph) {

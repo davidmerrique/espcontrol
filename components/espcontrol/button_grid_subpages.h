@@ -403,10 +403,10 @@ inline void subscribe_subpage_parent_indicator(
           *child_was_on = false;
         }
         if (sp_on_count[parent_idx] > 0) {
-          lv_obj_add_state(parent_btn, LV_STATE_CHECKED);
+          set_card_checked_state(parent_btn, true);
           if (has_alt_icon) lv_label_set_text(parent_icon, on_glyph);
         } else {
-          lv_obj_clear_state(parent_btn, LV_STATE_CHECKED);
+          set_card_checked_state(parent_btn, false);
           if (has_alt_icon) lv_label_set_text(parent_icon, off_glyph);
         }
       })

@@ -25,6 +25,7 @@ substitutions:
   unit_font: font_text_body
   sensor_value_font: font_number_value
   button_on_color: "0x000000"
+  button_on_text_color: "0xFFFFFF"
   button_text_color: "0x000000"
   button_control_color: "0xFFFFFF"
   button_border_color: "0x000000"
