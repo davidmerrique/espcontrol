@@ -55,7 +55,7 @@ lvgl:
     - id: main_page
       scrollbar_mode: "off"
       align: top_left
-      x: 10
+      x: 18
       y: 68
       layout:
         type: grid
@@ -63,8 +63,8 @@ lvgl:
         grid_rows: [FR(1), FR(1), FR(1)]
         pad_row: 6
         pad_column: 6
-      width: 780
-      height: 402
+      width: 764
+      height: 394
       bg_color: 0xFFFFFF
       bg_opa: cover
       pad_all: 0

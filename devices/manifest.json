@@ -703,9 +703,9 @@
         "grid": {
           "top": 8.5,
           "compactTop": 8.5,
-          "left": 1.2,
-          "right": 1.2,
-          "bottom": 1.2,
+          "left": 2.25,
+          "right": 2.25,
+          "bottom": 3.75,
           "gap": 0.75,
           "fr": "1fr"
         },
