@@ -175,6 +175,12 @@ function renderPreview() {
       btn.setAttribute("data-pos", pos);
       btn.setAttribute("data-slot", slot);
       var hasWhenOn = !typePreview && (b.sensor || (b.icon_on && b.icon_on !== "Auto"));
+      if (!typePreview && hasWhenOn && typeof cardOnPattern === "function" && cardOnPattern(b) === "stripes" && !isEpaperPreview()) {
+        var onColor = state.onColor && state.onColor.length === 6 ? state.onColor : "FF8C00";
+        btn.style.backgroundImage =
+          "repeating-linear-gradient(135deg,#" + onColor + " 0,#" + onColor +
+          " 12px,rgba(255,255,255,.22) 12px,rgba(255,255,255,.22) 20px)";
+      }
       var badgeIcon = b.sensor ? "gauge" : "swap-horizontal";
       var sensorBadge = hasWhenOn
         ? '<span class="sp-sensor-badge mdi mdi-' + badgeIcon + '"></span>'

@@ -346,6 +346,34 @@ script:
       - script.execute: trmnl_sync_dashboard_config
       - script.execute: trmnl_dashboard_config_changed
 
+  - id: trmnl_apply_selected_theme
+    mode: restart
+    then:
+      - lambda: |-
+          bool dark = id(screen_theme).current_option() == "Dark";
+          lv_color_t background = lv_color_hex(dark ? 0x000000 : 0xFFFFFF);
+          lv_color_t foreground = lv_color_hex(dark ? 0xFFFFFF : 0x000000);
+          lv_color_t checked_text = lv_color_hex(dark ? 0x000000 : 0xFFFFFF);
+
+          lv_obj_set_style_bg_color(id(main_page)->obj, background, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(main_page)->obj, foreground, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(display_time), foreground, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(temperatures), foreground, LV_PART_MAIN);
+          lv_obj_set_style_text_color(id(network_status_icon_label), foreground, LV_PART_MAIN);
+
+          lv_obj_t *buttons[] = {
+            id(button_1), id(button_2), id(button_3), id(button_4),
+            id(button_5), id(button_6), id(button_7), id(button_8),
+            id(button_9), id(button_10), id(button_11), id(button_12),
+          };
+          for (auto *btn : buttons) {
+            lv_obj_set_style_text_color(btn, foreground, LV_PART_MAIN);
+            lv_obj_set_style_text_color(btn, checked_text,
+              static_cast<lv_style_selector_t>(LV_PART_MAIN) |
+              static_cast<lv_style_selector_t>(LV_STATE_CHECKED));
+            sync_card_checked_text_color(btn);
+          }
+
   - id: time_update
     mode: restart
     then:
@@ -398,6 +426,7 @@ script:
   - id: trmnl_sync_dashboard_config
     mode: restart
     then:
+      - script.execute: trmnl_apply_selected_theme
       - lambda: |-
           set_dashboard_content_changed_callback([]() {
             id(trmnl_dashboard_content_changed).execute();
@@ -564,6 +593,7 @@ esphome:
   on_boot:
     - priority: -150
       then:
+        - script.execute: trmnl_apply_selected_theme
         - script.execute: trmnl_clock_bar_apply
     - priority: -100
       then:

@@ -186,9 +186,29 @@ lvgl:
                   text_align: center
 
 script:
+  - id: trmnl_apply_onboarding_theme
+    mode: restart
+    then:
+      - lambda: |-
+          bool dark = id(screen_theme).current_option() == "Dark";
+          lv_color_t background = lv_color_hex(dark ? 0x000000 : 0xFFFFFF);
+          lv_color_t foreground = lv_color_hex(dark ? 0xFFFFFF : 0x000000);
+          lv_obj_t *pages[] = {
+            id(loading_page)->obj,
+            id(wifi_setup_page)->obj,
+            id(ha_setup_page)->obj,
+            id(button_setup_page)->obj,
+          };
+          for (auto *page : pages) {
+            lv_obj_set_style_bg_color(page, background, LV_PART_MAIN);
+            lv_obj_set_style_text_color(page, foreground, LV_PART_MAIN);
+            apply_card_descendant_text_color(page, foreground);
+          }
+
   - id: trmnl_onboarding_refresh
     mode: restart
     then:
+      - script.execute: trmnl_apply_onboarding_theme
       - component.update: epaper
 
   - id: trmnl_hide_topbar
@@ -349,6 +369,7 @@ esphome:
     - priority: -250
       then:
         - lvgl.resume:
+        - script.execute: trmnl_apply_onboarding_theme
         - lvgl.page.show: loading_page
         - script.execute: trmnl_hide_topbar
         - delay: 500ms

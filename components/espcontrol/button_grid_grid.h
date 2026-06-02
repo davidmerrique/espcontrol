@@ -208,6 +208,7 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
   reset_card_slot_dynamic_children(s);
   apply_button_colors(s.btn, palette.has_on, palette.on_val,
     palette.has_off, palette.off_val);
+  apply_button_on_pattern(s.btn, p.options, palette.has_on, palette.on_val);
   if (s.sensor_lbl && display_sensor_font(display)) {
     lv_obj_set_style_text_font(s.sensor_lbl, display_sensor_font(display), LV_PART_MAIN);
   }

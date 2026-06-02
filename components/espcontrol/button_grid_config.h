@@ -516,6 +516,58 @@ inline std::string webhook_card_options_normalized(const std::string &options) {
   return headers.empty() ? std::string() : "webhook_headers=" + encode_compact_field(headers);
 }
 
+inline std::string normalize_card_on_pattern(const std::string &value) {
+  return value == "stripes" ? std::string("stripes") : std::string();
+}
+
+inline std::string switch_card_options_normalized(const std::string &options) {
+  std::string out;
+  std::string pattern = normalize_card_on_pattern(cfg_option_value(options, "on_pattern"));
+  if (!pattern.empty()) out = "on_pattern=" + pattern;
+  if (cfg_option_token_present(options, "large_numbers")) {
+    if (!out.empty()) out += ",";
+    out += "large_numbers";
+  }
+  if (cfg_option_token_present(options, "confirm_off")) {
+    if (!out.empty()) out += ",";
+    out += "confirm_off";
+  }
+  if (cfg_option_token_present(options, "confirm_on")) {
+    if (!out.empty()) out += ",";
+    out += "confirm_on";
+  }
+  std::string mode;
+  if (cfg_option_token_present(options, "confirm_off") &&
+      cfg_option_token_present(options, "confirm_on")) {
+    mode = "both";
+  } else if (cfg_option_token_present(options, "confirm_on")) {
+    mode = "on";
+  } else if (cfg_option_token_present(options, "confirm_off")) {
+    mode = "off";
+  }
+  if (!mode.empty()) {
+    std::string message = cfg_option_value(options, "confirm_message");
+    std::string yes = cfg_option_value(options, "confirm_yes");
+    std::string no = cfg_option_value(options, "confirm_no");
+    std::string default_message = mode == "on" ? "Turn on this device?"
+      : mode == "both" ? "Toggle this device?"
+      : "Turn off this device?";
+    if (!message.empty() && message != default_message) {
+      if (!out.empty()) out += ",";
+      out += "confirm_message=" + encode_compact_field(message);
+    }
+    if (!yes.empty() && yes != "Yes") {
+      if (!out.empty()) out += ",";
+      out += "confirm_yes=" + encode_compact_field(yes);
+    }
+    if (!no.empty() && no != "No") {
+      if (!out.empty()) out += ",";
+      out += "confirm_no=" + encode_compact_field(no);
+    }
+  }
+  return out;
+}
+
 inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
   // Slider cards used to store "h" here for horizontal layout. Sliders are
   // now always vertical, so treat any saved slider sensor value as legacy.
@@ -637,6 +689,9 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     p.options.clear();
     p.icon_on.clear();
     if (p.icon.empty() || p.icon == "Auto" || p.icon == "Chevron Down") p.icon = "Flash";
+  }
+  if (p.type.empty()) {
+    p.options = switch_card_options_normalized(p.options);
   }
   if (p.type == "door_window") {
     p.entity.clear();

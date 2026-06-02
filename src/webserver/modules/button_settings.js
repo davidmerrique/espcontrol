@@ -724,6 +724,16 @@ function renderButtonSettings(forceOpen) {
         saveField("icon_on", "Auto");
       }
     });
+
+    var patternField = selectField("On State Pattern", idPrefix + "on-pattern", [
+      ["", "Solid"],
+      ["stripes", "Stripes"],
+    ], cardOnPattern(b), function () {
+      setCardOnPattern(b, this.value);
+      saveField("options", b.options);
+      renderPreview();
+    });
+    panel.appendChild(patternField.field);
   }
 
   var saveRow = document.createElement("div");
