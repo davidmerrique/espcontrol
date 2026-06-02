@@ -1,0 +1,24 @@
+# =============================================================================
+# FONTS - TRMNL 7.5 OG monochrome e-paper dashboard
+# =============================================================================
+
+font:
+  - file: "gfonts://Inter@700"
+    id: font_text_title
+    size: 20
+    glyphs: " !\"%()+,-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+
+  - file: "gfonts://Inter@600"
+    id: font_text_body
+    size: 16
+    glyphs: " !\"%()+,-./0123456789:°ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+
+  - file: "gfonts://Inter@700"
+    id: font_number_value
+    size: 30
+    glyphs: " !\"%()+,-./0123456789:°ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"
+
+  - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+    id: font_icon_main
+    size: 32
+    glyphs: !include ../../../common/assets/icon_glyphs.yaml
