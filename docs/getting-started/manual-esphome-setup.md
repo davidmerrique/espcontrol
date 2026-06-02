@@ -30,6 +30,7 @@ Each screen uses a different ESPHome package file. Pick the one that matches you
 | 4.3-inch JC4880P443 | `devices/guition-esp32-p4-jc4880p443/packages.yaml` |
 | 4-inch ESP32-P4 86 Panel | `devices/esp32-p4-86/packages.yaml` |
 | 4-inch 4848S040 | `devices/guition-esp32-s3-4848s040/packages.yaml` |
+| 7.5-inch TRMNL 7.5 OG | `devices/trmnl-75-og/packages.yaml` |
 
 ## ESPHome Device Builder
 
