@@ -228,6 +228,7 @@ script:
           value: 'false'
       - lvgl.resume:
       - script.execute: hide_clock_view
+      - script.execute: clock_bar_apply
       - lvgl.widget.hide: dim_screensaver_touch_guard
       - lvgl.widget.hide: cover_art_error_label
       - lvgl.widget.show: cover_art_screensaver
@@ -251,6 +252,7 @@ script:
       - lvgl.widget.hide: cover_art_screensaver
       - lvgl.widget.hide: cover_art_track_panel
       - lvgl.widget.hide: cover_art_error_label
+      - script.execute: clock_bar_apply
 
   - id: cover_art_delay_timer
     mode: restart

@@ -28,20 +28,22 @@ script:
     then:
       - lambda: |-
           bool enabled = id(clock_bar_enabled).state;
-          bool show_network = enabled && id(network_status_enabled).state;
+          bool cover_art_active = id(cover_art_screensaver_active);
+          bool visible = enabled && !cover_art_active;
+          bool show_network = visible && id(network_status_enabled).state;
           lv_obj_set_style_pad_top(
             id(main_page)->obj,
-            enabled ? ${main_page_pad_top} : ${main_page_compact_pad_top},
+            visible ? ${main_page_pad_top} : ${main_page_compact_pad_top},
             LV_PART_MAIN);
           lv_obj_update_layout(id(main_page)->obj);
 
-          if (!enabled) {
+          if (!visible) {
             lv_obj_add_flag(id(display_time), LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(id(temperatures), LV_OBJ_FLAG_HIDDEN);
             network_status_hide_modal();
           }
 
-          if (lv_scr_act() == id(main_page)->obj) {
+          if (visible && lv_scr_act() == id(main_page)->obj) {
             lv_obj_clear_flag(id(display_time), LV_OBJ_FLAG_HIDDEN);
           }
           if (show_network && lv_scr_act() == id(main_page)->obj) {
@@ -51,10 +53,10 @@ script:
             lv_obj_add_flag(id(network_status_button), LV_OBJ_FLAG_HIDDEN);
             network_status_hide_modal();
           }
-          if (!enabled) return;
+          if (!visible) return;
 
           refresh_temp_label_values(id(temperatures), id(main_page)->obj,
-                                    enabled,
+                                    visible,
                                     id(indoor_temp_enable).state,
                                     id(outdoor_temp_enable).state,
                                     id(indoor_temp), id(outdoor_temp));
