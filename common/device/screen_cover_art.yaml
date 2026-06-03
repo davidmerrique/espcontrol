@@ -165,9 +165,6 @@ lvgl:
                       lv_indev_wait_release(indev);
                     }
                   }
-              - globals.set:
-                  id: screensaver_wake_touch_guard_skip_once
-                  value: 'true'
               - script.execute: cover_art_wake_touch_block
               - script.execute: screensaver_wake
           widgets:
@@ -305,8 +302,27 @@ script:
   - id: cover_art_wake_touch_block
     mode: restart
     then:
+      - globals.set:
+          id: screensaver_wake_touch_guard_active
+          value: 'true'
       - lvgl.widget.show: cover_art_wake_touch_guard
-      - delay: 500ms
+      - wait_until:
+          condition:
+            lambda: |-
+              lv_indev_t *indev = nullptr;
+              while ((indev = lv_indev_get_next(indev)) != nullptr) {
+                if (lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER &&
+                    lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED) {
+                  return false;
+                }
+              }
+              return true;
+          timeout: 2s
+      - delay: 250ms
+      - script.stop: screensaver_wake_touch_guard_clear
+      - globals.set:
+          id: screensaver_wake_touch_guard_active
+          value: 'false'
       - lvgl.widget.hide: cover_art_wake_touch_guard
 
   - id: cover_art_apply_downloaded_image
