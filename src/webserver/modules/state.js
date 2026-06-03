@@ -6,7 +6,8 @@ var MONTH_NAME_DEFAULTS = [
   "July", "August", "September", "October", "November", "December"
 ];
 var LANGUAGE_LABELS = {
-  en: "English"
+  en: "English",
+  it: "Italiano"
 };
 var THEME_PRESETS = {
   Light: { on: "0073FF", off: "CECECE", sensor: "DEDEDE" },
@@ -100,7 +101,7 @@ var state = {
   timezone: "UTC (GMT+0)",
   timezoneOptions: defaultTimezoneOptions(),
   language: "en",
-  languageOptions: ["en"],
+  languageOptions: ["en", "it"],
   clockFormat: "24h",
   clockFormatOptions: ["12h", "24h"],
   customNtpServers: false,
