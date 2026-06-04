@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flash Displays"
+  short_description: "Flash EspControl displays by name or all in sequence."
+  default_prompt: "Flash all EspControl displays from main, or flash a specific display such as 7inch, 10inch, or 4inch."
