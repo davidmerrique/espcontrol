@@ -65,6 +65,7 @@ substitutions:
   cover_art_time_font: "font_cover_art_time"
   cover_art_time_pad_top: "18"
   cover_art_progress_width: "720"
+  cover_art_progress_height: "4"
   cover_art_text_color: "0xFFFFFF"
   cover_art_square_overlay: "true"
 
