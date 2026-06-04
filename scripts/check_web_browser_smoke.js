@@ -565,9 +565,13 @@ async function assertClockBarEditorSmoke(page, posts, label) {
     '[data-clockbar-item="network"]',
   ]) {
     const box = await page.locator(selector).boundingBox();
+    const addBox = await page.locator('[data-clockbar-section="right"] [data-clockbar-add]').boundingBox();
     assert(box, `${label}: ${selector} has a visible hit area`);
-    assert(box.width >= 44, `${label}: ${selector} hit area is at least 44px wide`);
-    assert(box.height >= 44, `${label}: ${selector} hit area is at least 44px tall`);
+    assert(addBox, `${label}: clock bar add control has a visible bounded area`);
+    assert(
+      Math.abs(box.height - addBox.height) <= 1,
+      `${label}: ${selector} hover height matches add control`
+    );
   }
 
   await page.dragAndDrop('[data-clockbar-item="time"]', '[data-clockbar-section="left"]');
@@ -619,6 +623,11 @@ async function assertClockBarEditorSmoke(page, posts, label) {
   assert(
     rightAddAfterBox.x < networkBox.x,
     `${label}: right add control appears to the left of right-side controls`
+  );
+  assert(
+    Math.abs(networkBox.width - rightAddAfterBox.width) <= 1 &&
+      Math.abs(networkBox.height - rightAddAfterBox.height) <= 1,
+    `${label}: right network hover box matches add control size`
   );
   await page.locator(".sp-settings-close").click();
 

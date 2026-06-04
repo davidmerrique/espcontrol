@@ -47,12 +47,12 @@ var CSS =
   ".sp-topbar.sp-hidden{display:none}" +
   ".sp-clockbar-section{height:100%;min-width:0;flex:1;display:flex;align-items:center;gap:.4cqw}" +
   ".sp-clockbar-left{justify-content:flex-start}.sp-clockbar-middle{justify-content:center}.sp-clockbar-right{justify-content:flex-end}" +
-  ".sp-clockbar-item{height:max(100%,44px);min-width:max(44px,calc(var(--topbar-fs)*2.8));border:1px solid transparent;border-radius:calc(var(--topbar-fs)*.36);" +
+  ".sp-clockbar-item{height:min(36px,calc(100% - .45cqw));min-height:0;min-width:28px;border:1px solid transparent;border-radius:calc(var(--topbar-fs)*.3);" +
   "background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 calc(var(--topbar-fs)*.28);" +
   "box-sizing:border-box;cursor:pointer;transition:background .16s,border-color .16s,box-shadow .16s;line-height:1;font:inherit}" +
   ".sp-clockbar-item:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.2)}" +
   ".sp-clockbar-item.sp-selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}" +
-  ".sp-clockbar-network{padding:0;width:max(44px,calc(var(--topbar-fs)*2.8))}" +
+  ".sp-clockbar-network{padding:0;width:min(36px,calc(var(--topbar-fs)*2.2));min-width:28px}" +
   ".sp-clockbar-section-add{height:min(36px,calc(100% - .45cqw));min-height:0;width:min(36px,calc(var(--topbar-fs)*2.2));min-width:28px;border:1px dashed rgba(255,255,255,.22);border-radius:calc(var(--topbar-fs)*.3);" +
   "background:rgba(255,255,255,.06);color:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;" +
   "cursor:pointer;opacity:0;transition:opacity .16s,background .16s,border-color .16s;line-height:1;font:inherit}" +
