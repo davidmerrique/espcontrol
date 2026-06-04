@@ -1,6 +1,6 @@
 ---
 name: flash-displays
-description: Flash EspControl display firmware from this repository using ESPHome. Use when the user asks to flash, reflash, update, or upload firmware to all known displays in sequence, or to a specific display such as 7inch, 7-inch P4, 10inch, 10-inch P4, 4-inch P4, or 4-inch S3, over the default IP targets or explicitly over USB.
+description: Flash EspControl display firmware from this repository using ESPHome. Use when the user asks to flash, reflash, update, or upload firmware to all known displays in sequence, or to a specific display such as 7inch, 7-inch P4, 10inch, 10-inch P4, P4-86, 4-inch P4, or 4-inch S3, over the default IP targets or explicitly over USB.
 ---
 
 # Flash Displays
@@ -15,7 +15,8 @@ Use the local development ESPHome configs to flash the known EspControl displays
 |---|---|---|
 | `7inch`, `7-inch`, `7inch P4`, `7-inch P4`, `JC1060P470` | `devices/guition-esp32-p4-jc1060p470` | OTA at `192.168.6.102` |
 | `10inch`, `10-inch`, `10inch P4`, `10-inch P4`, `JC8012P4A1` | `devices/guition-esp32-p4-jc8012p4a1` | OTA at `192.168.6.103` |
-| `4inch P4`, `4-inch P4`, `4.3inch P4`, `4.3-inch P4`, `JC4880P443` | `devices/guition-esp32-p4-jc4880p443` | OTA at `192.168.10.52` |
+| `P4-86`, `86 Panel`, `Waveshare P4-86`, `esp32-p4-86` | `devices/esp32-p4-86` | OTA at `192.168.10.52` |
+| `4inch P4`, `4-inch P4`, `4.3inch P4`, `4.3-inch P4`, `JC4880P443` | `devices/guition-esp32-p4-jc4880p443` | No verified default OTA target; ask for the IP or use USB |
 | `4inch S3`, `4-inch S3`, `4848S040` | `devices/guition-esp32-s3-4848s040` | OTA at `192.168.10.226` |
 
 All screens can also be flashed over USB when explicitly requested. Use the selected screen's config directory and the local serial target, normally `/dev/cu.usbmodem201301`.
@@ -26,7 +27,7 @@ For `all`, flash in this sequence by default over IP:
 
 1. 7-inch P4 over OTA to `192.168.6.102`.
 2. 10-inch P4 over OTA to `192.168.6.103`.
-3. 4-inch P4 over OTA to `192.168.10.52`.
+3. P4-86 over OTA to `192.168.10.52`.
 4. 4-inch S3 over OTA to `192.168.10.226`.
 
 ## Workflow
@@ -77,9 +78,13 @@ esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run
 cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc8012p4a1
 esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run dev.yaml --device /dev/cu.usbmodem201301 --no-logs
 
-# 4-inch P4 over IP
-cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc4880p443
+# P4-86 over IP
+cd /Users/jtenniswood/Git/espcontrol/devices/esp32-p4-86
 esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run dev.yaml --device 192.168.10.52 --no-logs
+
+# P4-86 over USB, only when explicitly requested
+cd /Users/jtenniswood/Git/espcontrol/devices/esp32-p4-86
+esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run dev.yaml --device /dev/cu.usbmodem201301 --no-logs
 
 # 4-inch P4 over USB, only when explicitly requested
 cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc4880p443
