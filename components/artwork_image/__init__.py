@@ -69,14 +69,6 @@ class Format:
         pass
 
 
-class BMPFormat(Format):
-    def __init__(self):
-        super().__init__("BMP")
-
-    def actions(self):
-        cg.add_define("USE_ARTWORK_IMAGE_BMP_SUPPORT")
-
-
 class JPEGFormat(Format):
     def __init__(self):
         super().__init__("JPEG")
@@ -138,7 +130,6 @@ IMAGE_FORMATS = {
     x.image_type: x
     for x in (
         AutoFormat(),
-        BMPFormat(),
         JPEGFormat(),
         PNGFormat(),
     )

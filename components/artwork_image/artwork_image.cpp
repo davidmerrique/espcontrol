@@ -25,9 +25,6 @@ static constexpr int LOCAL_ARTWORK_HTTP_TIMEOUT_MS = 6500;
 
 #include "image_decoder.h"
 
-#ifdef USE_ARTWORK_IMAGE_BMP_SUPPORT
-#include "bmp_image.h"
-#endif
 #ifdef USE_ARTWORK_IMAGE_JPEG_SUPPORT
 #include "jpeg_image.h"
 #endif
@@ -272,11 +269,6 @@ void ArtworkImage::update() {
     case ImageFormat::AUTO:
       accept_mime_type = "image/jpeg, image/png";
       break;
-#ifdef USE_ARTWORK_IMAGE_BMP_SUPPORT
-    case ImageFormat::BMP:
-      accept_mime_type = "image/bmp";
-      break;
-#endif  // USE_ARTWORK_IMAGE_BMP_SUPPORT
 #ifdef USE_ARTWORK_IMAGE_JPEG_SUPPORT
     case ImageFormat::JPEG:
       accept_mime_type = "image/jpeg";
@@ -737,10 +729,6 @@ ImageFormat ArtworkImage::detect_format_() {
       ESP_LOGW(TAG, "Detected HEIC/HEIF from file signature");
       return ImageFormat::HEIC;
     }
-    if (data[0] == 0x42 && data[1] == 0x4D) {
-      ESP_LOGD(TAG, "Detected BMP from magic bytes");
-      return ImageFormat::BMP;
-    }
   }
 
   // Fallback: Content-Type header
@@ -757,10 +745,6 @@ ImageFormat ArtworkImage::detect_format_() {
     if (ct.find("image/heic") != std::string::npos || ct.find("image/heif") != std::string::npos) {
       ESP_LOGW(TAG, "Detected HEIC/HEIF from Content-Type: %s", ct.c_str());
       return ImageFormat::HEIC;
-    }
-    if (ct.find("image/bmp") != std::string::npos) {
-      ESP_LOGD(TAG, "Detected BMP from Content-Type: %s", ct.c_str());
-      return ImageFormat::BMP;
     }
   }
 
@@ -831,12 +815,6 @@ bool ArtworkImage::create_decoder_(ImageFormat format, size_t total_size) {
              classify_artwork_url_for_log(this->url_));
     return false;
   }
-#ifdef USE_ARTWORK_IMAGE_BMP_SUPPORT
-  if (format == ImageFormat::BMP) {
-    ESP_LOGD(TAG, "Allocating BMP decoder");
-    this->decoder_ = make_unique<BmpDecoder>(this);
-  }
-#endif
 #ifdef USE_ARTWORK_IMAGE_JPEG_SUPPORT
   if (format == ImageFormat::JPEG) {
     ESP_LOGD(TAG, "Allocating JPEG decoder");

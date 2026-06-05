@@ -28,8 +28,6 @@ enum ImageFormat {
   JPEG,
   /** PNG format. */
   PNG,
-  /** BMP format. */
-  BMP,
   /** HEIC/HEIF image format. Detected for clear error reporting; decoder not bundled. */
   HEIC,
 };
