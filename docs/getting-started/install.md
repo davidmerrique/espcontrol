@@ -12,18 +12,6 @@ Flash the EspControl firmware to your supported ESP32 display directly from your
 If you want to compile and install the firmware yourself, use the [manual ESPHome setup guide](/getting-started/manual-esphome-setup).
 :::
 
-## What You Need
-
-- **A supported ESP32 panel:**
-  - **[JC8012P4A1](/screens/jc8012p4a1)** — 10.1-inch, 1280x800, landscape
-  - **[JC1060P470](/screens/jc1060p470)** — 7-inch, 1024x600, landscape
-  - **[JC4880P443](/screens/jc4880p443)** — 4.3-inch, 480x800, portrait
-  - **[ESP32-P4 86 Panel](/screens/p4-86)** — 4-inch, 720x720, square
-  - **[4848S040](/screens/4848s040)** — 4-inch, 480x480, square
-- **USB-C cable** — must be a data cable, not a charge-only cable
-- **A computer** running Chrome or Edge (desktop). Safari and Firefox are not supported for flashing.
-- **Home Assistant** running on your network
-
 ## Flash the Firmware
 
 Connect the display to your computer with the USB-C cable, choose your panel, then click the install button.
