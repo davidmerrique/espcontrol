@@ -516,7 +516,9 @@ script:
           for (int sy = sample_y + step_y / 2; sy < sample_y + sample_h; sy += step_y) {
             for (int sx = sample_x + step_x / 2; sx < sample_x + sample_w; sx += step_x) {
               int pos = (sx + sy * img_w) * 2;
-              uint16_t rgb565 = data[pos] | (data[pos + 1] << 8);
+              uint16_t rgb565 = img->is_big_endian()
+                  ? ((uint16_t) data[pos] << 8) | data[pos + 1]
+                  : data[pos] | ((uint16_t) data[pos + 1] << 8);
 
               int r = (rgb565 >> 11) & 0x1F;
               int g = (rgb565 >> 5) & 0x3F;
