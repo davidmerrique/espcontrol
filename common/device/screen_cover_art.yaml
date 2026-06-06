@@ -1386,6 +1386,9 @@ script:
                          local ? "entity_picture_local" : "entity_picture",
                          (unsigned) path.size(), (unsigned) url.size(),
                          id(cover_art_screensaver_active) ? "true" : "false");
+                if (!url.empty() && id(cover_art_screensaver_active)) {
+                  id(cover_art_process_cached_artwork).execute();
+                }
                 return;
               }
               cached = url;
