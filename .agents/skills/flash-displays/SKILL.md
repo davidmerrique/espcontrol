@@ -13,7 +13,7 @@ Use the local development ESPHome configs to flash the known EspControl displays
 
 | Request names | ESPHome config directory | Default OTA target | Test YAML |
 |---|---|---|---|
-| `7inch`, `7-inch`, `7inch P4`, `7-inch P4`, `JC1060P470` | `devices/guition-esp32-p4-jc1060p470` | `192.168.6.102` | None yet |
+| `7inch`, `7-inch`, `7inch P4`, `7-inch P4`, `JC1060P470` | `devices/guition-esp32-p4-jc1060p470` | `192.168.6.102` | `test.yaml` |
 | `10inch`, `10-inch`, `10inch P4`, `10-inch P4`, `JC8012P4A1` | `devices/guition-esp32-p4-jc8012p4a1` | `192.168.6.103` | `test.yaml` |
 | `4inch P4`, `4-inch P4`, `P4-86`, `86 Panel`, `Waveshare P4-86`, `esp32-p4-86` | `devices/esp32-p4-86` | `192.168.10.52` | None yet |
 | `4.3inch P4`, `4.3-inch P4`, `P4 4.3inch`, `P4 4.3-inch`, `JC4880P443` | `devices/guition-esp32-p4-jc4880p443` | `192.168.6.101` | `test.yaml` |
@@ -78,6 +78,10 @@ Run from the appropriate config directory:
 # 7-inch P4 over OTA
 cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc1060p470
 esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run dev.yaml --device 192.168.6.102 --no-logs
+
+# 7-inch P4 over OTA using the committed test YAML
+cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc1060p470
+esphome -s espcontrol_component_url file:///Users/jtenniswood/Git/espcontrol run test.yaml --device 192.168.6.102 --no-logs
 
 # 7-inch P4 over USB, only when explicitly requested
 cd /Users/jtenniswood/Git/espcontrol/devices/guition-esp32-p4-jc1060p470
