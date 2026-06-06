@@ -648,7 +648,7 @@ function buildSettingsPage(parent) {
     els.setCoverArtProgressBarToggle = coverArtProgressBarToggle.input;
 
     var coverArtHideExternalInputToggle = toggleRow(
-      "Hide when playing an external source",
+      "Hide for external sources",
       "sp-set-ss-cover-art-hide-external-input",
       state.coverArtHideExternalInputOn);
     coverArtOptions.appendChild(coverArtHideExternalInputToggle.row);

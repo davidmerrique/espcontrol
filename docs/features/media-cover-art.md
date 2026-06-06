@@ -17,6 +17,6 @@ You will find these controls in **Settings > Sleep & Schedule > Media Cover Art*
 - **Show Cover Art After** - waits for the selected delay before showing cover art.
 - **Track Overlay Duration** - controls how long track information is shown over the artwork on the 4-inch square displays.
 - **Show Track Progress Bar** - shows playback progress over the artwork.
-- **Hide when playing an external source** - hides cover art when the selected media player source is `TV` or `Line-in`.
+- **Hide for external sources** - hides cover art when the selected media player source is `TV` or `Line-in`.
 
 Cover art is separate from the normal [Screensaver](/features/screensaver) mode. Use Screensaver when you want the panel to dim, show a clock, or turn off after inactivity.

@@ -242,7 +242,7 @@ var ENTITY_CATALOG = {
     },
     "screen_saver_hide_cover_art_external_input": {
       "domain": "switch",
-      "name": "Screen Saver: Hide when playing an external source",
+      "name": "Screen Saver: Hide for external sources",
       "objectIds": [
         "screen_saver__hide_cover_art_on_external_input",
         "screen_saver_hide_cover_art_on_external_input",
