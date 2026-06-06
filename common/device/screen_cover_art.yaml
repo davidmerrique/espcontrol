@@ -63,6 +63,9 @@ globals:
   - id: cover_art_subscribed_entity
     type: std::string
     initial_value: '""'
+  - id: cover_art_last_playback_state
+    type: std::string
+    initial_value: '""'
   - id: cover_art_subscription_generation
     type: int
     initial_value: '0'
@@ -680,6 +683,7 @@ script:
           id(cover_art_retry_count) = 0;
           id(cover_art_title).clear();
           id(cover_art_artist).clear();
+          id(cover_art_last_playback_state).clear();
           id(cover_art_api_wait_logged) = false;
           id(cover_art_media_position) = 0.0f;
           id(cover_art_position_anchor) = 0.0f;
@@ -1259,6 +1263,7 @@ script:
           if (!already_subscribed) {
             id(cover_art_subscription_generation)++;
             id(cover_art_subscribed_entity) = cover_entity;
+            id(cover_art_last_playback_state).clear();
             ESP_LOGI("cover_art", "Subscribing to artwork entity: %s", cover_entity.c_str());
           } else {
             ESP_LOGI("cover_art", "Refreshing artwork entity: %s", cover_entity.c_str());
@@ -1271,11 +1276,16 @@ script:
                   subscription_generation != id(cover_art_subscription_generation) ||
                   cover_entity != id(cover_art_media_player_entity).state) return;
               std::string state_text = string_ref_limited(state, HA_SHORT_STATE_MAX_LEN);
+              bool playing = state_text == "playing" || state_text == "buffering";
+              if (state_text == id(cover_art_last_playback_state) &&
+                  id(cover_art_media_playing) == playing) {
+                return;
+              }
+              id(cover_art_last_playback_state) = state_text;
               ESP_LOGI("cover_art", "Playback state for %s: '%s' (active=%s, was_playing=%s)",
                        cover_entity.c_str(), state_text.c_str(),
                        id(cover_art_screensaver_active) ? "true" : "false",
                        id(cover_art_media_playing) ? "true" : "false");
-              bool playing = state_text == "playing" || state_text == "buffering";
               auto now = id(panel_time).now();
               if (playing) {
                 bool was_playing = id(cover_art_media_playing);
