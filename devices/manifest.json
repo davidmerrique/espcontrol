@@ -438,7 +438,7 @@
           "aspect": "1/1"
         },
         "topbar": {
-          "height": 8,
+          "height": 8.0,
           "padding": "1.25cqw 0.83cqw 0.83cqw",
           "fontSize": 3.75
         },
@@ -582,7 +582,7 @@
           "aspect": "1/1"
         },
         "topbar": {
-          "height": 8,
+          "height": 8.0,
           "padding": "1.25cqw 0.83cqw 0.83cqw",
           "fontSize": 3.75
         },
@@ -694,7 +694,7 @@
           "180",
           "270"
         ],
-        "default": "0",
+        "default": "180",
         "displayOffset": 180
       },
       "web": {
@@ -705,7 +705,7 @@
           "aspect": "1/1"
         },
         "topbar": {
-          "height": 8,
+          "height": 8.0,
           "padding": "1.25cqw 0.83cqw 0.83cqw",
           "fontSize": 3.75
         },
