@@ -278,7 +278,9 @@ async function assertSettingsPage(page, label, options = {}) {
   assert.strictEqual(themeVisible, !!options.isEpaper, `${label}: theme selector visibility should match display type`);
   assert.strictEqual(onColorVisible, !options.isEpaper, `${label}: color controls visibility should match display type`);
   if (!options.isEpaper) {
-    const coverArtCard = page.locator("#sp-settings .card").filter({ hasText: "Media Cover Art" }).first();
+    const coverArtCard = page.locator("#sp-settings .card").filter({
+      has: page.locator(".card-header h3", { hasText: /^Media Cover Art$/ }),
+    }).first();
     assert(await coverArtCard.isVisible(), `${label}: media cover art settings card should render`);
     await coverArtCard.locator(".card-header").click();
     await coverArtCard.locator("#sp-set-ss-cover-art-enable + .sp-toggle-track").click();
@@ -295,6 +297,11 @@ async function assertSettingsPage(page, label, options = {}) {
   assert(
     await page.locator("#sp-set-ss-media-player").count() === 0,
     `${label}: timer media player field should not render`
+  );
+  assert.strictEqual(
+    await page.locator("#sp-set-sensor-media-player-enable").count(),
+    1,
+    `${label}: sensor cover art override should render`
   );
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   assert(!overflow, `${label}: settings page has horizontal overflow`);
