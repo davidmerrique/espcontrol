@@ -182,6 +182,10 @@ function getActiveScreensaverMode() {
   return "disabled";
 }
 
+function clockBarVisibleInPreview() {
+  return !!state.clockBarOn && normalizeScreensaverAction(state.screensaverAction) !== "clock";
+}
+
 function normalizeScreenRotation(value) {
   value = String(value == null ? "" : value);
   return allScreenRotationOptions().indexOf(value) !== -1 ? value : "0";
@@ -685,8 +689,16 @@ function syncThemeFromDevice(theme, options) {
 }
 
 function syncClockBarUi() {
+  var visible = clockBarVisibleInPreview();
+  var clearedClockBarSelection = false;
+  if (!visible && (state.clockBarSelectedItem || state.clockBarAddDraft)) {
+    state.clockBarSelectedItem = "";
+    state.clockBarAddDraft = null;
+    clearedClockBarSelection = true;
+    hideSettingsOverlay();
+  }
   syncPreviewGridTop();
-  if (els.topbar) els.topbar.className = "sp-topbar" + (state.clockBarOn ? "" : " sp-hidden");
+  if (els.topbar) els.topbar.className = "sp-topbar" + (visible ? "" : " sp-hidden");
   if (els.setClockBarToggle) els.setClockBarToggle.checked = !!state.clockBarOn;
   if (els.setClockBarTimeToggle) els.setClockBarTimeToggle.checked = !!state.clockBarTimeOn;
   if (els.setClockBarWeatherToggle) els.setClockBarWeatherToggle.checked = !!state.clockBarWeatherOn;
@@ -707,6 +719,10 @@ function syncClockBarUi() {
   updateWeatherPreview();
   updateNetworkPreview();
   updateTempPreview();
+  if (clearedClockBarSelection) {
+    renderPreview();
+    renderButtonSettings();
+  }
 }
 
 function syncIdleUi() {

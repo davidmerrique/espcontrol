@@ -532,7 +532,7 @@ function updateSunInfo() {
 
 function updateTempPreview() {
   if (!els.temps) return;
-  var show = state.clockBarOn;
+  var show = clockBarVisibleInPreview();
   var unit = clockBarTemperatureUnitSymbol();
   var sampleValues = ["17", "24", "21", "19", "22", "18"];
   clockBarTemperatureEntries().forEach(function (_, index) {
@@ -571,7 +571,7 @@ function networkPreviewIconSlug(transport, strengthPercent) {
 
 function updateNetworkPreview() {
   if (!els.networkPreview) return;
-  var show = state.clockBarOn && state.networkStatusOn;
+  var show = clockBarVisibleInPreview() && state.networkStatusOn;
   els.networkPreview.className = "sp-network-preview mdi mdi-" +
     networkPreviewIconSlug(state.networkTransport, state.wifiStrengthPercent) +
     (show ? " sp-visible" : "");
@@ -579,7 +579,7 @@ function updateNetworkPreview() {
 
 function updateWeatherPreview() {
   if (!els.weatherPreview) return;
-  var show = state.clockBarOn && state.clockBarWeatherOn;
+  var show = clockBarVisibleInPreview() && state.clockBarWeatherOn;
   els.weatherPreview.className = "sp-weather-preview mdi mdi-weather-partly-cloudy" +
     (show ? " sp-visible" : "");
 }

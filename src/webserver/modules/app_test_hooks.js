@@ -187,6 +187,16 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     timezoneOptionsWithFallback: timezoneOptionsWithFallback,
     normalizeScreensaverAction: normalizeScreensaverAction,
     screensaverActionOption: screensaverActionOption,
+    clockBarVisibleInPreviewFor: function (clockBarOn, screensaverAction) {
+      var oldClockBarOn = state.clockBarOn;
+      var oldScreensaverAction = state.screensaverAction;
+      state.clockBarOn = !!clockBarOn;
+      state.screensaverAction = normalizeScreensaverAction(screensaverAction);
+      var visible = clockBarVisibleInPreview();
+      state.clockBarOn = oldClockBarOn;
+      state.screensaverAction = oldScreensaverAction;
+      return visible;
+    },
     normalizeScreensaverDimmedBrightness: normalizeScreensaverDimmedBrightness,
     previewHtmlValue: previewHtmlValue,
     buttonTypePreviewFor: function (type, button, options) {

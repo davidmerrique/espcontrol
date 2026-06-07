@@ -928,6 +928,7 @@ function syncClockScreensaverControls() {
   var dimDisplay = mode === "dim" ? "" : "none";
 
   state.clockScreensaverOn = mode === "clock";
+  syncClockBarUi();
 
   if (els.setClockSelect) els.setClockSelect.value = mode;
   if (els.setSensorClockSelect) els.setSensorClockSelect.value = mode;

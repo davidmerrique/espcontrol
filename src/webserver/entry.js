@@ -69,7 +69,7 @@
     var grid = layoutSection(layout || activeLayout(), "grid");
     scale = scale || previewLayoutScale(layout || activeLayout());
     var compactTop = grid.compactTop != null ? grid.compactTop : grid.bottom;
-    var gridTop = state.clockBarOn ? grid.top : compactTop;
+    var gridTop = clockBarVisibleInPreview() ? grid.top : compactTop;
     document.documentElement.style.setProperty("--grid-top", scaledCqw(gridTop, scale));
   }
 
