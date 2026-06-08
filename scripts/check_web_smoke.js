@@ -7,9 +7,10 @@ const path = require("path");
 const vm = require("vm");
 const { loadBundledWebSource } = require("./web_source");
 
+const { readDeviceManifest } = require("./read_device_profiles");
+
 const ROOT = path.resolve(__dirname, "..");
 const SOURCE = path.join(ROOT, "src", "webserver", "entry.js");
-const DEVICE_MANIFEST = path.join(ROOT, "devices", "manifest.json");
 const WEB_OUTPUT_DIR = path.join(ROOT, "docs", "public", "webserver");
 const ALL_ROTATIONS = ["0", "90", "180", "270"];
 
@@ -111,7 +112,7 @@ assert.strictEqual(hooks.removedLegacyStateEvent({
   state: "media_player.living_room",
 }), false, "current cover art entity events are not treated as removed legacy events");
 
-const manifest = JSON.parse(fs.readFileSync(DEVICE_MANIFEST, "utf8"));
+const manifest = readDeviceManifest();
 for (const slug of Object.keys(manifest.devices || {})) {
   const webOutput = path.join(WEB_OUTPUT_DIR, slug, "www.js");
   const generated = fs.readFileSync(webOutput, "utf8");

@@ -72,12 +72,12 @@ jobs:
 
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: devices/manifest.json
+          sparse-checkout: devices/*/profile.json
           sparse-checkout-cone-mode: false
 
       - name: Set device slugs
         run: |
-          DEVICE_SLUGS=$(jq -r '.devices | keys | join(" ")' devices/manifest.json)
+          DEVICE_SLUGS=$(for d in devices/*/profile.json; do basename "$(dirname "$d")"; done | sort | tr '\n' ' ' | sed 's/ $//')
           echo "DEVICE_SLUGS=${DEVICE_SLUGS}" >> "$GITHUB_ENV"
 
       - name: Download firmware from latest release
@@ -185,7 +185,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
-            devices/manifest.json
+            devices/*/profile.json
             scripts/check_public_firmware.py
           sparse-checkout-cone-mode: false
 
@@ -215,7 +215,7 @@ jobs:
         run: >-
           python3 scripts/check_public_firmware.py
           --base-url "${{ steps.deployment.outputs.page_url }}"
-          --manifest devices/manifest.json
+          --devices-dir devices
           --optional-stable-slugs guition-esp32-p4-jc8012p4a1 esp32-p4-86
           --retries 5
           --delay 20

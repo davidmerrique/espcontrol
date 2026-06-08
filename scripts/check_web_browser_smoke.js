@@ -7,13 +7,14 @@ const os = require("os");
 const path = require("path");
 const { chromium } = require("playwright");
 
+const { readDeviceManifest } = require("./read_device_profiles");
+
 const ROOT = path.resolve(__dirname, "..");
-const MANIFEST_PATH = path.join(ROOT, "devices", "manifest.json");
 const WEB_OUTPUT_DIR = path.join(ROOT, "docs", "public", "webserver");
 const FAILURE_DIR = path.join(ROOT, ".cache", "web-browser-smoke");
 
 function readManifest() {
-  return JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
+  return readDeviceManifest();
 }
 
 function parseAspect(aspect) {

@@ -13,8 +13,10 @@ from pathlib import Path
 from typing import Any
 
 from device_profiles import (
-    DEVICE_MANIFEST,
+    DEVICES_DIR,
+    DEVICES_SOURCE_LABEL,
     load_device_profiles as load_normalized_device_profiles,
+    load_manifest_data,
     slot_devices as load_slot_devices,
     validate_manifest_data,
 )
@@ -341,18 +343,18 @@ def assert_entity_names_valid(data: dict[str, Any]) -> None:
 
 def validate_product_sources() -> dict[str, list[str]]:
     results: dict[str, list[str]] = {}
-    device_data = load_json(DEVICE_MANIFEST)
-    results[rel(DEVICE_MANIFEST)] = validate_manifest_data(device_data)
+    device_data = load_manifest_data()
+    results[DEVICES_SOURCE_LABEL] = validate_manifest_data(device_data)
     results[rel(CARD_CONTRACT_JSON)] = validate_card_contract(load_card_contract())
     results[rel(ENTITY_NAMES_JSON)] = validate_entity_names(load_entity_names())
     return results
 
 
-def device_profiles(path: Path = DEVICE_MANIFEST) -> dict[str, dict[str, Any]]:
+def device_profiles(devices_dir: Path = DEVICES_DIR) -> dict[str, dict[str, Any]]:
     """Normalized device profiles for generators and checks."""
-    return load_normalized_device_profiles(path)
+    return load_normalized_device_profiles(devices_dir)
 
 
-def slot_devices(path: Path = DEVICE_MANIFEST) -> list[dict[str, Any]]:
+def slot_devices(devices_dir: Path = DEVICES_DIR) -> list[dict[str, Any]]:
     """Device slot-generation profiles derived from the product schema."""
-    return load_slot_devices(path)
+    return load_slot_devices(devices_dir)

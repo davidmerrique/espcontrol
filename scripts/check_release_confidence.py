@@ -55,7 +55,7 @@ def test_firmware_release_matrix(profile_slugs: list[str]) -> None:
 
 
 def test_public_firmware_manifest(profile_slugs: list[str]) -> None:
-    public_slugs = check_public_firmware.load_slugs(ROOT / "devices" / "manifest.json")
+    public_slugs = check_public_firmware.load_slugs(ROOT / "devices")
     assert sorted(profile_slugs) == public_slugs, "public firmware slug list differs from device profiles"
 
 

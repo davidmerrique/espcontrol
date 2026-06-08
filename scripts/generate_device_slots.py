@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate repeated ESPHome device YAML from devices/manifest.json."""
+"""Generate repeated ESPHome device YAML from devices/*/profile.json."""
 
 from __future__ import annotations
 
@@ -57,172 +57,8 @@ def package_substitution_lines(device: dict) -> list[str]:
 
 
 def cover_art_substitution_lines(device: dict) -> list[str]:
-    layouts = {
-        "guition-esp32-s3-4848s040": {
-            "cover_art_size": "480",
-            "cover_art_x": "0",
-            "cover_art_y": "0",
-            "cover_art_accent_x": "0",
-            "cover_art_accent_y": "0",
-            "cover_art_accent_width": "480",
-            "cover_art_accent_height": "480",
-            "cover_art_accent_bg_opa": "80%",
-            "cover_art_accent_opa": "80%",
-            "cover_art_panel_x": "0",
-            "cover_art_panel_y": "0",
-            "cover_art_panel_width": "480",
-            "cover_art_panel_height": "480",
-            "cover_art_panel_pad_top": "24",
-            "cover_art_panel_pad_bottom": "16",
-            "cover_art_panel_pad_left": "24",
-            "cover_art_panel_pad_right": "24",
-            "cover_art_panel_pad_row": "0",
-            "cover_art_title_font": "font_cover_art_title",
-            "cover_art_title_max_height": "330",
-            "cover_art_title_line_space": "0",
-            "cover_art_artist_font": "font_cover_art_artist",
-            "cover_art_artist_pad_top": "6",
-            "cover_art_artist_long_mode": "dot",
-            "cover_art_time_font": "font_cover_art_time",
-            "cover_art_time_pad_top": "12",
-            "cover_art_progress_width": "480",
-            "cover_art_progress_height": "4",
-            "cover_art_text_color": "0xFFFFFF",
-            "cover_art_square_overlay": "true",
-        },
-        "esp32-p4-86": {
-            "cover_art_size": "720",
-            "cover_art_x": "0",
-            "cover_art_y": "0",
-            "cover_art_accent_x": "0",
-            "cover_art_accent_y": "0",
-            "cover_art_accent_width": "720",
-            "cover_art_accent_height": "720",
-            "cover_art_accent_bg_opa": "80%",
-            "cover_art_accent_opa": "80%",
-            "cover_art_panel_x": "0",
-            "cover_art_panel_y": "0",
-            "cover_art_panel_width": "720",
-            "cover_art_panel_height": "720",
-            "cover_art_panel_pad_top": "36",
-            "cover_art_panel_pad_bottom": "24",
-            "cover_art_panel_pad_left": "36",
-            "cover_art_panel_pad_right": "36",
-            "cover_art_panel_pad_row": "0",
-            "cover_art_title_font": "font_cover_art_title",
-            "cover_art_title_max_height": "495",
-            "cover_art_title_line_space": "0",
-            "cover_art_artist_font": "font_cover_art_artist",
-            "cover_art_artist_pad_top": "9",
-            "cover_art_artist_long_mode": "dot",
-            "cover_art_time_font": "font_cover_art_time",
-            "cover_art_time_pad_top": "18",
-            "cover_art_progress_width": "720",
-            "cover_art_progress_height": "4",
-            "cover_art_text_color": "0xFFFFFF",
-            "cover_art_square_overlay": "true",
-        },
-        "guition-esp32-p4-jc4880p443": {
-            "cover_art_size": "480",
-            "cover_art_x": "0",
-            "cover_art_y": "0",
-            "cover_art_accent_x": "0",
-            "cover_art_accent_y": "480",
-            "cover_art_accent_width": "480",
-            "cover_art_accent_height": "320",
-            "cover_art_accent_bg_opa": "100%",
-            "cover_art_accent_opa": "100%",
-            "cover_art_panel_x": "24",
-            "cover_art_panel_y": "514",
-            "cover_art_panel_width": "432",
-            "cover_art_panel_height": "262",
-            "cover_art_panel_pad_top": "0",
-            "cover_art_panel_pad_bottom": "0",
-            "cover_art_panel_pad_left": "0",
-            "cover_art_panel_pad_right": "0",
-            "cover_art_panel_pad_row": "0",
-            "cover_art_title_font": "font_cover_art_title",
-            "cover_art_title_max_height": "130",
-            "cover_art_title_line_space": "0",
-            "cover_art_artist_font": "font_cover_art_artist",
-            "cover_art_artist_pad_top": "10",
-            "cover_art_artist_long_mode": "dot",
-            "cover_art_time_font": "font_cover_art_time",
-            "cover_art_time_pad_top": "14",
-            "cover_art_progress_width": "480",
-            "cover_art_progress_height": "4",
-            "cover_art_text_color": "0xFFFFFF",
-            "cover_art_square_overlay": "false",
-        },
-        "guition-esp32-p4-jc8012p4a1": {
-            "cover_art_size": "800",
-            "cover_art_x": "0",
-            "cover_art_y": "0",
-            "cover_art_accent_x": "800",
-            "cover_art_accent_y": "0",
-            "cover_art_accent_width": "480",
-            "cover_art_accent_height": "800",
-            "cover_art_accent_bg_opa": "100%",
-            "cover_art_accent_opa": "100%",
-            "cover_art_panel_x": "840",
-            "cover_art_panel_y": "40",
-            "cover_art_panel_width": "400",
-            "cover_art_panel_height": "720",
-            "cover_art_panel_pad_top": "0",
-            "cover_art_panel_pad_bottom": "0",
-            "cover_art_panel_pad_left": "0",
-            "cover_art_panel_pad_right": "0",
-            "cover_art_panel_pad_row": "0",
-            "cover_art_title_font": "font_cover_art_title",
-            "cover_art_title_max_height": "506",
-            "cover_art_title_line_space": "0",
-            "cover_art_artist_font": "font_cover_art_artist",
-            "cover_art_artist_pad_top": "4",
-            "cover_art_artist_long_mode": "wrap",
-            "cover_art_time_font": "font_cover_art_time",
-            "cover_art_time_pad_top": "12",
-            "cover_art_progress_width": "1280",
-            "cover_art_progress_height": "4",
-            "cover_art_text_color": "0xFFF5E0",
-            "cover_art_square_overlay": "false",
-        },
-        "guition-esp32-p4-jc1060p470": {
-            "cover_art_size": "600",
-            "cover_art_x": "0",
-            "cover_art_y": "0",
-            "cover_art_accent_x": "585",
-            "cover_art_accent_y": "0",
-            "cover_art_accent_width": "439",
-            "cover_art_accent_height": "600",
-            "cover_art_accent_bg_opa": "100%",
-            "cover_art_accent_opa": "100%",
-            "cover_art_panel_x": "615",
-            "cover_art_panel_y": "34",
-            "cover_art_panel_width": "377",
-            "cover_art_panel_height": "430",
-            "cover_art_panel_pad_top": "0",
-            "cover_art_panel_pad_bottom": "0",
-            "cover_art_panel_pad_left": "0",
-            "cover_art_panel_pad_right": "0",
-            "cover_art_panel_pad_row": "0",
-            "cover_art_title_font": "font_cover_art_title",
-            "cover_art_title_max_height": "260",
-            "cover_art_title_line_space": "-8",
-            "cover_art_artist_font": "font_cover_art_artist",
-            "cover_art_artist_pad_top": "10",
-            "cover_art_artist_long_mode": "dot",
-            "cover_art_time_font": "font_cover_art_time",
-            "cover_art_time_pad_top": "14",
-            "cover_art_progress_width": "1024",
-            "cover_art_progress_height": "4",
-            "cover_art_text_color": "0xFFFFFF",
-            "cover_art_square_overlay": "false",
-        },
-    }
-    layout = layouts.get(device["slug"])
-    if not layout:
-        return []
-    return [f'  {key}: "{value}"' for key, value in layout.items()]
+    cover_art = device.get("cover_art") or {}
+    return [f'  {key}: "{value}"' for key, value in cover_art.items()]
 
 
 def include_line(key: str, include: str) -> str:
@@ -360,7 +196,7 @@ def button_package_block(device: dict) -> str:
     template = "button_template_4chunk.yaml" if subpage_chunks == 4 else "button_template.yaml"
     lines = [
         "  # BEGIN GENERATED BUTTON PACKAGES",
-        "  # Generated by scripts/generate_device_slots.py from devices/manifest.json.",
+        "  # Generated by scripts/generate_device_slots.py from devices/*/profile.json.",
         f"  # Per-button entity/label/icon ({device['slots']} slots - {device['grid']} grid)",
     ]
     for num in range(1, device["slots"] + 1):
@@ -519,7 +355,7 @@ def cfg_lines(device: dict) -> list[str]:
 def phase1_block(device: dict) -> str:
     lines = [
         "            // BEGIN GENERATED PHASE 1 GRID WIRING",
-        "            // Generated by scripts/generate_device_slots.py from devices/manifest.json.",
+        "            // Generated by scripts/generate_device_slots.py from devices/*/profile.json.",
         f"            {button_slot_macro()}",
         "            BtnSlot slots[] = {",
     ]
@@ -539,7 +375,7 @@ def phase1_block(device: dict) -> str:
 def refresh_block(device: dict) -> str:
     lines = [
         "          // BEGIN GENERATED REFRESH GRID WIRING",
-        "          // Generated by scripts/generate_device_slots.py from devices/manifest.json.",
+        "          // Generated by scripts/generate_device_slots.py from devices/*/profile.json.",
         f"          {button_slot_macro()}",
         "          BtnSlot slots[] = {",
     ]
@@ -562,7 +398,7 @@ def phase2_block(device: dict) -> str:
     subpage_chunks = int(package.get("subpageConfigChunks") or 8)
     lines = [
         "            // BEGIN GENERATED PHASE 2 GRID WIRING",
-        "            // Generated by scripts/generate_device_slots.py from devices/manifest.json.",
+        "            // Generated by scripts/generate_device_slots.py from devices/*/profile.json.",
         f"            {button_slot_macro()}",
         "            #define SP_CFG(n) subpage_##n##_config",
         "            #define SP_EXT(n) subpage_##n##_config_ext",

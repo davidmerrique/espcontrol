@@ -1,6 +1,25 @@
 {
-  "generatedFrom": "devices/manifest.json",
+  "generatedFrom": "devices/*/profile.json",
   "devices": [
+    {
+      "slug": "esp32-p4-86",
+      "installSlug": "esp32-p4-86",
+      "name": "ESP32-P4 86 Panel",
+      "docsPath": "/screens/p4-86",
+      "screenSize": "4 inches",
+      "resolution": "720 x 720",
+      "orientation": "Square",
+      "slots": 9,
+      "grid": {
+        "rows": 3,
+        "cols": 3
+      },
+      "chipFamily": "ESP32-P4",
+      "relays": 2,
+      "rotation": true,
+      "ethernetManualInstall": true,
+      "subpages": true
+    },
     {
       "slug": "guition-esp32-p4-jc1060p470",
       "installSlug": "guition-esp32-p4-jc1060p470",
@@ -56,25 +75,6 @@
       "relays": 0,
       "rotation": true,
       "ethernetManualInstall": false,
-      "subpages": true
-    },
-    {
-      "slug": "esp32-p4-86",
-      "installSlug": "esp32-p4-86",
-      "name": "ESP32-P4 86 Panel",
-      "docsPath": "/screens/p4-86",
-      "screenSize": "4 inches",
-      "resolution": "720 x 720",
-      "orientation": "Square",
-      "slots": 9,
-      "grid": {
-        "rows": 3,
-        "cols": 3
-      },
-      "chipFamily": "ESP32-P4",
-      "relays": 2,
-      "rotation": true,
-      "ethernetManualInstall": true,
       "subpages": true
     },
     {

@@ -67,9 +67,14 @@ def test_missing_chip_metadata_fails() -> None:
     del data["devices"][first_slug]["firmware"]["build"]["chip"]
 
     with TemporaryDirectory() as tmp:
-        manifest = Path(tmp) / "manifest.json"
-        manifest.write_text(json.dumps(data), encoding="utf-8")
-        run_fails(["--manifest", str(manifest), "release"])
+        devices_dir = Path(tmp)
+        settings = {k: v for k, v in data.items() if k != "devices"}
+        (devices_dir / "defaults.json").write_text(json.dumps(settings), encoding="utf-8")
+        for slug, profile in data["devices"].items():
+            slug_dir = devices_dir / slug
+            slug_dir.mkdir(parents=True, exist_ok=True)
+            (slug_dir / "profile.json").write_text(json.dumps(profile), encoding="utf-8")
+        run_fails(["--devices-dir", str(devices_dir), "release"])
 
 
 def main() -> int:

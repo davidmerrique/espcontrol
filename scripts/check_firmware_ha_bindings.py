@@ -30,18 +30,17 @@ CONNECTIVITY_PATHS = (
 
 
 def package_api_navigate_enabled(package_path: Path, root: Path) -> bool:
-    manifest_path = root / "devices" / "manifest.json"
-    if not manifest_path.exists():
-        return True
     try:
         slug = package_path.relative_to(root / "devices").parts[0]
     except (ValueError, IndexError):
         return True
+    profile_path = root / "devices" / slug / "profile.json"
+    if not profile_path.exists():
+        return True
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        device = json.loads(profile_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return True
-    device = manifest.get("devices", {}).get(slug, {})
     package = device.get("firmware", {}).get("package", {})
     return bool(package.get("apiNavigateAction", True))
 

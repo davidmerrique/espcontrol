@@ -25,7 +25,7 @@ from urllib.parse import urljoin
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MANIFEST = ROOT / "devices" / "manifest.json"
+DEFAULT_DEVICES_DIR = ROOT / "devices"
 
 
 class PublicFirmwareError(RuntimeError):
@@ -115,12 +115,15 @@ def verify_public_slug(base_url: str, slug: str, beta: bool = False) -> None:
     assert_url_non_empty(urljoin(url, parts[0]["path"]))
 
 
-def load_slugs(path: Path) -> list[str]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    devices = data.get("devices")
-    if not isinstance(devices, dict) or not devices:
-        raise PublicFirmwareError(f"{path} must contain a non-empty devices object")
-    return sorted(devices)
+def load_slugs(devices_dir: Path) -> list[str]:
+    slugs = sorted(
+        child.name
+        for child in devices_dir.iterdir()
+        if child.is_dir() and (child / "profile.json").is_file()
+    )
+    if not slugs:
+        raise PublicFirmwareError(f"{devices_dir} must contain device profile.json files")
+    return slugs
 
 
 def verify_public_firmware(
@@ -206,7 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-test", action="store_true", help="run local script smoke tests")
     parser.add_argument("--base-url", help="public site base URL")
-    parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST), help="device manifest path")
+    parser.add_argument("--devices-dir", default=str(DEFAULT_DEVICES_DIR), help="path to the devices/ directory")
     parser.add_argument("--slugs", nargs="*", help="specific slugs to verify")
     parser.add_argument("--optional-stable-slugs", nargs="*", default=[], help="stable slugs allowed to be missing")
     parser.add_argument("--retries", type=int, default=1)
@@ -222,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             if not args.base_url:
                 raise PublicFirmwareError("--base-url is required unless --self-test is used")
-            slugs = args.slugs or load_slugs(Path(args.manifest))
+            slugs = args.slugs or load_slugs(Path(args.devices_dir))
             verify_public_firmware(
                 args.base_url,
                 slugs,

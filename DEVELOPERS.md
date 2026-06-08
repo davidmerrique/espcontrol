@@ -111,9 +111,10 @@ Each device folder has two entry points and a packages manifest:
 
 | File | Purpose |
 |---|---|
+| `profile.json` | **Source of truth** for this device: grid layout, rotation, web UI config, firmware fonts/display/package, and cover-art layout. The build generators read every `devices/*/profile.json` (there is no central manifest); the folder name is the device slug. Shared defaults live in `devices/defaults.json`. |
 | `esphome.yaml` | **Production** entry. Pulls the whole config as a remote package from GitHub. This is what end users flash. |
 | `dev.yaml` | **Local development** entry. Builds against your working tree. |
-| `packages.yaml` | The include manifest + per-device substitutions (fonts, sizes, slug). |
+| `packages.yaml` | **Generated** from `profile.json` by `scripts/generate_device_slots.py` — the include manifest + per-device substitutions (fonts, sizes, slug). Do not hand-edit the generated blocks. |
 | `device/` | Device-specific YAML (display driver, fonts, pins). |
 | `secrets.yaml` | WiFi credentials. **Gitignored — never commit.** |
 
@@ -495,13 +496,13 @@ raster images in the firmware UI by design (memory on these panels is tight).
 
 **`devices/<slug>/device/sensors.yaml` is GENERATED — do not hand-edit it.** It is
 produced by `scripts/generate_device_slots.py` (with `scripts/device_profiles.py`)
-from the per-device `firmware.fonts` role map in `devices/manifest.json`. Manual
+from the per-device `firmware.fonts` role map in `devices/<slug>/profile.json`. Manual
 edits there will be reported as "stale" by `python3 scripts/generate_device_slots.py
 --check` (part of `check:product`). To expose a **new font role** to a card's C++
 `cfg`, wire it through all three layers, then regenerate:
 
 1. Add the role → physical font id mapping under each device's `firmware.fonts` in
-   `devices/manifest.json` (e.g. `"tiny": "font_text_tiny"`), and add the matching
+   `devices/<slug>/profile.json` (e.g. `"tiny": "font_text_tiny"`), and add the matching
    `font:` entry to each `devices/<slug>/device/fonts.yaml`.
 2. In `scripts/device_profiles.py`, read it into the slot dict
    (`"tiny_font": fonts.get("tiny")`).

@@ -46,7 +46,8 @@ jobs:
         with:
           sparse-checkout: |
             common/assets/*.yaml
-            devices/manifest.json
+            devices/*/profile.json
+            devices/defaults.json
             devices/*/device/fonts.yaml
             scripts/device_matrix.py
             scripts/device_profiles.py

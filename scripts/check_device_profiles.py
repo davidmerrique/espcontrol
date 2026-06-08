@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-check generated device profile outputs against devices/manifest.json."""
+"""Cross-check generated device profile outputs against devices/*/profile.json."""
 
 from __future__ import annotations
 
@@ -352,7 +352,7 @@ def test_firmware_matrices(profile_slugs: list[str]) -> None:
 
 
 def test_public_firmware_slugs(profile_slugs: list[str]) -> None:
-    assert sorted(profile_slugs) == check_public_firmware.load_slugs(ROOT / "devices" / "manifest.json")
+    assert sorted(profile_slugs) == check_public_firmware.load_slugs(ROOT / "devices")
 
 
 def main() -> int:

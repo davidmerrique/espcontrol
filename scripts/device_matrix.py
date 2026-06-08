@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate GitHub Actions device build matrices from devices/manifest.json."""
+"""Generate GitHub Actions device build matrices from devices/*/profile.json."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from device_profiles import (
-    DEVICE_MANIFEST,
+    DEVICES_DIR,
     VALID_CHIP_FAMILIES,
     DeviceProfileError,
     load_device_profiles,
@@ -22,8 +22,8 @@ class DeviceMatrixError(RuntimeError):
     pass
 
 
-def load_manifest(path: Path = DEVICE_MANIFEST) -> dict[str, Any]:
-    data = load_manifest_data(path)
+def load_manifest(devices_dir: Path = DEVICES_DIR) -> dict[str, Any]:
+    data = load_manifest_data(devices_dir)
     errors = validate_manifest_data(data)
     if errors:
         raise DeviceMatrixError("\n".join(errors))
@@ -59,10 +59,10 @@ def write_json(data: Any) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--manifest",
+        "--devices-dir",
         type=Path,
-        default=DEVICE_MANIFEST,
-        help="Path to devices/manifest.json",
+        default=DEVICES_DIR,
+        help="Path to the devices/ directory (each holds a profile.json)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -75,6 +75,9 @@ def build_parser() -> argparse.ArgumentParser:
     pr = sub.add_parser("pr", help="Print the pull request firmware compile matrix JSON")
     pr.set_defaults(matrix=pr_matrix)
 
+    slugs = sub.add_parser("slugs", help="Print device slugs, space separated")
+    slugs.set_defaults(matrix=None)
+
     return parser
 
 
@@ -82,7 +85,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
-        write_json(args.matrix(load_device_profiles(args.manifest)))
+        profiles = load_device_profiles(args.devices_dir)
+        if args.matrix is None:
+            sys.stdout.write(" ".join(sorted(profiles)) + "\n")
+        else:
+            write_json(args.matrix(profiles))
     except (DeviceMatrixError, DeviceProfileError) as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 1

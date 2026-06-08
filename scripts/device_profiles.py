@@ -11,9 +11,14 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DEVICE_MANIFEST = ROOT / "devices" / "manifest.json"
 COMMON_ASSETS = ROOT / "common" / "assets"
 DEVICES_DIR = ROOT / "devices"
+# Each device folder owns its full profile; defaults.json holds the shared
+# top-level settings. There is no central manifest — the {settings, devices}
+# structure the validators and generators consume is assembled from these.
+DEVICE_PROFILE_FILENAME = "profile.json"
+DEFAULTS_FILE = DEVICES_DIR / "defaults.json"
+DEVICES_SOURCE_LABEL = f"devices/*/{DEVICE_PROFILE_FILENAME}"
 
 VALID_CHIP_FAMILIES = {"ESP32-P4", "ESP32-S3"}
 VALID_DRAG_MODES = {"swap", "displace"}
@@ -51,10 +56,42 @@ def load_json(path: Path) -> Any:
         raise DeviceProfileError(f"{rel(path)} is not valid JSON: {exc}") from exc
 
 
-def load_manifest_data(path: Path = DEVICE_MANIFEST) -> dict[str, Any]:
+def discover_profile_paths(devices_dir: Path = DEVICES_DIR) -> list[Path]:
+    """Per-device profile.json paths, sorted by slug (the folder name)."""
+    return sorted(
+        (child / DEVICE_PROFILE_FILENAME
+         for child in devices_dir.iterdir()
+         if child.is_dir() and (child / DEVICE_PROFILE_FILENAME).is_file()),
+        key=lambda p: p.parent.name,
+    )
+
+
+def load_defaults(devices_dir: Path = DEVICES_DIR) -> dict[str, Any]:
+    """Shared top-level settings; absent file is treated as empty."""
+    path = devices_dir / DEFAULTS_FILE.name
+    if not path.exists():
+        return {}
     data = load_json(path)
     if not isinstance(data, dict):
         raise DeviceProfileError(f"{rel(path)} must contain a JSON object")
+    return data
+
+
+def load_manifest_data(devices_dir: Path = DEVICES_DIR) -> dict[str, Any]:
+    """Assemble the {settings, devices} structure from per-device profiles.
+
+    The shape is identical to the former devices/manifest.json so every
+    validator and generator downstream is unchanged.
+    """
+    data = dict(load_defaults(devices_dir))
+    devices: dict[str, Any] = {}
+    for profile_path in discover_profile_paths(devices_dir):
+        slug = profile_path.parent.name
+        device = load_json(profile_path)
+        if not isinstance(device, dict):
+            raise DeviceProfileError(f"{rel(profile_path)} must contain a JSON object")
+        devices[slug] = device
+    data["devices"] = devices
     return data
 
 
@@ -427,11 +464,11 @@ def validate_web(slug: str, device: dict[str, Any], errors: list[str]) -> None:
 def validate_manifest_data(data: Any, shared_font_ids: set[str] | None = None) -> list[str]:
     errors: list[str] = []
     if not isinstance(data, dict):
-        return [f"{rel(DEVICE_MANIFEST)} must contain a JSON object"]
+        return [f"{DEVICES_SOURCE_LABEL} must contain a JSON object"]
 
     devices = data.get("devices")
     if not isinstance(devices, dict) or not devices:
-        return [f"{rel(DEVICE_MANIFEST)} must contain a non-empty devices object"]
+        return [f"{DEVICES_SOURCE_LABEL} must contain a non-empty devices object"]
 
     shared_font_ids = common_font_ids() if shared_font_ids is None else shared_font_ids
     for slug, device in sorted(devices.items()):
@@ -468,13 +505,14 @@ def normalized_device_profile(slug: str, device: dict[str, Any], settings: dict[
             "fonts": copy.deepcopy(firmware["fonts"]),
             "display": copy.deepcopy(firmware.get("display") or {}),
             "package": copy.deepcopy(firmware["package"]),
+            "coverArt": copy.deepcopy(firmware.get("coverArt") or {}),
         },
         "settings": copy.deepcopy(settings),
     }
 
 
-def load_device_profiles(path: Path = DEVICE_MANIFEST) -> dict[str, dict[str, Any]]:
-    data = load_manifest_data(path)
+def load_device_profiles(devices_dir: Path = DEVICES_DIR) -> dict[str, dict[str, Any]]:
+    data = load_manifest_data(devices_dir)
     errors = validate_manifest_data(data)
     if errors:
         raise DeviceProfileError("\n".join(errors))
@@ -552,6 +590,7 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
         "info_only": bool(display.get("infoOnly")),
         "display_mode": display.get("mode", "color"),
         "package": firmware.get("package"),
+        "cover_art": firmware.get("coverArt") or {},
     }
     if "portraitCols" in layout:
         slot["portrait_cols"] = layout["portraitCols"]
@@ -579,8 +618,8 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
     return slot
 
 
-def slot_devices(path: Path = DEVICE_MANIFEST) -> list[dict[str, Any]]:
-    return [slot_device(profile) for profile in load_device_profiles(path).values()]
+def slot_devices(devices_dir: Path = DEVICES_DIR) -> list[dict[str, Any]]:
+    return [slot_device(profile) for profile in load_device_profiles(devices_dir).values()]
 
 
 def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
@@ -610,10 +649,10 @@ def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
     return capability
 
 
-def public_device_capabilities(path: Path = DEVICE_MANIFEST) -> dict[str, Any]:
-    profiles = load_device_profiles(path)
+def public_device_capabilities(devices_dir: Path = DEVICES_DIR) -> dict[str, Any]:
+    profiles = load_device_profiles(devices_dir)
     return {
-        "generatedFrom": "devices/manifest.json",
+        "generatedFrom": DEVICES_SOURCE_LABEL,
         "devices": [
             public_device_capability(profile)
             for profile in profiles.values()
