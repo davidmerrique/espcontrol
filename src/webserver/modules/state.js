@@ -106,6 +106,8 @@ var state = {
   brightnessDayVal: 100,
   brightnessNightVal: 75,
   automaticBrightnessEnabled: true,
+  scheduleTrigger: "disabled",
+  _scheduleTriggerReceived: false,
   scheduleEnabled: false,
   scheduleOnHour: 6,
   scheduleOffHour: 23,
@@ -405,6 +407,10 @@ function normalizeScheduleMode(value) {
   return EspControlModel.normalizeScheduleMode(value);
 }
 
+function normalizeScheduleTrigger(value, scheduleEnabled) {
+  return EspControlModel.normalizeScheduleTrigger(value, scheduleEnabled);
+}
+
 function normalizeScreensaverAction(value) {
   return EspControlModel.normalizeScreensaverAction(value);
 }
@@ -555,6 +561,8 @@ function formatHour(hour) {
 }
 
 function syncScreenScheduleUi() {
+  state.scheduleTrigger = normalizeScheduleTrigger(state.scheduleTrigger, state.scheduleEnabled);
+  state.scheduleEnabled = state.scheduleTrigger !== "disabled";
   state.scheduleOnHour = normalizeHour(state.scheduleOnHour, 6);
   state.scheduleOffHour = normalizeHour(state.scheduleOffHour, 23);
   state.scheduleMode = normalizeScheduleMode(state.scheduleMode);
@@ -566,6 +574,11 @@ function syncScreenScheduleUi() {
     els.setAutomaticBrightnessToggle.checked = !!state.automaticBrightnessEnabled;
   }
   if (els.setScheduleToggle) els.setScheduleToggle.checked = !!state.scheduleEnabled;
+  if (els.setScheduleModeButtons) {
+    els.setScheduleModeButtons.disabled.className = state.scheduleTrigger === "disabled" ? "active" : "";
+    els.setScheduleModeButtons.time.className = state.scheduleTrigger === "time" ? "active" : "";
+    els.setScheduleModeButtons.sensor.className = state.scheduleTrigger === "sensor" ? "active" : "";
+  }
   if (els.setScheduleOnHour) els.setScheduleOnHour.value = String(state.scheduleOnHour);
   if (els.setScheduleOffHour) els.setScheduleOffHour.value = String(state.scheduleOffHour);
   if (els.setScheduleMode) {
@@ -600,7 +613,10 @@ function syncScreenScheduleUi() {
       "sp-cond-field" + (state.scheduleMode === "clock" ? " sp-visible" : "");
   }
   if (els.setScheduleTimes) {
-    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleEnabled ? "" : " sp-hidden");
+    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleTrigger === "time" ? "" : " sp-hidden");
+  }
+  if (els.setScheduleSensor) {
+    els.setScheduleSensor.className = "sp-schedule-times" + (state.scheduleTrigger === "sensor" ? "" : " sp-hidden");
   }
   if (els.setScheduleBadge) {
     els.setScheduleBadge.className = "sp-card-badge" + (state.scheduleEnabled ? "" : " sp-hidden");

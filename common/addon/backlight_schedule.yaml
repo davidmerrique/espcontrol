@@ -53,6 +53,14 @@ esphome:
   on_boot:
     priority: -250
     then:
+      - if:
+          condition:
+            lambda: 'return id(schedule_enabled).state && screen_schedule_disabled_trigger(id(screen_schedule_trigger).state);'
+          then:
+            - lambda: |-
+                auto call = id(screen_schedule_trigger).make_call();
+                call.set_value("time");
+                call.perform();
       - script.execute: screen_schedule_boot_guard
 
 # =============================================================================
@@ -83,8 +91,25 @@ switch:
     web_server:
       sorting_group_id: sg_brightness
     on_turn_on:
-      - script.execute: screen_schedule_check
+      - if:
+          condition:
+            lambda: 'return screen_schedule_disabled_trigger(id(screen_schedule_trigger).state);'
+          then:
+            - lambda: |-
+                auto call = id(screen_schedule_trigger).make_call();
+                call.set_value("time");
+                call.perform();
+          else:
+            - script.execute: screen_schedule_check
     on_turn_off:
+      - if:
+          condition:
+            lambda: 'return !screen_schedule_disabled_trigger(id(screen_schedule_trigger).state);'
+          then:
+            - lambda: |-
+                auto call = id(screen_schedule_trigger).make_call();
+                call.set_value("disabled");
+                call.perform();
       - globals.set:
           id: backlight_manual_off
           value: 'false'
@@ -121,6 +146,32 @@ select:
         - script.execute: screen_schedule_check
 
 text:
+  - platform: template
+    name: "${entity_screen_schedule_trigger}"
+    internal: true
+    id: screen_schedule_trigger
+    optimistic: true
+    restore_value: true
+    initial_value: "disabled"
+    min_length: 0
+    max_length: 10
+    mode: text
+    entity_category: config
+    icon: "mdi:calendar-sync"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_brightness
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return screen_schedule_disabled_trigger(id(screen_schedule_trigger).state);'
+            then:
+              - switch.turn_off: schedule_enabled
+            else:
+              - switch.turn_on: schedule_enabled
+        - script.execute: screen_schedule_check
+
   - platform: template
     name: "${entity_screen_schedule_clock_text_color}"
     internal: true
@@ -247,11 +298,14 @@ number:
         - if:
             condition:
               lambda: |-
-                if (!id(schedule_enabled).state || id(display_asleep)) return false;
+                if (id(display_asleep)) return false;
                 auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
-                return now.is_valid() &&
-                       !screen_schedule_in_window(
-                         now.hour,
+                return screen_schedule_night_active(
+                         id(screen_schedule_trigger).state,
+                         id(schedule_enabled).state,
+                         id(presence_detected),
+                         now.is_valid(),
+                         now.is_valid() ? now.hour : 0,
                          (int) id(schedule_on_hour).state,
                          (int) id(schedule_off_hour).state) &&
                        screen_schedule_always_on_mode(id(schedule_mode).current_option());
@@ -332,7 +386,20 @@ script:
     then:
       - if:
           condition:
-            switch.is_on: schedule_enabled
+            lambda: |-
+              auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
+              return screen_schedule_waiting_for_time(
+                       id(screen_schedule_trigger).state,
+                       id(schedule_enabled).state,
+                       now.is_valid()) ||
+                     screen_schedule_night_active(
+                       id(screen_schedule_trigger).state,
+                       id(schedule_enabled).state,
+                       id(presence_detected),
+                       now.is_valid(),
+                       now.is_valid() ? now.hour : 0,
+                       (int) id(schedule_on_hour).state,
+                       (int) id(schedule_off_hour).state);
           then:
             - globals.set:
                 id: display_asleep
@@ -507,17 +574,25 @@ script:
     mode: restart
     then:
       - lambda: |-
-          if (!id(schedule_enabled).state) return;
+          if (!id(schedule_enabled).state ||
+              screen_schedule_disabled_trigger(id(screen_schedule_trigger).state)) {
+            return;
+          }
 
           auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
-          if (!now.is_valid()) return;
+          if (screen_schedule_time_trigger(id(screen_schedule_trigger).state) &&
+              !now.is_valid()) {
+            return;
+          }
 
-          bool in_window = screen_schedule_in_window(
-            now.hour,
-            (int) id(schedule_on_hour).state,
-            (int) id(schedule_off_hour).state);
-
-          if (in_window) {
+          if (screen_schedule_normal_active(
+                id(screen_schedule_trigger).state,
+                id(schedule_enabled).state,
+                id(presence_detected),
+                now.is_valid(),
+                now.is_valid() ? now.hour : 0,
+                (int) id(schedule_on_hour).state,
+                (int) id(schedule_off_hour).state)) {
             id(manual_wake_ms) = 0;
             if (id(display_asleep) && id(screen_schedule_asleep) &&
                 !id(backlight_manual_off)) {
@@ -596,12 +671,19 @@ script:
           }
 
           auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
-          if (!now.is_valid()) return;
+          if (screen_schedule_time_trigger(id(screen_schedule_trigger).state) &&
+              !now.is_valid()) {
+            return;
+          }
 
-          if (screen_schedule_in_window(
-              now.hour,
-              (int) id(schedule_on_hour).state,
-              (int) id(schedule_off_hour).state)) {
+          if (screen_schedule_normal_active(
+                id(screen_schedule_trigger).state,
+                id(schedule_enabled).state,
+                id(presence_detected),
+                now.is_valid(),
+                now.is_valid() ? now.hour : 0,
+                (int) id(schedule_on_hour).state,
+                (int) id(schedule_off_hour).state)) {
             id(manual_wake_ms) = 0;
             return;
           }
@@ -635,7 +717,10 @@ script:
             id(backlight_force_display_off).execute();
             return;
           }
-          if (id(schedule_enabled).state && !now.is_valid()) {
+          if (screen_schedule_waiting_for_time(
+                id(screen_schedule_trigger).state,
+                id(schedule_enabled).state,
+                now.is_valid())) {
             id(backlight_force_display_off).execute();
             return;
           }
@@ -646,9 +731,12 @@ script:
             if (std::isnan(pct) || pct <= 0) pct = 10;
             if (pct < 10) pct = 10;
             if (pct > 100) pct = 100;
-          } else if (id(schedule_enabled).state && now.is_valid() &&
-                     !screen_schedule_in_window(
-                       now.hour,
+          } else if (screen_schedule_night_active(
+                       id(screen_schedule_trigger).state,
+                       id(schedule_enabled).state,
+                       id(presence_detected),
+                       now.is_valid(),
+                       now.is_valid() ? now.hour : 0,
                        (int) id(schedule_on_hour).state,
                        (int) id(schedule_off_hour).state) &&
                      screen_schedule_always_on_mode(id(schedule_mode).current_option())) {
@@ -709,7 +797,10 @@ interval:
             lambda: |-
               return (id(screen_schedule_asleep) &&
                       !screen_schedule_clock_mode(id(schedule_mode).current_option())) ||
-                     (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+                     screen_schedule_waiting_for_time(
+                       id(screen_schedule_trigger).state,
+                       id(schedule_enabled).state,
+                       panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
           then:
             - script.execute: backlight_force_display_off
 

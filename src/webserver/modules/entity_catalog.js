@@ -334,6 +334,15 @@ var ENTITY_CATALOG = {
         "screen__schedule_enabled"
       ]
     },
+    "screen_schedule_trigger": {
+      "domain": "text",
+      "name": "Screen: Schedule Trigger",
+      "objectIds": [
+        "screen__schedule_trigger",
+        "screen_schedule_trigger",
+        "schedule_trigger"
+      ]
+    },
     "screen_schedule_mode": {
       "domain": "select",
       "name": "Screen: Schedule Mode",
@@ -527,6 +536,7 @@ var ENTITY_CATALOG = {
       "wifi_strength",
       "screen_automatic_brightness",
       "screen_schedule_enabled",
+      "screen_schedule_trigger",
       "screen_schedule_mode",
       "screen_schedule_on_hour",
       "screen_schedule_off_hour",

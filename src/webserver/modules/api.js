@@ -692,6 +692,8 @@ function postSubpageChevron(on) {
 
 var SCREEN_SCHEDULE_UNAVAILABLE =
   "Screen schedule is not available on this firmware. Update the device firmware, then reload this page.";
+var SCREEN_SCHEDULE_TRIGGER_UNAVAILABLE =
+  "The schedule trigger setting is not available on this firmware. Update the device firmware, then reload this page.";
 var SCREEN_SCHEDULE_WAKE_TIMEOUT_UNAVAILABLE =
   "The schedule wake timeout setting is not available on this firmware. Update the device firmware, then reload this page.";
 var SCREEN_SCHEDULE_WAKE_BRIGHTNESS_UNAVAILABLE =
@@ -720,6 +722,15 @@ function postScreenScheduleEnabled(on) {
     entityObjectIds("screen_schedule_enabled"),
     on,
     SCREEN_SCHEDULE_UNAVAILABLE
+  );
+}
+
+function postScreenScheduleTrigger(value) {
+  postTextWithObjectIds(
+    entityName("screen_schedule_trigger"),
+    entityObjectIds("screen_schedule_trigger"),
+    normalizeScheduleTrigger(value, state.scheduleEnabled),
+    SCREEN_SCHEDULE_TRIGGER_UNAVAILABLE
   );
 }
 

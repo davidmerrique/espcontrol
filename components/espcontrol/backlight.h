@@ -273,6 +273,52 @@ inline bool screen_schedule_clock_mode(const std::string &mode) {
   return mode == "Clock" || mode == "clock";
 }
 
+inline bool screen_schedule_sensor_trigger(const std::string &trigger) {
+  return trigger == "Sensor" || trigger == "sensor";
+}
+
+inline bool screen_schedule_disabled_trigger(const std::string &trigger) {
+  return trigger == "Disabled" || trigger == "disabled" || trigger == "Off" ||
+         trigger == "off";
+}
+
+inline bool screen_schedule_time_trigger(const std::string &trigger) {
+  return !screen_schedule_disabled_trigger(trigger) &&
+         !screen_schedule_sensor_trigger(trigger);
+}
+
+inline bool screen_schedule_waiting_for_time(const std::string &trigger,
+                                             bool enabled,
+                                             bool time_valid) {
+  return enabled && screen_schedule_time_trigger(trigger) && !time_valid;
+}
+
+inline bool screen_schedule_night_active(const std::string &trigger,
+                                         bool enabled,
+                                         bool presence_detected,
+                                         bool time_valid,
+                                         int now_h,
+                                         int on_hour,
+                                         int off_hour) {
+  if (!enabled || screen_schedule_disabled_trigger(trigger)) return false;
+  if (screen_schedule_sensor_trigger(trigger)) return !presence_detected;
+  if (!time_valid) return false;
+  return !screen_schedule_in_window(now_h, on_hour, off_hour);
+}
+
+inline bool screen_schedule_normal_active(const std::string &trigger,
+                                          bool enabled,
+                                          bool presence_detected,
+                                          bool time_valid,
+                                          int now_h,
+                                          int on_hour,
+                                          int off_hour) {
+  if (!enabled || screen_schedule_disabled_trigger(trigger)) return false;
+  if (screen_schedule_sensor_trigger(trigger)) return presence_detected;
+  if (!time_valid) return false;
+  return screen_schedule_in_window(now_h, on_hour, off_hour);
+}
+
 // ── Screensaver action helpers ────────────────────────────────────────
 
 inline bool screensaver_action_clock_mode(const std::string &action) {

@@ -69,6 +69,7 @@ export {
   normalizeScheduleClockBrightness,
   normalizeScheduleDimmedBrightness,
   normalizeScheduleMode,
+  normalizeScheduleTrigger,
   normalizeScheduleWakeBrightness,
   normalizeScheduleWakeTimeout,
   normalizeScreensaverAction,

@@ -74,6 +74,14 @@ export function normalizeScheduleMode(value: unknown): string {
   return "screen_off";
 }
 
+export function normalizeScheduleTrigger(value: unknown, scheduleEnabled = false): string {
+  const trigger = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+  if (trigger === "sensor") return "sensor";
+  if (trigger === "time" || trigger === "timer") return "time";
+  if (trigger === "disabled" || trigger === "off") return "disabled";
+  return scheduleEnabled ? "time" : "disabled";
+}
+
 export function normalizeScreensaverAction(value: unknown): string {
   const action = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
   if (action === "screen_dimmed" || action === "dimmed" || action === "dim") return "dim";
@@ -120,6 +128,7 @@ export interface BackupScreenSettingsState {
   brightnessDayVal: number;
   brightnessNightVal: number;
   automaticBrightnessEnabled: boolean;
+  scheduleTrigger: string;
   scheduleEnabled: boolean;
   scheduleOnHour: number;
   scheduleOffHour: number;
@@ -144,13 +153,16 @@ export function normalizeBackupScreenSettings(
   screenSettings: Record<string, unknown>,
   current: Partial<BackupScreenSettingsState>,
 ): BackupScreenSettingsState {
+  const legacyScheduleEnabled = !!screenSettings.schedule_enabled;
+  const scheduleTrigger = normalizeScheduleTrigger(screenSettings.schedule_trigger, legacyScheduleEnabled);
   return {
     brightnessDayVal: numberOrFallback(screenSettings.brightness_day, 100),
     brightnessNightVal: numberOrFallback(screenSettings.brightness_night, 75),
     automaticBrightnessEnabled: objectValue(screenSettings, "automatic_brightness") != null
       ? !!screenSettings.automatic_brightness
       : true,
-    scheduleEnabled: !!screenSettings.schedule_enabled,
+    scheduleTrigger,
+    scheduleEnabled: scheduleTrigger !== "disabled",
     scheduleOnHour: normalizeHour(screenSettings.schedule_on_hour, 6),
     scheduleOffHour: normalizeHour(screenSettings.schedule_off_hour, 23),
     scheduleMode: normalizeScheduleMode(screenSettings.schedule_mode),

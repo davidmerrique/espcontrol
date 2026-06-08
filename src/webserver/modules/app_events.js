@@ -16,6 +16,7 @@ var SSE_ALIAS_GROUPS = {
   coverArtDelay: ["number-screen_saver__cover_art_delay", "number-screen_saver_cover_art_delay", "number-cover_art_delay"],
   trackOverlayDuration: ["number-screen_saver__track_overlay_duration", "number-screen_saver_track_overlay_duration", "number-track_overlay_duration"],
   coverArtHideExternalInput: ["switch-screen_saver__hide_cover_art_on_external_input", "switch-screen_saver_hide_cover_art_on_external_input", "switch-hide_cover_art_on_external_input", "switch-cover_art_hide_external_input"],
+  scheduleTrigger: ["text-screen__schedule_trigger", "text-screen_schedule_trigger", "text-schedule_trigger"],
   scheduleWakeTimeout: ["number-screen__schedule_wake_timeout", "number-screen_schedule_wake_timeout", "number-schedule_wake_timeout"],
   scheduleWakeBrightness: ["number-screen__schedule_wake_brightness", "number-screen_schedule_wake_brightness", "number-schedule_wake_brightness"],
   scheduleDimmedBrightness: ["number-screen__schedule_dimmed_brightness", "number-screen_schedule_dimmed_brightness", "number-schedule_dimmed_brightness"],
@@ -227,6 +228,7 @@ function connectEvents() {
     "text-presence_sensor_entity": function (val) {
       state.presenceEntity = val;
       syncInput(els.setPresence, val);
+      syncInput(els.setSchedulePresence, val);
       if (state.screensaverMode === "") {
         if (els.setSsMode) els.setSsMode(getActiveScreensaverMode());
       }
@@ -275,6 +277,15 @@ function connectEvents() {
     },
     "switch-screen__schedule_enabled": function (val, d) {
       state.scheduleEnabled = d.value === true || val === "ON";
+      if (!state._scheduleTriggerReceived) {
+        state.scheduleTrigger = state.scheduleEnabled ? "time" : "disabled";
+      }
+      syncScreenScheduleUi();
+    },
+    "text-screen__schedule_trigger": function (val, d) {
+      state._scheduleTriggerReceived = true;
+      state.scheduleTrigger = normalizeScheduleTrigger(d.value || val, state.scheduleEnabled);
+      state.scheduleEnabled = state.scheduleTrigger !== "disabled";
       syncScreenScheduleUi();
     },
     "number-screen__schedule_on_hour": function (val) {
@@ -445,6 +456,7 @@ function connectEvents() {
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtDelay, sseHandlers["number-screen_saver__cover_art_delay"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.trackOverlayDuration, sseHandlers["number-screen_saver__track_overlay_duration"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtHideExternalInput, sseHandlers["switch-screen_saver__hide_cover_art_on_external_input"]);
+  addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.scheduleTrigger, sseHandlers["text-screen__schedule_trigger"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.scheduleWakeTimeout, sseHandlers["number-screen__schedule_wake_timeout"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.scheduleWakeBrightness, sseHandlers["number-screen__schedule_wake_brightness"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.scheduleDimmedBrightness, sseHandlers["number-screen__schedule_dimmed_brightness"]);

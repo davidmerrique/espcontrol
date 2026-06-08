@@ -134,9 +134,27 @@ function buildSettingsPage(parent) {
   var backlightCard = makeCollapsibleCard("Backlight", blBody, true);
 
   var scheduleBody = document.createElement("div");
-  var scheduleToggle = toggleRow("Night Schedule", "sp-set-schedule-enabled", state.scheduleEnabled);
-  scheduleBody.appendChild(scheduleToggle.row);
-  els.setScheduleToggle = scheduleToggle.input;
+  scheduleBody.appendChild(fieldLabel("Mode"));
+  var scheduleSegment = document.createElement("div");
+  scheduleSegment.className = "sp-segment sp-screensaver-mode";
+  var scheduleDisabledBtn = document.createElement("button");
+  scheduleDisabledBtn.textContent = "Disabled";
+  scheduleDisabledBtn.type = "button";
+  var scheduleTimeBtn = document.createElement("button");
+  scheduleTimeBtn.textContent = "Time";
+  scheduleTimeBtn.type = "button";
+  var scheduleSensorBtn = document.createElement("button");
+  scheduleSensorBtn.textContent = "Sensor";
+  scheduleSensorBtn.type = "button";
+  scheduleSegment.appendChild(scheduleDisabledBtn);
+  scheduleSegment.appendChild(scheduleTimeBtn);
+  scheduleSegment.appendChild(scheduleSensorBtn);
+  scheduleBody.appendChild(scheduleSegment);
+  els.setScheduleModeButtons = {
+    disabled: scheduleDisabledBtn,
+    time: scheduleTimeBtn,
+    sensor: scheduleSensorBtn,
+  };
 
   var scheduleTimes = document.createElement("div");
   scheduleTimes.className = "sp-schedule-times";
@@ -282,10 +300,36 @@ function buildSettingsPage(parent) {
   scheduleBody.appendChild(scheduleTimes);
   els.setScheduleTimes = scheduleTimes;
 
-  scheduleToggle.input.addEventListener("change", function () {
-    state.scheduleEnabled = this.checked;
+  var scheduleSensor = document.createElement("div");
+  scheduleSensor.className = "sp-schedule-times";
+  var schedulePresenceField = document.createElement("div");
+  schedulePresenceField.className = "sp-field";
+  schedulePresenceField.appendChild(fieldLabel("Presence Entity", "sp-set-schedule-presence"));
+  var schedulePresInp = entityInput("sp-set-schedule-presence", state.presenceEntity, "Presence sensor entity", ["binary_sensor", "sensor"]);
+  schedulePresenceField.appendChild(schedulePresInp);
+  scheduleSensor.appendChild(schedulePresenceField);
+  bindTextPost(schedulePresInp, entityName("presence_sensor_entity"), {});
+  scheduleBody.appendChild(scheduleSensor);
+  els.setScheduleSensor = scheduleSensor;
+  els.setSchedulePresence = schedulePresInp;
+
+  function setScheduleTrigger(trigger) {
+    state._scheduleTriggerReceived = true;
+    state.scheduleTrigger = normalizeScheduleTrigger(trigger, state.scheduleEnabled);
+    state.scheduleEnabled = state.scheduleTrigger !== "disabled";
+    postScreenScheduleTrigger(state.scheduleTrigger);
     postScreenScheduleEnabled(state.scheduleEnabled);
     syncScreenScheduleUi();
+  }
+
+  scheduleDisabledBtn.addEventListener("click", function () {
+    setScheduleTrigger("disabled");
+  });
+  scheduleTimeBtn.addEventListener("click", function () {
+    setScheduleTrigger("time");
+  });
+  scheduleSensorBtn.addEventListener("click", function () {
+    setScheduleTrigger("sensor");
   });
 
   var scheduleBadge = document.createElement("span");
@@ -649,7 +693,7 @@ function buildSettingsPage(parent) {
   var presenceField = document.createElement("div");
   presenceField.className = "sp-field";
   presenceField.appendChild(fieldLabel("Presence Entity", "sp-set-presence"));
-  var presInp = entityInput("sp-set-presence", "", "Presence sensor entity", ["binary_sensor", "sensor"]);
+  var presInp = entityInput("sp-set-presence", state.presenceEntity, "Presence sensor entity", ["binary_sensor", "sensor"]);
   presenceField.appendChild(presInp);
   sensorPanel.appendChild(presenceField);
   bindTextPost(presInp, entityName("presence_sensor_entity"), {});
@@ -1004,7 +1048,6 @@ function syncCoverArtScreensaverUi() {
     els.setCoverArtHideExternalInputToggle.checked = !!state.coverArtHideExternalInputOn;
   }
 }
-
 
 function syncOptionalClockBrightness(field, previousField, display) {
   if (field) field.style.display = display;

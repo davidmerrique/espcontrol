@@ -60,6 +60,7 @@ var EspControlModel = (() => {
     normalizeScheduleClockBrightness: () => normalizeScheduleClockBrightness,
     normalizeScheduleDimmedBrightness: () => normalizeScheduleDimmedBrightness,
     normalizeScheduleMode: () => normalizeScheduleMode,
+    normalizeScheduleTrigger: () => normalizeScheduleTrigger,
     normalizeScheduleWakeBrightness: () => normalizeScheduleWakeBrightness,
     normalizeScheduleWakeTimeout: () => normalizeScheduleWakeTimeout,
     normalizeScreensaverAction: () => normalizeScreensaverAction,
@@ -796,6 +797,13 @@ var EspControlModel = (() => {
     if (mode === "clock") return "clock";
     return "screen_off";
   }
+  function normalizeScheduleTrigger(value, scheduleEnabled = false) {
+    const trigger = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+    if (trigger === "sensor") return "sensor";
+    if (trigger === "time" || trigger === "timer") return "time";
+    if (trigger === "disabled" || trigger === "off") return "disabled";
+    return scheduleEnabled ? "time" : "disabled";
+  }
   function normalizeScreensaverAction(value) {
     const action = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
     if (action === "screen_dimmed" || action === "dimmed" || action === "dim") return "dim";
@@ -840,11 +848,14 @@ var EspControlModel = (() => {
     return Object.prototype.hasOwnProperty.call(source, key) ? source[key] : void 0;
   }
   function normalizeBackupScreenSettings(screenSettings, current) {
+    const legacyScheduleEnabled = !!screenSettings.schedule_enabled;
+    const scheduleTrigger = normalizeScheduleTrigger(screenSettings.schedule_trigger, legacyScheduleEnabled);
     return {
       brightnessDayVal: numberOrFallback(screenSettings.brightness_day, 100),
       brightnessNightVal: numberOrFallback(screenSettings.brightness_night, 75),
       automaticBrightnessEnabled: objectValue(screenSettings, "automatic_brightness") != null ? !!screenSettings.automatic_brightness : true,
-      scheduleEnabled: !!screenSettings.schedule_enabled,
+      scheduleTrigger,
+      scheduleEnabled: scheduleTrigger !== "disabled",
       scheduleOnHour: normalizeHour(screenSettings.schedule_on_hour, 6),
       scheduleOffHour: normalizeHour(screenSettings.schedule_off_hour, 23),
       scheduleMode: normalizeScheduleMode(screenSettings.schedule_mode),
