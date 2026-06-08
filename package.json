@@ -1,0 +1,12 @@
+{
+  "name": "espcontrol-sensecap-d1-community-package",
+  "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "scripts": {
+    "build:web": "node scripts/build_sensecap_web.js",
+    "check:web": "node scripts/build_sensecap_web.js --check"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}
