@@ -102,13 +102,13 @@ function normalizeButtonConfig(b) {
     if (typeof normalizeWebhookConfig === "function") normalizeWebhookConfig(b);
   }
   if (b && b.type === "image") {
-    b.label = "";
     b.icon = "Auto";
     b.icon_on = "Auto";
     b.sensor = "";
     b.unit = "";
     b.precision = "";
     b.options = normalizeImageOptions(b.options);
+    if (!imageLabelEnabled(b)) b.label = "";
   }
   if (b && b.type === "light_switch") {
     b.sensor = "";
@@ -200,6 +200,7 @@ var CLIMATE_LABEL_DISPLAY_OPTION = "label_display";
 var CLIMATE_NUMBER_DISPLAY_OPTION = "number_display";
 var MEDIA_VOLUME_MAX_OPTION = "volume_max";
 var SUBPAGE_KIND_OPTION = "subpage_kind";
+var IMAGE_LABEL_OPTION = "image_label";
 var IMAGE_REFRESH_OPTION = "image_refresh";
 var IMAGE_REFRESH_MODE_OPTION = "image_refresh_mode";
 var ALARM_ACTIONS = [
@@ -349,15 +350,31 @@ function imageRefreshMode(b) {
   return normalizeImageRefreshMode(configOptionValue(b && b.options, IMAGE_REFRESH_MODE_OPTION));
 }
 
+function imageLabelEnabled(b) {
+  return !!(b && configOptionEnabled(b.options, IMAGE_LABEL_OPTION));
+}
+
 function normalizeImageOptions(options) {
+  var out = "";
+  if (configOptionEnabled(options, IMAGE_LABEL_OPTION)) {
+    out = setConfigOption(out, IMAGE_LABEL_OPTION, true);
+  }
   var interval = normalizeImageRefreshInterval(configOptionValue(options, IMAGE_REFRESH_OPTION));
-  if (interval === "off") return "";
-  var out = setConfigOptionValue("", IMAGE_REFRESH_OPTION, interval);
+  if (interval === "off") return out;
+  out = setConfigOptionValue(out, IMAGE_REFRESH_OPTION, interval);
   var mode = normalizeImageRefreshMode(configOptionValue(options, IMAGE_REFRESH_MODE_OPTION));
   if (mode !== "changes_timer") {
     out = setConfigOptionValue(out, IMAGE_REFRESH_MODE_OPTION, mode);
   }
   return out;
+}
+
+function setImageLabelEnabled(b, enabled) {
+  if (!b) return "";
+  b.options = setConfigOption(b.options, IMAGE_LABEL_OPTION, !!enabled);
+  if (!enabled) b.label = "";
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
 }
 
 function setImageRefreshInterval(b, value) {
@@ -1081,6 +1098,7 @@ function buttonConfigFields(b) {
   }
   var isActionOptionSelect = !!(b && (actionCardIsOptionSelect(b) || isOptionSelectType(type)));
   if (isActionOptionSelect) type = "action";
+  var label = b && b.label || "";
   var sensor = isActionOptionSelect ? ACTION_CARD_OPTION_SELECT_ACTION :
     (isBrightnessSliderType(type) || type === "climate" || type === "light_switch" || type === "alarm" || isFanCardType(type)) ? "" : (b && b.sensor || "");
   var unit = (isActionOptionSelect || type === "climate" || type === "light_switch" || type === "alarm" || type === "alarm_action" || isFanCardType(type)) ? "" : (b && b.unit || "");
@@ -1105,6 +1123,7 @@ function buttonConfigFields(b) {
     sensor = "";
     unit = "";
     precision = "";
+    if (!imageLabelEnabled(b)) label = "";
   }
   if (type === "door_window") precision = normalizeDoorWindowSubtype(precision);
   var options = b && b.options || "";
@@ -1162,7 +1181,7 @@ function buttonConfigFields(b) {
   }
   return trimConfigFields([
     (type === "door_window" || type === "presence") ? "" : (b && b.entity || ""),
-    b && b.label || "",
+    label,
     icon,
     iconOn,
     sensor,

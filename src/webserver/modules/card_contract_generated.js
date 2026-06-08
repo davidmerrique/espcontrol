@@ -1143,6 +1143,11 @@ var CARD_CONTRACT_CARDS = {
     ],
     "options": [
       {
+        "name": "image_label",
+        "label": "Show Label",
+        "kind": "flag"
+      },
+      {
         "name": "image_refresh",
         "label": "Refresh Interval",
         "kind": "choice",

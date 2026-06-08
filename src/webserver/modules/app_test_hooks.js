@@ -83,6 +83,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     imageRefreshIntervalValues: imageRefreshIntervalValues,
     imageRefreshModeValues: imageRefreshModeValues,
     normalizeImageOptions: normalizeImageOptions,
+    imageLabelEnabled: imageLabelEnabled,
     imageRefreshInterval: imageRefreshInterval,
     imageRefreshMode: imageRefreshMode,
     actionCardStateEntity: actionCardStateEntity,

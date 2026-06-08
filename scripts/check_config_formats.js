@@ -1576,7 +1576,9 @@ assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("image", true,
 assert.deepStrictEqual(Array.from(hooks.imageRefreshIntervalValues()), ["off", "10", "30", "60", "300"], "image refresh interval values are contract-backed");
 assert.deepStrictEqual(Array.from(hooks.imageRefreshModeValues()), ["changes_timer", "timer"], "image refresh mode values are contract-backed");
 assert.strictEqual(hooks.normalizeImageOptions("image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_refresh=30,image_refresh_mode=timer", "image refresh options keep valid values");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_label,image_refresh=30,image_refresh_mode=timer", "image label option is preserved with refresh values");
 assert.strictEqual(hooks.normalizeImageOptions("image_refresh=5,image_refresh_mode=bad"), "", "image refresh options drop invalid values");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=5,image_refresh_mode=bad"), "image_label", "image label option survives invalid refresh values");
 assertButtonRoundTrip(hooks, "image card default options", {
   entity: "camera.front_door",
   label: "",
@@ -1599,6 +1601,39 @@ assertButtonRoundTrip(hooks, "image card refresh options", {
   precision: "",
   options: "image_refresh=30,image_refresh_mode=timer",
 }, false);
+assertButtonRoundTrip(hooks, "image card label option", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label",
+}, false);
+assertButtonRoundTrip(hooks, "image card label and refresh options", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label,image_refresh=30,image_refresh_mode=timer",
+}, false);
+assertButtonMigration(hooks, "image card clears label without overlay option", "camera.front_door;Front Door;Auto;Auto;;;image;;", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+});
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, false), false, "fan subtype hidden from top-level picker");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, true), false, "fan switch subtype hidden from subpage picker");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_oscillate", true, true), false, "fan oscillation subtype hidden from subpage picker");

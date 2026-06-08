@@ -192,6 +192,11 @@ inline void reset_card_slot_dynamic_children(BtnSlot &s) {
   lv_obj_clear_state(s.btn, LV_STATE_DISABLED);
   lv_obj_set_style_opa(s.btn, LV_OPA_COVER, LV_PART_MAIN);
   if (s.sensor_container) lv_obj_set_user_data(s.sensor_container, nullptr);
+  if (s.text_lbl) {
+    lv_obj_set_style_bg_opa(s.text_lbl, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s.text_lbl, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(s.text_lbl, 0, LV_PART_MAIN);
+  }
   int32_t count = static_cast<int32_t>(lv_obj_get_child_cnt(s.btn));
   for (int32_t i = count - 1; i >= 0; i--) {
     lv_obj_t *child = lv_obj_get_child(s.btn, i);

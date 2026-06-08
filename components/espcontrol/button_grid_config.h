@@ -76,6 +76,7 @@ constexpr const char *SENSOR_STATE_INPUT_2_OPTION = "state_input_2";
 constexpr const char *SENSOR_STATE_OUTPUT_2_OPTION = "state_output_2";
 constexpr const char *SENSOR_STATE_LOW_LABEL_OPTION = "state_low_label";
 constexpr const char *SENSOR_STATE_HIGH_LABEL_OPTION = "state_high_label";
+constexpr const char *IMAGE_LABEL_OPTION = "image_label";
 constexpr const char *IMAGE_REFRESH_OPTION = "image_refresh";
 constexpr const char *IMAGE_REFRESH_MODE_OPTION = "image_refresh_mode";
 
@@ -281,10 +282,15 @@ inline std::string normalize_image_refresh_mode(const std::string &value) {
 }
 
 inline std::string image_card_options_normalized(const std::string &options) {
+  std::string out;
+  if (cfg_option_token_present(options, IMAGE_LABEL_OPTION)) {
+    out = IMAGE_LABEL_OPTION;
+  }
   std::string interval = normalize_image_refresh_interval(
     cfg_option_value(options, IMAGE_REFRESH_OPTION));
-  if (interval == "off") return "";
-  std::string out = std::string(IMAGE_REFRESH_OPTION) + "=" + interval;
+  if (interval == "off") return out;
+  if (!out.empty()) out += ",";
+  out += std::string(IMAGE_REFRESH_OPTION) + "=" + interval;
   std::string mode = normalize_image_refresh_mode(
     cfg_option_value(options, IMAGE_REFRESH_MODE_OPTION));
   if (mode != "changes_timer") {
@@ -307,6 +313,10 @@ inline uint32_t image_card_refresh_interval_ms(const ParsedCfg &p) {
 inline bool image_card_timer_only_refresh(const ParsedCfg &p) {
   return normalize_image_refresh_mode(
     cfg_option_value(p.options, IMAGE_REFRESH_MODE_OPTION)) == "timer";
+}
+
+inline bool image_card_label_enabled(const ParsedCfg &p) {
+  return cfg_option_token_present(p.options, IMAGE_LABEL_OPTION);
 }
 
 inline std::string sensor_card_options_normalized(const std::string &options,
@@ -712,13 +722,13 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     p.options = webhook_card_options_normalized(p.options);
   }
   if (p.type == "image") {
-    p.label.clear();
     p.icon = "Auto";
     p.icon_on = "Auto";
     p.sensor.clear();
     p.unit.clear();
     p.precision.clear();
     p.options = image_card_options_normalized(p.options);
+    if (!image_card_label_enabled(p)) p.label.clear();
   }
   if (p.type == "todo") {
     p.sensor.clear();

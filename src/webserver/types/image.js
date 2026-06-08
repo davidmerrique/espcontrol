@@ -28,6 +28,38 @@ function imageRefreshModeOptions() {
   ];
 }
 
+function renderImageLabelSettings(panel, b, helpers) {
+  var toggle = helpers.toggleRow(
+    "Show Label",
+    helpers.idPrefix + "image-label-toggle",
+    imageLabelEnabled(b)
+  );
+  panel.appendChild(toggle.row);
+
+  var labelField = helpers.renderCardTextField(panel, b, helpers, {
+    text: {
+      label: "Label",
+      idSuffix: "image-label",
+      placeholder: "Uses camera name when blank",
+      bindName: "label",
+      rerender: true,
+    },
+  });
+
+  function syncLabelField() {
+    labelField.field.hidden = !imageLabelEnabled(b);
+  }
+
+  toggle.input.addEventListener("change", function () {
+    setImageLabelEnabled(b, this.checked);
+    helpers.saveField("options", b.options);
+    helpers.saveField("label", b.label);
+    syncLabelField();
+    renderPreview();
+  });
+  syncLabelField();
+}
+
 function renderImageRefreshSettings(panel, b, helpers) {
   var intervalField = helpers.selectField(
     "Refresh Interval",
@@ -81,25 +113,27 @@ registerButtonType("image", {
     b.options = normalizeImageOptions(b.options);
   },
   renderSettings: function (panel, b, slot, helpers) {
-    b.label = "";
     b.icon = "Auto";
     b.icon_on = "Auto";
     b.sensor = "";
     b.unit = "";
     b.precision = "";
     b.options = normalizeImageOptions(b.options);
+    if (!imageLabelEnabled(b)) b.label = "";
     helpers.renderCardEntityField(panel, b, helpers, IMAGE_CARD_METADATA);
+    renderImageLabelSettings(panel, b, helpers);
     renderImageRefreshSettings(panel, b, helpers);
   },
   renderPreview: function (b, helpers) {
     var tertiaryColor = (typeof state !== "undefined" && state.sensorColor) ? state.sensorColor : "212121";
+    var label = imageLabelEnabled(b) ? String((b && b.label) || "Camera").trim() : "";
     return {
       buttonClass: "sp-image-card",
       iconHtml:
         '<span class="sp-image-preview" style="background:#' + helpers.escHtml(tertiaryColor) + '">' +
         '<span class="sp-image-preview-icon mdi mdi-image"></span>' +
         '</span>',
-      labelHtml: "",
+      labelHtml: label ? '<span class="sp-image-preview-label">' + helpers.escHtml(label) + '</span>' : "",
     };
   },
 });
