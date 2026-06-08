@@ -1375,7 +1375,7 @@ inline void grid_phase2(
       display_apply_slot_text_width(sub_slot, display);
       setup_card_visual(sub_slot, sb_cfg, cfg, palette, rs, cs);
 
-      if (bind_image_card(sub_slot, sb_cfg, cfg)) continue;
+      if (bind_image_card(sub_slot, sb_cfg, cfg, true)) continue;
       if (bind_basic_sensor_card(sub_slot, sb_cfg, palette)) continue;
       if (bind_passive_card_sources(sub_slot, sb_cfg)) continue;
       if (sb_cfg.type == "cover" && cover_command_mode(sb_cfg.sensor)) {

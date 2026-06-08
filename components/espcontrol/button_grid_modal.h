@@ -23,6 +23,7 @@ enum class ControlModalKind {
   NETWORK_STATUS,
   ALARM_PIN,
   ALARM_CONTROL,
+  IMAGE_CARD,
   TODO_LIST,
 };
 
@@ -398,6 +399,15 @@ inline void control_modal_style_chrome_button(lv_obj_t *btn,
   lv_obj_set_style_radius(btn, layout.back_size / 2, LV_PART_MAIN);
   if (top_right) lv_obj_align(btn, LV_ALIGN_TOP_RIGHT, -layout.inset, layout.inset);
   else control_modal_apply_back_button_layout(btn, layout);
+}
+
+inline void control_modal_style_translucent_chrome_button(lv_obj_t *btn) {
+  if (!btn) return;
+  lv_obj_set_style_bg_color(btn, lv_color_hex(DARK_OVERLAY), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(btn, LV_OPA_50, LV_PART_MAIN);
+  lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+  lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+  control_modal_apply_pressed_fill(btn);
 }
 
 inline ControlModalShell control_modal_open_shell(ControlModalKind kind,
