@@ -1,0 +1,1196 @@
+# =============================================================================
+# COMMUNITY PACKAGE - Seeed SenseCAP Indicator D1
+# =============================================================================
+# Community-maintained EspControl package for manual ESPHome installs.
+# This is not an officially supported EspControl device target.
+#
+# Notes:
+# - Built-in EspControl firmware update checks are disabled because this device
+#   is not published in the official release manifest.
+# - Shared EspControl UI/config packages are loaded from upstream EspControl.
+# - The official 4-inch 4848S040 web UI asset is reused because it has the same
+#   480x480 3x3 layout. Hardware below remains SenseCAP Indicator D1-specific.
+# - D1S/D1L/D1Pro optional air-quality sensor and LoRa hardware is not exposed.
+# =============================================================================
+
+substitutions:
+  device_slug: "guition-esp32-s3-4848s040"
+  firmware_manifest_slug: "guition-esp32-s3-4848s040"
+  firmware_version: "community-sensecap-d1"
+  espcontrol_repo: "https://github.com/jtenniswood/espcontrol"
+  espcontrol_ref: "main"
+  espcontrol_component_url: "https://github.com/jtenniswood/espcontrol"
+  espcontrol_component_ref: "main"
+  screen_width: "480"
+  screen_height: "480"
+  content_width: "380"
+  setup_icon_font_id: font_icon_main
+  setup_title_font_id: font_text_title
+  setup_body_font_id: font_text_body
+  setup_pad_row: "20"
+  setup_loading_pad_row: "40"
+  setup_action_button_width: "200"
+  setup_action_button_height: "56"
+  setup_action_button_radius: "12"
+  icon_font: font_icon_main
+  subpage_chevron_font: font_icon_status
+  label_font: font_text_body
+  media_title_font: font_text_title
+  unit_font: font_text_body
+  sensor_value_font: font_number_value
+  padding: 14px
+  radius: 8px
+  main_page_pad_top: "42"
+  main_page_compact_pad_top: "4"
+  clock_font_size: "160"
+  clock_cx: "240"
+  clock_cy: "240"
+  cover_art_size: "480"
+  cover_art_x: "0"
+  cover_art_y: "0"
+  cover_art_accent_x: "0"
+  cover_art_accent_y: "0"
+  cover_art_accent_width: "480"
+  cover_art_accent_height: "480"
+  cover_art_accent_bg_opa: "80%"
+  cover_art_accent_opa: "80%"
+  cover_art_panel_x: "0"
+  cover_art_panel_y: "0"
+  cover_art_panel_width: "480"
+  cover_art_panel_height: "480"
+  cover_art_panel_pad_top: "24"
+  cover_art_panel_pad_bottom: "16"
+  cover_art_panel_pad_left: "24"
+  cover_art_panel_pad_right: "24"
+  cover_art_panel_pad_row: "0"
+  cover_art_title_font: "font_cover_art_title"
+  cover_art_title_max_height: "330"
+  cover_art_title_line_space: "0"
+  cover_art_artist_font: "font_cover_art_artist"
+  cover_art_artist_pad_top: "6"
+  cover_art_artist_long_mode: "dot"
+  cover_art_time_font: "font_cover_art_time"
+  cover_art_time_pad_top: "12"
+  cover_art_progress_width: "480"
+  cover_art_progress_height: "4"
+  cover_art_text_color: "0xFFFFFF"
+  cover_art_square_overlay: "true"
+
+packages:
+  entity_names:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/config/entity_names.yaml
+    refresh: 1sec
+  core_infra:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/core_infra.yaml
+    refresh: 1sec
+  icons:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/assets/icons.yaml
+    refresh: 1sec
+  fonts_device:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: devices/guition-esp32-s3-4848s040/device/fonts.yaml
+    refresh: 1sec
+  button_theme:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/theme/button.yaml
+    refresh: 1sec
+  colors:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/config/colors.yaml
+    refresh: 1sec
+  button_order:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/config/button_order.yaml
+    refresh: 1sec
+  display_config:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/config/display.yaml
+    refresh: 1sec
+  connectivity:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/connectivity.yaml
+    refresh: 1sec
+  time_sync:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/time.yaml
+    refresh: 1sec
+  backlight:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/backlight.yaml
+    refresh: 1sec
+  bl_schedule:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/backlight_schedule.yaml
+    refresh: 1sec
+  network:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/network.yaml
+    refresh: 1sec
+  fw_update:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/addon/firmware_update_disabled.yaml
+    refresh: 1sec
+  screen_loading:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_loading.yaml
+    refresh: 1sec
+  screen_wifi:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_wifi_setup.yaml
+    refresh: 1sec
+  screen_ha:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_ha_setup.yaml
+    refresh: 1sec
+  screen_ha_act:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_ha_actions.yaml
+    refresh: 1sec
+  screen_setup:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_button_setup.yaml
+    refresh: 1sec
+  screen_clock:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_clock.yaml
+    refresh: 1sec
+  screen_art:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/screen_cover_art.yaml
+    refresh: 1sec
+  image_cards:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: common/device/image_cards.yaml
+    refresh: 1sec
+  lvgl:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: devices/guition-esp32-s3-4848s040/device/lvgl.yaml
+    refresh: 1sec
+  sensors:
+    url: ${espcontrol_repo}
+    ref: ${espcontrol_ref}
+    file: devices/guition-esp32-s3-4848s040/device/sensors.yaml
+    refresh: 1sec
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    version: 5.5.2
+    source: https://github.com/pioarduino/esp-idf/releases/download/v5.5.2/esp-idf-v5.5.2.tar.xz
+    platform_version: 55.03.37
+    sdkconfig_options:
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "30"
+      CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM: "8"
+      CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP: "y"
+      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: "y"
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+
+external_components:
+  - source:
+      type: git
+      url: ${espcontrol_component_url}
+      ref: ${espcontrol_component_ref}
+      path: components
+    components: [espcontrol, web_server_idf, artwork_image]
+    refresh: 1s
+
+espcontrol:
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  platformio_options:
+    build_flags:
+      - "-DESPCONTROL_DISABLE_TODO=1"
+      - "-DESPCONTROL_MAX_GRID_SLOTS=9"
+  on_boot:
+    - priority: 800
+      then:
+        - lambda: |-
+            auto reason = esp_reset_reason();
+            if (reason == ESP_RST_SW) {
+              esp_ota_img_states_t ota_state;
+              const esp_partition_t *running = esp_ota_get_running_partition();
+              if (running != nullptr &&
+                  esp_ota_get_state_partition(running, &ota_state) == ESP_OK &&
+                  ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+                ESP_LOGI("s3_reset", "Marking OTA image valid before hardware-reset workaround");
+                id(sensecap_d1_safe_mode).mark_successful();
+                global_preferences->sync();
+                esp_sleep_enable_timer_wakeup(100000);
+                esp_deep_sleep_start();
+                return;
+              }
+            }
+            if (reason == ESP_RST_USB || reason == ESP_RST_SW) {
+              esp_sleep_enable_timer_wakeup(100000);
+              esp_deep_sleep_start();
+            }
+    - priority: 700
+      then:
+        - logger.log:
+            tag: sensecap
+            level: INFO
+            format: "SenseCAP Indicator D1 community EspControl package booting"
+    - priority: -100
+      then:
+        - lambda: 'id(screen_rotation_ready) = true;'
+        - script.execute: apply_screen_rotation
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+ota:
+  - platform: esphome
+    on_begin:
+      then:
+        - script.execute: show_update_writing
+        - script.wait: show_update_writing
+    on_end:
+      then:
+        - globals.set:
+            id: firmware_update_complete_pending
+            value: 'true'
+        - lambda: 'global_preferences->sync();'
+        - lambda: |-
+            esp_sleep_enable_timer_wakeup(100000);
+            esp_deep_sleep_start();
+    on_error:
+      then:
+        - script.execute: show_update_failed
+  - platform: http_request
+    on_begin:
+      then:
+        - script.execute: show_update_writing
+        - script.wait: show_update_writing
+    on_end:
+      then:
+        - globals.set:
+            id: firmware_update_complete_pending
+            value: 'true'
+        - lambda: 'global_preferences->sync();'
+        - lambda: |-
+            esp_sleep_enable_timer_wakeup(100000);
+            esp_deep_sleep_start();
+    on_error:
+      then:
+        - script.execute: show_update_failed
+
+safe_mode:
+  id: sensecap_d1_safe_mode
+  boot_is_good_after: 10s
+
+api:
+  listen_backlog: 4
+  max_connections: 3
+  max_send_queue: 12
+
+logger:
+  hardware_uart: UART0
+
+wifi:
+  use_psram: true
+
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: 100Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+light:
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: Display Backlight
+    icon: mdi:lightbulb-on
+    id: display_backlight
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+    gamma_correct: 1.0
+    on_turn_on:
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return id(screen_schedule_asleep) ||
+                       (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+            then:
+              - script.execute: backlight_force_display_off
+            else:
+              - if:
+                  condition:
+                    lambda: 'return id(screensaver_display_off_active);'
+                  then:
+                    - script.execute: screensaver_wake
+    on_turn_off:
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return !id(display_asleep) &&
+                       !id(screen_schedule_asleep) &&
+                       !id(screensaver_display_off_active) &&
+                       !id(screensaver_dimmed_active);
+            then:
+              - script.execute: screen_schedule_manual_sleep
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO38
+      inverted: true
+    name: User Button
+    id: user_button
+    on_press:
+      then:
+        - script.execute: screensaver_wake
+
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO41
+    mosi_pin: GPIO48
+    miso_pin: GPIO47
+
+i2c:
+  - id: bus_a
+    sda: GPIO39
+    scl: GPIO40
+    scan: false
+
+pca9554:
+  - id: pca9554a_device
+    address: 0x20
+    pin_count: 16
+
+touchscreen:
+  - platform: ft5x06
+    id: my_touchscreen
+    update_interval: 16ms
+    transform:
+      mirror_x: true
+      mirror_y: true
+    on_release:
+      - script.execute: screensaver_wake
+
+display:
+  - platform: mipi_rgb
+    model: SEEED-INDICATOR-D1
+    id: my_display
+    setup_priority: 240
+    update_interval: never
+    auto_clear_enabled: False
+
+lvgl:
+  id: main_lvgl
+  setup_priority: 230
+  buffer_size: 12%
+  displays: my_display
+  rotation: 180
+  touchscreens:
+    - touchscreen_id: my_touchscreen
+      long_press_time: 3s
+
+script:
+  - id: apply_screen_rotation
+    then:
+      - if:
+          condition:
+            lambda: 'return id(screen_rotation_select).current_option() == "90";'
+          then:
+            - lvgl.display.set_rotation: 270
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(screen_rotation_select).current_option() == "180";'
+                then:
+                  - lvgl.display.set_rotation: 0
+                else:
+                  - if:
+                      condition:
+                        lambda: 'return id(screen_rotation_select).current_option() == "270";'
+                      then:
+                        - lvgl.display.set_rotation: 90
+                      else:
+                        - lvgl.display.set_rotation: 180
+
+select:
+  - platform: template
+    name: "${entity_screen_rotation}"
+    internal: true
+    disabled_by_default: true
+    id: screen_rotation_select
+    entity_category: config
+    icon: "mdi:screen-rotation"
+    optimistic: true
+    restore_value: true
+    initial_option: "180"
+    options:
+      - "0"
+      - "90"
+      - "180"
+      - "270"
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(screen_rotation_ready);'
+            then:
+              - script.execute: apply_screen_rotation
+
+text:
+  - platform: template
+    name: "${entity_button_config_prefix}1${entity_button_config_suffix}"
+    internal: true
+    id: button_1_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}1${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_1_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}1${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_1_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}1${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_1_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}1${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_1_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}2${entity_button_config_suffix}"
+    internal: true
+    id: button_2_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}2${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_2_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}2${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_2_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}2${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_2_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}2${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_2_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}3${entity_button_config_suffix}"
+    internal: true
+    id: button_3_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}3${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_3_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}3${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_3_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}3${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_3_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}3${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_3_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}4${entity_button_config_suffix}"
+    internal: true
+    id: button_4_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}4${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_4_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}4${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_4_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}4${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_4_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}4${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_4_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}5${entity_button_config_suffix}"
+    internal: true
+    id: button_5_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}5${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_5_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}5${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_5_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}5${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_5_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}5${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_5_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}6${entity_button_config_suffix}"
+    internal: true
+    id: button_6_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}6${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_6_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}6${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_6_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}6${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_6_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}6${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_6_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}7${entity_button_config_suffix}"
+    internal: true
+    id: button_7_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}7${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_7_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}7${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_7_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}7${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_7_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}7${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_7_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}8${entity_button_config_suffix}"
+    internal: true
+    id: button_8_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}8${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_8_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}8${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_8_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}8${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_8_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}8${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_8_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_button_config_prefix}9${entity_button_config_suffix}"
+    internal: true
+    id: button_9_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:cog"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_prefix}9${entity_subpage_config_suffix}"
+    internal: true
+    id: subpage_9_config
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_prefix}9${entity_subpage_config_ext_suffix}"
+    internal: true
+    id: subpage_9_config_ext
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_2_prefix}9${entity_subpage_config_ext_2_suffix}"
+    internal: true
+    id: subpage_9_config_ext_2
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
+
+  - platform: template
+    name: "${entity_subpage_config_ext_3_prefix}9${entity_subpage_config_ext_3_suffix}"
+    internal: true
+    id: subpage_9_config_ext_3
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+    mode: text
+    entity_category: config
+    icon: "mdi:file-tree"
+    update_interval: never
+    web_server:
+      sorting_group_id: sg_button
