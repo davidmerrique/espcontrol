@@ -1269,53 +1269,45 @@ def build_config_block(slug, cfg):
 # alongside the manifest devices rather than living in devices/manifest.json.
 GENERIC_DEVICE_SLUG = "_generic"
 
+# Real device whose web layout seeds the generic bundle. Deriving from a live
+# profile (rather than re-typing the schema) means new layout keys flow into the
+# generic base automatically and cannot silently drift out of sync.
+GENERIC_REFERENCE_SLUG = "guition-esp32-p4-jc1060p470"
 
-def generic_web_config():
-    """Neutral, schema-complete layout for the community ``_generic`` bundle.
 
-    Community device packages override these values at runtime by setting
-    window.ESPCONTROL_CFG; the bundle deep merges their config over this base so
-    a package only declares what differs (see docs/reference/community-devices.md). The
-    values below are intentionally plain landscape defaults.
+def generic_web_config(profiles):
+    """Layout for the community ``_generic`` bundle, derived from a real profile.
+
+    Starts from the reference device's web layout so every layout key (and any
+    future addition) is inherited, then swaps the device-specific dimensions for
+    neutral landscape defaults and drops capability/identity keys a community
+    package must declare for itself (``features``, ``portrait``). Community
+    packages override the remaining values at runtime via window.ESPCONTROL_CFG;
+    the bundle deep merges their config over this base (see
+    docs/reference/community-devices.md).
     """
-    return {
-        "slots": 12,
-        "cols": 4,
-        "rows": 3,
-        "largeSensorUnitOffsetPercent": -10,
-        "imageCardLimit": 4,
-        "dragMode": "swap",
-        "dragAnimation": True,
-        "screen": {"width": "100%", "aspect": "16/9"},
-        "topbar": {"height": 3.2, "padding": "0.39cqw", "fontSize": 1.95},
-        "grid": {
-            "top": 4.4,
-            "left": 0.49,
-            "right": 0.49,
-            "bottom": 0.49,
-            "gap": 0.98,
-            "fr": "1fr",
-        },
-        "btn": {
-            "radius": 0.78,
-            "padding": 1.37,
-            "iconSize": 4.69,
-            "labelSize": 1.8,
-            "labelLines": 2,
-        },
-        "emptyCell": {"radius": 0.78},
-        "sensorBadge": {"top": 1, "right": 1, "fontSize": 1.6},
-        "subpageBadge": {"bottom": 1, "right": 1, "fontSize": 2},
-    }
+    profile = profiles.get(GENERIC_REFERENCE_SLUG) or next(iter(profiles.values()))
+    cfg = web_config(profile)
+    # Device-specific capabilities/identity — a community device advertises its
+    # own rotation, relays, and portrait layout through its own package config.
+    cfg.pop("features", None)
+    cfg.pop("portrait", None)
+    # Neutral landscape dimensions; the generic base implies no particular panel.
+    cfg["slots"] = 12
+    cfg["cols"] = 4
+    cfg["rows"] = 3
+    cfg["screen"] = {"width": "100%", "aspect": "16/9"}
+    return cfg
 
 
 def build_web_devices():
     timezone_options = load_timezone_options()
+    profiles = load_device_profiles()
     devices = {
         slug: web_config(profile)
-        for slug, profile in load_device_profiles().items()
+        for slug, profile in profiles.items()
     }
-    devices[GENERIC_DEVICE_SLUG] = generic_web_config()
+    devices[GENERIC_DEVICE_SLUG] = generic_web_config(profiles)
     for cfg in devices.values():
         cfg["timezoneOptions"] = timezone_options
     return devices

@@ -82,6 +82,10 @@ web_server:
   js_url: https://cdn.jsdelivr.net/gh/<you>/<your-repo>@main/my-panel-ui.js
 ```
 
+`window.ESPCONTROL_CFG` must be a **plain object** (an object literal as above, or
+the result of `JSON.parse`). A string, array, or other value is ignored and the
+generic defaults are used unchanged.
+
 ::: warning jsDelivr caching
 jsDelivr caches `@main` aggressively (up to ~12 hours). While iterating, pin a
 commit hash or tag (`@<sha>`) and add a cache-buster query

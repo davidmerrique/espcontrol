@@ -45,11 +45,16 @@
     }
     return out;
   }
-  if (typeof window !== "undefined" && window.ESPCONTROL_CFG) {
-    CFG = mergeDeviceConfig(CFG, window.ESPCONTROL_CFG);
-  }
-  if (typeof window !== "undefined" && window.ESPCONTROL_DEVICE_ID) {
-    DEVICE_ID = String(window.ESPCONTROL_DEVICE_ID);
+  if (typeof window !== "undefined") {
+    // Require a plain object so a mistyped global (a forgotten JSON.parse, an
+    // array, a number) is ignored rather than clobbering CFG and leaving
+    // NUM_SLOTS / GRID_COLS undefined.
+    if (cfgIsPlainObject(window.ESPCONTROL_CFG)) {
+      CFG = mergeDeviceConfig(CFG, window.ESPCONTROL_CFG);
+    }
+    if (window.ESPCONTROL_DEVICE_ID) {
+      DEVICE_ID = String(window.ESPCONTROL_DEVICE_ID);
+    }
   }
 
   var NUM_SLOTS = CFG.slots;

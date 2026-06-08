@@ -7,13 +7,18 @@
 // merges that config over the baked defaults. See docs/reference/community-devices.md.
 
 const assert = require("assert");
+const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const { loadBundledWebSource } = require("./web_source");
 
-const SOURCE = path.join(__dirname, "..", "src", "webserver", "entry.js");
+const ROOT = path.join(__dirname, "..");
+const SOURCE = path.join(ROOT, "src", "webserver", "entry.js");
+const GENERIC_BUNDLE = path.join(ROOT, "docs", "public", "webserver", "_generic", "www.js");
 
-function loadResolvedConfig(overrides) {
+// Evaluate a web bundle in a minimal sandbox and return its resolved device
+// config. Any package-supplied globals must exist before the bundle evaluates.
+function evalBundle(sourceText, filename, overrides) {
   const sandbox = {
     __ESPCONTROL_TEST_HOOKS__: {},
     console: { log() {}, warn() {}, error() {} },
@@ -28,18 +33,25 @@ function loadResolvedConfig(overrides) {
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
-  // The package-supplied globals must exist before the bundle evaluates.
   if (overrides && overrides.cfg !== undefined) sandbox.ESPCONTROL_CFG = overrides.cfg;
   if (overrides && overrides.deviceId !== undefined) sandbox.ESPCONTROL_DEVICE_ID = overrides.deviceId;
   vm.createContext(sandbox);
-  vm.runInContext(loadBundledWebSource(), sandbox, { filename: SOURCE });
+  vm.runInContext(sourceText, sandbox, { filename });
   const hooks = sandbox.__ESPCONTROL_TEST_HOOKS__.config;
-  assert(hooks && typeof hooks.resolvedDeviceConfig === "function", "resolvedDeviceConfig hook is exported");
+  assert(hooks && typeof hooks.resolvedDeviceConfig === "function", `${filename}: resolvedDeviceConfig hook is exported`);
   return hooks.resolvedDeviceConfig();
 }
 
+function loadSourceConfig(overrides) {
+  return evalBundle(loadBundledWebSource(), SOURCE, overrides);
+}
+
+// ---------------------------------------------------------------------------
+// 1. Deep-merge behaviour (against the source template's baked device config)
+// ---------------------------------------------------------------------------
+
 // Baseline: with no override, the baked defaults are used unchanged.
-const baseline = loadResolvedConfig(null);
+const baseline = loadSourceConfig(null);
 assert(baseline.slots > 0, "baked config exposes a slot count");
 assert(baseline.cols > 0 && baseline.rows > 0, "baked config exposes a grid");
 assert.strictEqual(typeof baseline.deviceId, "string", "baked config exposes a device id");
@@ -49,7 +61,7 @@ const bakedBtnRadius = baseline.cfg.btn && baseline.cfg.btn.radius;
 const bakedTopbar = JSON.stringify(baseline.cfg.topbar);
 
 // Override: a community package declares only what differs.
-const resolved = loadResolvedConfig({
+const resolved = loadSourceConfig({
   deviceId: "community-test-panel",
   cfg: {
     slots: 6,
@@ -77,7 +89,46 @@ assert.strictEqual(resolved.cfg.dragMode, bakedDragMode, "unspecified dragMode f
 assert.strictEqual(JSON.stringify(resolved.cfg.topbar), bakedTopbar, "unspecified topbar block is preserved");
 
 // The baseline must be untouched by a later override (no shared mutation).
-const baselineAgain = loadResolvedConfig(null);
+const baselineAgain = loadSourceConfig(null);
 assert.strictEqual(baselineAgain.slots, baseline.slots, "override does not mutate baked defaults");
+
+// A non-plain-object global must be ignored rather than clobbering CFG.
+for (const bad of ['{"slots":1}', [1, 2, 3], 42, true]) {
+  const guarded = loadSourceConfig({ cfg: bad });
+  assert.strictEqual(guarded.slots, baseline.slots, `non-object ESPCONTROL_CFG (${typeof bad}) is ignored`);
+}
+
+// ---------------------------------------------------------------------------
+// 2. The shipped generic bundle is renderable and overridable
+// ---------------------------------------------------------------------------
+// Loads docs/public/webserver/_generic/www.js itself, so a generic config that
+// drops a key the UI reads without a fallback (e.g. grid.fr, screen.aspect) is
+// caught here rather than by a community user.
+
+assert(fs.existsSync(GENERIC_BUNDLE), `generic bundle missing: run 'python3 scripts/build.py www' (${GENERIC_BUNDLE})`);
+const genericSource = fs.readFileSync(GENERIC_BUNDLE, "utf8");
+
+const generic = evalBundle(genericSource, GENERIC_BUNDLE, null);
+assert(generic.slots > 0, "generic bundle exposes a positive slot count");
+assert(generic.cols > 0 && generic.rows > 0, "generic bundle exposes a grid");
+// Keys the UI dereferences without a fallback must be present in the base.
+assert(generic.cfg.screen && typeof generic.cfg.screen.aspect === "string", "generic screen.aspect is present");
+assert(generic.cfg.grid && generic.cfg.grid.fr != null, "generic grid.fr is present");
+assert(generic.cfg.dragMode != null, "generic dragMode is present");
+assert(Array.isArray(generic.cfg.timezoneOptions) && generic.cfg.timezoneOptions.length > 0, "generic bundle carries timezone options");
+
+// A community override applies on top of the real generic bundle, not just the
+// source template.
+const community = evalBundle(genericSource, GENERIC_BUNDLE, {
+  deviceId: "my-community-panel",
+  cfg: { slots: 8, cols: 4, rows: 2, screen: { aspect: "1280/720" } },
+});
+assert.strictEqual(community.deviceId, "my-community-panel", "generic bundle honours device id override");
+assert.strictEqual(community.slots, 8, "generic bundle honours slots override");
+assert.strictEqual(community.cols, 4, "generic bundle honours cols override");
+assert.strictEqual(community.rows, 2, "generic bundle honours rows override");
+assert.strictEqual(community.cfg.screen.aspect, "1280/720", "generic bundle honours nested screen override");
+// Layout siblings the override did not touch survive the merge.
+assert.strictEqual(community.cfg.grid.fr, generic.cfg.grid.fr, "generic grid.fr survives a partial override");
 
 console.log("Community device override checks passed.");
