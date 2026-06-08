@@ -430,5 +430,14 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.temperatureUnit = oldUnit;
       return symbol;
     },
+    resolvedDeviceConfig: function () {
+      return {
+        deviceId: DEVICE_ID,
+        slots: NUM_SLOTS,
+        cols: GRID_COLS,
+        rows: GRID_ROWS,
+        cfg: JSON.parse(JSON.stringify(CFG)),
+      };
+    },
   };
 }

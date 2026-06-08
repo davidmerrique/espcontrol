@@ -15,9 +15,90 @@
 // Custom UI: two-page layout (Screen / Settings)
 (function () {
   // __DEVICE_CONFIG_START__
-  var DEVICE_ID = "guition-esp32-p4-jc1060p470";
-  var CFG = {"slots":20,"cols":5,"rows":4,"dragMode":"swap","dragAnimation":true,"screen":{"width":"67%","aspect":"1024/600"},"topbar":{"height":3.2,"padding":"0.39cqw","fontSize":1.95},"grid":{"top":4.4,"left":0.49,"right":0.49,"bottom":0.49,"gap":0.98,"fr":"1fr"},"btn":{"radius":0.78,"padding":1.37,"iconSize":4.69,"labelSize":1.8},"emptyCell":{"radius":0.78},"sensorBadge":{"top":1,"right":1,"fontSize":1.6},"subpageBadge":{"bottom":1,"right":1,"fontSize":2}};
+  // Fallback default only — scripts/build.py replaces this block with the real
+  // neutral generic config (generic_web_config) when building the shipped
+  // bundle. Tests that load this raw template see this value.
+  var GENERIC_CFG = {"slots":20,"cols":5,"rows":4,"dragMode":"swap","dragAnimation":true,"screen":{"width":"67%","aspect":"1024/600"},"topbar":{"height":3.2,"padding":"0.39cqw","fontSize":1.95},"grid":{"top":4.4,"left":0.49,"right":0.49,"bottom":0.49,"gap":0.98,"fr":"1fr"},"btn":{"radius":0.78,"padding":1.37,"iconSize":4.69,"labelSize":1.8},"emptyCell":{"radius":0.78},"sensorBadge":{"top":1,"right":1,"fontSize":1.6},"subpageBadge":{"bottom":1,"right":1,"fontSize":2}};
   // __DEVICE_CONFIG_END__
+
+  // One generic bundle serves every device. The device supplies its own screen
+  // layout at runtime, deep merged over GENERIC_CFG, from one of (first wins):
+  //   1. window.ESPCONTROL_CFG  - explicit global (local dev, tests, custom shim)
+  //   2. this script's own ?cfg= query - base64url(JSON) the firmware puts in
+  //      web_server.js_url, alongside ?device=<slug>. See docs/reference/community-devices.md.
+  // So a package only declares what differs from the generic profile, and no
+  // per-device bundle is baked.
+  function cfgIsPlainObject(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+  function mergeDeviceConfig(base, override) {
+    if (!cfgIsPlainObject(override)) return override;
+    var out = {};
+    var key;
+    if (cfgIsPlainObject(base)) {
+      for (key in base) {
+        if (Object.prototype.hasOwnProperty.call(base, key)) out[key] = base[key];
+      }
+    }
+    for (key in override) {
+      if (!Object.prototype.hasOwnProperty.call(override, key)) continue;
+      out[key] = (cfgIsPlainObject(override[key]) && cfgIsPlainObject(out[key]))
+        ? mergeDeviceConfig(out[key], override[key])
+        : override[key];
+    }
+    return out;
+  }
+  function decodeBase64Url(value) {
+    value = String(value).replace(/-/g, "+").replace(/_/g, "/");
+    while (value.length % 4) value += "=";
+    var binary = (typeof atob === "function")
+      ? atob(value)
+      : (typeof Buffer !== "undefined" ? Buffer.from(value, "base64").toString("binary") : "");
+    try {
+      return decodeURIComponent(escape(binary));
+    } catch (e) {
+      return binary;
+    }
+  }
+  function ownScriptParams() {
+    if (typeof document === "undefined") return null;
+    var src = (document.currentScript && document.currentScript.src) || "";
+    if (!src && document.getElementsByTagName) {
+      var scripts = document.getElementsByTagName("script");
+      for (var i = scripts.length - 1; i >= 0; i--) {
+        if (scripts[i].src && /[?&]cfg=/.test(scripts[i].src)) { src = scripts[i].src; break; }
+      }
+    }
+    var qi = src.indexOf("?");
+    if (qi < 0) return null;
+    var params = {};
+    src.slice(qi + 1).split("&").forEach(function (pair) {
+      if (!pair) return;
+      var eq = pair.indexOf("=");
+      var k = eq < 0 ? pair : pair.slice(0, eq);
+      var v = eq < 0 ? "" : pair.slice(eq + 1);
+      try { params[decodeURIComponent(k)] = decodeURIComponent(v); }
+      catch (e) { params[k] = v; }
+    });
+    return params;
+  }
+  function runtimeDeviceConfig() {
+    if (typeof window !== "undefined" && window.ESPCONTROL_CFG) {
+      return { cfg: window.ESPCONTROL_CFG, id: window.ESPCONTROL_DEVICE_ID };
+    }
+    var params = ownScriptParams();
+    if (params && params.cfg) {
+      try { return { cfg: JSON.parse(decodeBase64Url(params.cfg)), id: params.device }; }
+      catch (e) {}
+    }
+    return { cfg: null, id: params && params.device };
+  }
+  var RUNTIME_DEVICE = runtimeDeviceConfig();
+  var CFG = cfgIsPlainObject(RUNTIME_DEVICE.cfg)
+    ? mergeDeviceConfig(GENERIC_CFG, RUNTIME_DEVICE.cfg)
+    : GENERIC_CFG;
+  var DEVICE_ID = RUNTIME_DEVICE.id ? String(RUNTIME_DEVICE.id) : (CFG.deviceId || "espcontrol");
+
   var NUM_SLOTS = CFG.slots;
   var TOTAL_SLOTS = NUM_SLOTS;
   var GRID_COLS = CFG.cols;

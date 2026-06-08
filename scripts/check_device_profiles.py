@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 from pathlib import Path
 
 import device_matrix
-from device_profiles import ROOT, load_device_profiles, public_device_capabilities
+from device_profiles import ROOT, load_device_profiles, public_device_capabilities, web_config, web_config_b64
 import check_public_firmware
 
 
@@ -73,15 +74,28 @@ def test_public_device_capabilities(profile_slugs: list[str]) -> None:
         assert f'slug="{capability["installSlug"]}"' in install, f"{stem}: install snippet missing slug"
 
 
+def decode_web_config_b64(value: str) -> dict:
+    padded = value + "=" * (-len(value) % 4)
+    return json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
+
+
 def test_generated_web(profiles: dict[str, dict]) -> None:
+    # One generic bundle serves every device; per-device layout is carried in the
+    # firmware's web_config_b64 substitution (web_server.js_url ?cfg=).
+    bundle = WEB_OUTPUT_DIR / "www.js"
+    assert bundle.is_file(), "generic web bundle docs/public/webserver/www.js is missing"
     for slug, profile in profiles.items():
-        path = WEB_OUTPUT_DIR / slug / "www.js"
-        assert path.is_file(), f"{slug}: generated web bundle is missing"
-        text = path.read_text(encoding="utf-8")
-        assert slug in text, f"{slug}: generated web bundle has wrong device id"
-        limit = image_card_limit(profile)
-        assert f"imageCardLimit:{limit}" in text or f'"imageCardLimit":{limit}' in text, (
-            f"{slug}: generated web bundle has wrong image card limit"
+        packages = ROOT / "devices" / slug / "packages.yaml"
+        text = packages.read_text(encoding="utf-8")
+        match = re.search(r'web_config_b64:\s*"([A-Za-z0-9_-]+)"', text)
+        assert match, f"{slug}: packages.yaml is missing the web_config_b64 substitution"
+        assert match.group(1) == web_config_b64(profile), (
+            f"{slug}: web_config_b64 substitution is stale (run scripts/generate_device_slots.py)"
+        )
+        decoded = decode_web_config_b64(match.group(1))
+        assert decoded == web_config(profile), f"{slug}: decoded web config differs from the profile"
+        assert decoded.get("imageCardLimit") == image_card_limit(profile), (
+            f"{slug}: decoded web config has the wrong image card limit"
         )
 
 

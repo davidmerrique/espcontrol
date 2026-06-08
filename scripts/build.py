@@ -1254,25 +1254,35 @@ def load_web_module_order():
     return order
 
 
-def build_config_block(slug, cfg):
+# A single generic bundle serves every device; the per-device layout is supplied
+# at runtime (web_server.js_url ?cfg= / window.ESPCONTROL_CFG) and deep merged
+# over this base. The base is seeded from a real device so every layout key (and
+# any future addition) is inherited, with device-specific dimensions/capabilities
+# replaced by neutral defaults a package overrides.
+GENERIC_REFERENCE_SLUG = "guition-esp32-p4-jc1060p470"
+
+
+def generic_web_config():
+    profiles = load_device_profiles()
+    profile = profiles.get(GENERIC_REFERENCE_SLUG) or next(iter(profiles.values()))
+    cfg = web_config(profile)
+    cfg.pop("features", None)
+    cfg.pop("portrait", None)
+    cfg["slots"] = 12
+    cfg["cols"] = 4
+    cfg["rows"] = 3
+    cfg["screen"] = {"width": "100%", "aspect": "16/9"}
+    cfg["timezoneOptions"] = load_timezone_options()
+    return cfg
+
+
+def build_config_block(cfg):
     cfg_lines = json.dumps(cfg, indent=2).splitlines()
     cfg_body = "\n".join("  " + line for line in cfg_lines[1:])
     return (
-        f'  var DEVICE_ID = "{slug}";\n'
-        f"  var CFG = {cfg_lines[0]}\n"
+        f"  var GENERIC_CFG = {cfg_lines[0]}\n"
         f"{cfg_body};\n"
     )
-
-
-def build_web_devices():
-    timezone_options = load_timezone_options()
-    devices = {
-        slug: web_config(profile)
-        for slug, profile in load_device_profiles().items()
-    }
-    for cfg in devices.values():
-        cfg["timezoneOptions"] = timezone_options
-    return devices
 
 
 def load_timezone_options():
@@ -1339,7 +1349,7 @@ def replace_modules(source_text):
     return replaced
 
 
-def replace_config(source_text, slug, cfg):
+def replace_config(source_text, cfg):
     pattern = re.compile(
         r"(^[^\n]*" + re.escape(CONFIG_START) + r"[^\n]*\n)"
         r"(.*?)"
@@ -1349,7 +1359,7 @@ def replace_config(source_text, slug, cfg):
     m = pattern.search(source_text)
     if not m:
         raise ValueError(f"Config markers not found: {CONFIG_START} / {CONFIG_END}")
-    return source_text[: m.start(2)] + build_config_block(slug, cfg) + source_text[m.start(3) :]
+    return source_text[: m.start(2)] + build_config_block(cfg) + source_text[m.start(3) :]
 
 
 def esbuild_cmd():
@@ -1424,34 +1434,28 @@ def sync_web_model(check_only=False):
 
 
 def build_www(check_only=False):
-    """Build per-device www.js from the single source template."""
-    devices = build_web_devices()
+    """Build the single generic www.js from the source template.
+
+    Device-specific layout is supplied at runtime, so one bundle serves every
+    device (and any community device).
+    """
     source_text = WWW_SOURCE.read_text()
     source_text = replace_types(source_text)
     source_text = replace_modules(source_text)
-    dirty = []
+    generated = minify_js(replace_config(source_text, generic_web_config()))
 
-    for slug, cfg in devices.items():
-        output_path = WWW_OUTPUT_DIR / slug / "www.js"
-        generated = minify_js(replace_config(source_text, slug, cfg))
+    output_path = WWW_OUTPUT_DIR / "www.js"
+    if output_path.exists() and output_path.read_text() == generated:
+        return []
 
-        if output_path.exists():
-            current = output_path.read_text()
-            if current == generated:
-                continue
-
-        dirty.append(slug)
-
-        if not check_only:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(generated)
-            print(f"  updated docs/public/webserver/{slug}/www.js")
-
-    if check_only and dirty:
-        print("www.js outputs are out of date. Run 'python scripts/build.py www' to fix:")
-        for slug in dirty:
-            print(f"  docs/public/webserver/{slug}/www.js")
-    return dirty
+    if not check_only:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(generated)
+        print("  updated docs/public/webserver/www.js")
+    else:
+        print("www.js output is out of date. Run 'python scripts/build.py www' to fix:")
+        print("  docs/public/webserver/www.js")
+    return ["www.js"]
 
 
 # ===========================================================================

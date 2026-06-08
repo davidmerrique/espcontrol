@@ -90,7 +90,7 @@ web_server:
   port: 80
   version: 3
   include_internal: true
-  js_url: https://cdn.jsdelivr.net/gh/jtenniswood/espcontrol@main/docs/public/webserver/${device_slug}/www.js?v=${firmware_version}&ui=20260608-image-label-shadow
+  js_url: https://cdn.jsdelivr.net/gh/jtenniswood/espcontrol@main/docs/public/webserver/www.js?v=${firmware_version}&ui=20260608-image-label-shadow&device=${device_slug}&cfg=${web_config_b64}
   sorting_groups:
     - id: sg_button
       name: "Button Configuration"

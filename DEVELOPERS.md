@@ -16,7 +16,7 @@ widget (card type). For end-user install/usage, see `README.md` and the
 | `components/espcontrol/*.h` | Header-only C++ for the on-device UI: LVGL grid, card faces, modals, HA bindings. `button_grid.h` is the umbrella include. |
 | `src/webserver/` | The web configurator UI (plain ES5-style JS, bundled with esbuild). `types/<card>.js` = per-card settings panel; `modules/` = shared logic (`config_codec.js`, `api.js`, `button_settings.js`, …). |
 | `devices/<slug>/` | Per-device entry points and config (see §5). |
-| `docs/public/webserver/<slug>/www.js` | **Built** configurator bundles, one per device, served to the device at runtime. |
+| `docs/public/webserver/www.js` | **Built** configurator bundle — one generic bundle for all devices; each device supplies its layout at runtime via `js_url` (`?cfg=`). |
 | `scripts/` | Build + verification scripts (`build.py` and the `check_*` validators). |
 
 The web UI and the firmware share card metadata through generated files, so the
@@ -66,14 +66,20 @@ gate that fails CI when generated files are out of date.
 ## 4. Local web configurator development
 
 The configurator page is served **by the device**, but the `www.js` bundle it
-loads is fetched at runtime from GitHub Pages:
+loads is fetched at runtime from GitHub Pages. There is **one generic bundle for
+every device** — the per-device screen layout is supplied at runtime, not baked
+into the bundle:
 
 ```
-https://jtenniswood.github.io/espcontrol/webserver/<slug>/www.js
+https://jtenniswood.github.io/espcontrol/webserver/www.js?device=<slug>&cfg=<base64url-json>
 ```
 
-(The default URL is set as `js_url` in `common/device/core_infra.yaml`.) To test
-local JS changes, point the device at a bundle you serve yourself.
+`js_url` (set in `common/device/core_infra.yaml`) carries the device's layout as
+`cfg` — `base64url(JSON)` of `web_config()`, emitted per device into
+`packages.yaml` as the `web_config_b64` substitution. The bundle reads its own
+`<script>` `src` at load and deep-merges that cfg over `GENERIC_CFG`
+(`window.ESPCONTROL_CFG` also works, and wins, for local dev). To test local JS
+changes, point the device at a bundle you serve yourself.
 
 **1. Build the bundle** after any change under `src/webserver/`:
 
@@ -81,19 +87,19 @@ local JS changes, point the device at a bundle you serve yourself.
 python3 scripts/build.py www
 ```
 
-**2. Serve it locally** from the device's bundle directory:
+**2. Serve it locally** from the bundle directory:
 
 ```bash
-python3 -m http.server 8080 --directory docs/public/webserver/<slug>
+python3 -m http.server 8080 --directory docs/public/webserver
 # bundle is now at http://<your-computer-ip>:8080/www.js
 ```
 
-**3. Override `js_url`** so the device loads your local bundle. Add to the
-device's `dev.yaml` (see §5):
+**3. Override `js_url`** so the device loads your local bundle (keep the cfg
+query so the layout still loads). Add to the device's `dev.yaml` (see §5):
 
 ```yaml
 web_server:
-  js_url: "http://<your-computer-ip>:8080/www.js"
+  js_url: "http://<your-computer-ip>:8080/www.js?device=${device_slug}&cfg=${web_config_b64}"
 ```
 
 **4. Reload the configurator** in your browser at `http://<device-ip>/`. The

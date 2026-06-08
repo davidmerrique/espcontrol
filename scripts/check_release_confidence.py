@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import check_public_firmware
@@ -38,10 +39,15 @@ def test_public_device_profiles(profile_slugs: list[str]) -> list[dict]:
 
 
 def test_web_bundles(profile_slugs: list[str]) -> None:
+    # One generic bundle serves every device; the per-device layout is carried in
+    # each device's web_config_b64 substitution (verified by check_device_profiles).
+    bundle = WEB_OUTPUT_DIR / "www.js"
+    assert bundle.is_file(), "generic setup page bundle docs/public/webserver/www.js is missing"
     for slug in profile_slugs:
-        bundle = WEB_OUTPUT_DIR / slug / "www.js"
-        assert bundle.is_file(), f"{slug}: generated setup page bundle is missing"
-        assert slug in bundle.read_text(encoding="utf-8"), f"{slug}: generated setup page bundle has wrong device id"
+        packages = ROOT / "devices" / slug / "packages.yaml"
+        assert re.search(r'web_config_b64:\s*"[A-Za-z0-9_-]+"', packages.read_text(encoding="utf-8")), (
+            f"{slug}: packages.yaml is missing the web_config_b64 substitution"
+        )
 
 
 def test_firmware_release_matrix(profile_slugs: list[str]) -> None:

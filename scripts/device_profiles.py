@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import json
 import re
@@ -564,6 +565,14 @@ def web_config(profile: dict[str, Any]) -> dict[str, Any]:
     return cfg
 
 
+def web_config_b64(profile: dict[str, Any]) -> str:
+    """base64url(JSON) of the device web config, for the firmware to put in the
+    web UI ``js_url`` (``?cfg=``). The single generic bundle deep merges it over
+    its defaults at runtime. Padding is stripped; the bundle re-adds it."""
+    payload = json.dumps(web_config(profile), separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
 def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
     layout = profile["layout"]
     firmware = profile["firmware"]
@@ -591,6 +600,7 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
         "display_mode": display.get("mode", "color"),
         "package": firmware.get("package"),
         "cover_art": firmware.get("coverArt") or {},
+        "web_config_b64": web_config_b64(profile),
     }
     if "portraitCols" in layout:
         slot["portrait_cols"] = layout["portraitCols"]

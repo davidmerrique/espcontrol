@@ -112,48 +112,32 @@ assert.strictEqual(hooks.removedLegacyStateEvent({
   state: "media_player.living_room",
 }), false, "current cover art entity events are not treated as removed legacy events");
 
-const manifest = readDeviceManifest();
-for (const slug of Object.keys(manifest.devices || {})) {
-  const webOutput = path.join(WEB_OUTPUT_DIR, slug, "www.js");
+// One generic bundle now serves every device; load it once and confirm the
+// shared runtime contract. Per-device layout (incl. screen rotation) is supplied
+// at runtime and is covered by scripts/check_runtime_device_config.js.
+{
+  const webOutput = path.join(WEB_OUTPUT_DIR, "www.js");
   const generated = fs.readFileSync(webOutput, "utf8");
   const sandbox = createWebSandbox();
   vm.createContext(sandbox);
   vm.runInContext(generated, sandbox, { filename: webOutput });
   assert(
     sandbox.__ESPCONTROL_TEST_HOOKS__.config,
-    `${slug}: generated web UI must export the same test hooks used by local checks`
+    "generic web UI must export the same test hooks used by local checks"
   );
   const generatedHooks = sandbox.__ESPCONTROL_TEST_HOOKS__.config;
   const generatedTimezones = Array.from(generatedHooks.defaultTimezoneOptions());
   assert(
     generatedTimezones.includes("UTC (GMT+0)") && generatedTimezones.includes("Europe/London (GMT+0)"),
-    `${slug}: generated web UI must include fallback timezone choices`
+    "generic web UI must include fallback timezone choices"
   );
   assert(
     Array.from(generatedHooks.timezoneOptionsWithFallback([], "Custom/Zone (GMT+0)")).includes("Custom/Zone (GMT+0)"),
-    `${slug}: timezone fallback must preserve the selected value`
+    "timezone fallback must preserve the selected value"
   );
   assert(
     sandbox.__domEvents.some((event) => event.type === "DOMContentLoaded" && typeof event.listener === "function"),
-    `${slug}: generated web UI must register DOMContentLoaded startup wiring`
-  );
-}
-
-for (const [slug, device] of Object.entries(manifest.devices || {})) {
-  if (!device.rotation || !device.rotation.enabled) continue;
-  const webOutput = path.join(WEB_OUTPUT_DIR, slug, "www.js");
-  const generated = fs.readFileSync(webOutput, "utf8");
-  const featureConfig = generated.match(/features:\{[^}]*\}/)?.[0] || "";
-  assert(
-    /features:\{[^}]*screenRotation:!0/.test(generated),
-    `${slug}: generated web UI must expose screen rotation when rotation is enabled`
-  );
-  assert.deepStrictEqual(device.rotation.options, ALL_ROTATIONS, `${slug}: normal rotation options`);
-  assert.strictEqual(device.rotation.experimentalOptions, undefined, `${slug}: no hidden rotation options`);
-  assertGeneratedRotationOptions(slug, featureConfig, "screenRotationOptions", ALL_ROTATIONS);
-  assert(
-    !featureConfig.includes("screenRotationExperimentalOptions"),
-    `${slug}: generated web UI must not hide rotation options behind the dev flag`
+    "generic web UI must register DOMContentLoaded startup wiring"
   );
 }
 

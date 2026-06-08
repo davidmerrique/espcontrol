@@ -36,6 +36,7 @@ def package_substitution_lines(device: dict) -> list[str]:
     lines = [
         f'  device_slug: "{device["slug"]}"',
         f'  firmware_manifest_slug: "{device["slug"]}"',
+        f'  web_config_b64: "{device["web_config_b64"]}"',
     ]
     if package.get("firmwareVersion"):
         lines.append(f'  firmware_version: "{package["firmwareVersion"]}"')

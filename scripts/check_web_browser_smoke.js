@@ -70,17 +70,31 @@ const BUTTON_FIXTURES = [
   "media_player.living;Media;Auto;Auto;play_pause;;media;;",
 ];
 
+function deviceConfigFor(slug) {
+  const pkg = path.join(ROOT, "devices", slug, "packages.yaml");
+  const match = fs.readFileSync(pkg, "utf8").match(/web_config_b64:\s*"([A-Za-z0-9_-]+)"/);
+  assert(match, `${slug}: packages.yaml is missing the web_config_b64 substitution`);
+  const b64 = match[1].replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+  return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+}
+
 function htmlFor(slug) {
+  // One generic bundle now serves every device; the per-device layout is what
+  // the firmware injects at runtime (here via window.ESPCONTROL_CFG, decoded
+  // from the same web_config_b64 substitution the firmware puts in js_url).
+  const cfg = deviceConfigFor(slug);
   return [
     "<!doctype html>",
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8">',
     `<title>${slug}</title>`,
+    `<script>window.ESPCONTROL_DEVICE_ID=${JSON.stringify(slug)};window.ESPCONTROL_CFG=${JSON.stringify(cfg)};</script>`,
     "</head>",
     "<body>",
     "<esp-app></esp-app>",
-    `<script src="/webserver/${slug}/www.js"></script>`,
+    `<script src="/webserver/www.js"></script>`,
     "</body>",
     "</html>",
   ].join("");
@@ -93,8 +107,8 @@ function routeContentType(url) {
 }
 
 async function installRoutes(context, slug) {
-  const scriptPath = path.join(WEB_OUTPUT_DIR, slug, "www.js");
-  assert(fs.existsSync(scriptPath), `${slug}: generated web UI does not exist at ${scriptPath}`);
+  const scriptPath = path.join(WEB_OUTPUT_DIR, "www.js");
+  assert(fs.existsSync(scriptPath), `generic web UI does not exist at ${scriptPath}`);
 
   await context.route("**/*", async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -102,7 +116,7 @@ async function installRoutes(context, slug) {
       await route.fulfill({ status: 200, contentType: "text/html", body: htmlFor(slug) });
       return;
     }
-    if (requestUrl.hostname === "espcontrol.test" && requestUrl.pathname === `/webserver/${slug}/www.js`) {
+    if (requestUrl.hostname === "espcontrol.test" && requestUrl.pathname === "/webserver/www.js") {
       await route.fulfill({
         status: 200,
         contentType: "application/javascript",
