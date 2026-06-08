@@ -150,6 +150,19 @@ esphome run dev.yaml --device <ip> --no-logs      # skip the post-upload log str
 OTA only works once the device is already running EspControl firmware and is on
 the network. First flash is over USB.
 
+### Community devices (no manifest entry)
+
+A screen that isn't in `devices/manifest.json` can still run the web
+configurator without a core PR. The bundle is device-agnostic; the only
+per-device part is the `CFG` object. `scripts/build.py` emits a device-agnostic
+`docs/public/webserver/_generic/www.js`, and `src/webserver/entry.js` deep-merges
+a runtime-supplied `window.ESPCONTROL_CFG` over the baked defaults. A community
+package points `web_server.js_url` at a small loader shim that sets that global
+and then loads the generic bundle. See
+[Community Devices](https://jtenniswood.github.io/espcontrol/reference/community-devices)
+for the shim and the `CFG` schema; the behaviour is locked down by
+`scripts/check_community_device_override.js`.
+
 ---
 
 ## 6. Logs & on-device debugging

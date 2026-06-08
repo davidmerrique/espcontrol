@@ -10,6 +10,12 @@ EspControl can only support a new device type properly when we know how Home Ass
 
 Sorry, but I can't support additional screens because of the complexity of testing the existing range of devices.
 
+::: tip Want to run it on an unsupported screen yourself?
+You don't need core support to run the configurator on another panel. See
+[Community Devices](/reference/community-devices) for a self-serve path that
+declares the screen layout in your own ESPHome package.
+:::
+
 ## Find the Device State
 
 1. Open **Home Assistant**.

@@ -1264,12 +1264,58 @@ def build_config_block(slug, cfg):
     )
 
 
+# Slug for the device-agnostic bundle community packages load and override at
+# runtime via window.ESPCONTROL_CFG. It is not a real device, so it is built
+# alongside the manifest devices rather than living in devices/manifest.json.
+GENERIC_DEVICE_SLUG = "_generic"
+
+
+def generic_web_config():
+    """Neutral, schema-complete layout for the community ``_generic`` bundle.
+
+    Community device packages override these values at runtime by setting
+    window.ESPCONTROL_CFG; the bundle deep merges their config over this base so
+    a package only declares what differs (see docs/reference/community-devices.md). The
+    values below are intentionally plain landscape defaults.
+    """
+    return {
+        "slots": 12,
+        "cols": 4,
+        "rows": 3,
+        "largeSensorUnitOffsetPercent": -10,
+        "imageCardLimit": 4,
+        "dragMode": "swap",
+        "dragAnimation": True,
+        "screen": {"width": "100%", "aspect": "16/9"},
+        "topbar": {"height": 3.2, "padding": "0.39cqw", "fontSize": 1.95},
+        "grid": {
+            "top": 4.4,
+            "left": 0.49,
+            "right": 0.49,
+            "bottom": 0.49,
+            "gap": 0.98,
+            "fr": "1fr",
+        },
+        "btn": {
+            "radius": 0.78,
+            "padding": 1.37,
+            "iconSize": 4.69,
+            "labelSize": 1.8,
+            "labelLines": 2,
+        },
+        "emptyCell": {"radius": 0.78},
+        "sensorBadge": {"top": 1, "right": 1, "fontSize": 1.6},
+        "subpageBadge": {"bottom": 1, "right": 1, "fontSize": 2},
+    }
+
+
 def build_web_devices():
     timezone_options = load_timezone_options()
     devices = {
         slug: web_config(profile)
         for slug, profile in load_device_profiles().items()
     }
+    devices[GENERIC_DEVICE_SLUG] = generic_web_config()
     for cfg in devices.values():
         cfg["timezoneOptions"] = timezone_options
     return devices

@@ -450,6 +450,7 @@ export default defineConfig({
           { text: 'Icon Reference', link: '/reference/icons' },
           { text: 'Language Support', link: '/reference/language-support' },
           { text: 'Request Device Support', link: '/reference/request-device-support' },
+          { text: 'Community Devices', link: '/reference/community-devices' },
           { text: 'FAQ', link: '/reference/faq' },
           { text: 'Roadmap', link: '/reference/roadmap' },
         ],

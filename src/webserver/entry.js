@@ -18,6 +18,40 @@
   var DEVICE_ID = "guition-esp32-p4-jc1060p470";
   var CFG = {"slots":20,"cols":5,"rows":4,"dragMode":"swap","dragAnimation":true,"screen":{"width":"67%","aspect":"1024/600"},"topbar":{"height":3.2,"padding":"0.39cqw","fontSize":1.95},"grid":{"top":4.4,"left":0.49,"right":0.49,"bottom":0.49,"gap":0.98,"fr":"1fr"},"btn":{"radius":0.78,"padding":1.37,"iconSize":4.69,"labelSize":1.8},"emptyCell":{"radius":0.78},"sensorBadge":{"top":1,"right":1,"fontSize":1.6},"subpageBadge":{"bottom":1,"right":1,"fontSize":2}};
   // __DEVICE_CONFIG_END__
+
+  // Community device support: a device package may declare its own screen
+  // layout at runtime by defining window.ESPCONTROL_CFG (and optionally
+  // window.ESPCONTROL_DEVICE_ID) before this bundle loads. The supplied values
+  // are deep merged over the baked defaults, so a package only needs to list
+  // the keys that differ from the generic profile. See
+  // docs/reference/community-devices.md for the loader shim and config schema.
+  function cfgIsPlainObject(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+  function mergeDeviceConfig(base, override) {
+    if (!cfgIsPlainObject(override)) return override;
+    var out = {};
+    var key;
+    if (cfgIsPlainObject(base)) {
+      for (key in base) {
+        if (Object.prototype.hasOwnProperty.call(base, key)) out[key] = base[key];
+      }
+    }
+    for (key in override) {
+      if (!Object.prototype.hasOwnProperty.call(override, key)) continue;
+      out[key] = (cfgIsPlainObject(override[key]) && cfgIsPlainObject(out[key]))
+        ? mergeDeviceConfig(out[key], override[key])
+        : override[key];
+    }
+    return out;
+  }
+  if (typeof window !== "undefined" && window.ESPCONTROL_CFG) {
+    CFG = mergeDeviceConfig(CFG, window.ESPCONTROL_CFG);
+  }
+  if (typeof window !== "undefined" && window.ESPCONTROL_DEVICE_ID) {
+    DEVICE_ID = String(window.ESPCONTROL_DEVICE_ID);
+  }
+
   var NUM_SLOTS = CFG.slots;
   var TOTAL_SLOTS = NUM_SLOTS;
   var GRID_COLS = CFG.cols;
