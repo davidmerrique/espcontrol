@@ -8,13 +8,14 @@
 # - Built-in EspControl firmware update checks are disabled because this device
 #   is not published in the official release manifest.
 # - Shared EspControl UI/config packages are loaded from upstream EspControl.
-# - The web UI asset is hosted from this community branch, not upstream.
+# - The official 4-inch 4848S040 web UI asset is reused because it has the same
+#   480x480 3x3 layout. Hardware below remains SenseCAP Indicator D1-specific.
 # - D1S/D1L/D1Pro optional air-quality sensor and LoRa hardware is not exposed.
 # =============================================================================
 
 substitutions:
-  device_slug: "seeed-sensecap-indicator-d1"
-  firmware_manifest_slug: "seeed-sensecap-indicator-d1"
+  device_slug: "guition-esp32-s3-4848s040"
+  firmware_manifest_slug: "guition-esp32-s3-4848s040"
   firmware_version: "community-sensecap-d1"
   espcontrol_repo: "https://github.com/jtenniswood/espcontrol"
   espcontrol_ref: "main"
@@ -227,9 +228,6 @@ external_components:
     refresh: 1s
 
 espcontrol:
-
-web_server:
-  js_url: https://cdn.jsdelivr.net/gh/davidmerrique/espcontrol@sensecap-d1-community-package/docs/public/webserver/${device_slug}/www.js?v=${firmware_version}
 
 esphome:
   name: ${name}
