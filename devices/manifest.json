@@ -599,7 +599,7 @@
           "fontSize": 3.75
         },
         "grid": {
-          "top": 9.33,
+          "top": 8.33,
           "compactTop": 0.83,
           "left": 1.04,
           "right": 1.04,
@@ -674,7 +674,7 @@
             "padding": "14px",
             "radius": "8px",
             "main_page_card_gap": "\"10\"",
-            "main_page_pad_top": "\"42\"",
+            "main_page_pad_top": "\"40\"",
             "main_page_compact_pad_top": "\"4\"",
             "clock_bar_item_gap": "\"60\"",
             "clock_font_size": "\"160\"",
