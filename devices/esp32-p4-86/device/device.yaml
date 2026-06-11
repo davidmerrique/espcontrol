@@ -84,18 +84,6 @@ esphome:
     build_src_flags:
       - "-Wno-literal-suffix"
   on_boot:
-    - priority: 800
-      then:
-        - lambda: |-
-            esp_ota_img_states_t ota_state;
-            const esp_partition_t *running = esp_ota_get_running_partition();
-            if (running != nullptr &&
-                esp_ota_get_state_partition(running, &ota_state) == ESP_OK &&
-                ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-              ESP_LOGI("p4_86", "Marking OTA image valid before startup continues");
-              id(p4_86_safe_mode).mark_successful();
-              global_preferences->sync();
-            }
     - priority: 700
       then:
         - lambda: |-
@@ -159,9 +147,6 @@ ota:
     on_error:
       then:
         - script.execute: show_update_failed
-
-safe_mode:
-  id: p4_86_safe_mode
 
 # ---------------------------------------------------------------------------
 # Shared infrastructure (API, logging, web server, restart button)
