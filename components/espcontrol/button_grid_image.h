@@ -732,6 +732,10 @@ inline void setup_image_card(BtnSlot &s) {
   if (s.sensor_container) lv_obj_add_flag(s.sensor_container, LV_OBJ_FLAG_HIDDEN);
   if (s.text_lbl) lv_obj_add_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN);
   if (s.subpage_lbl) lv_obj_add_flag(s.subpage_lbl, LV_OBJ_FLAG_HIDDEN);
+#ifdef ESPCONTROL_JC8012P4A1_DISABLE_IMAGE_CARDS_20260611
+  if (s.sensor_container) lv_obj_set_user_data(s.sensor_container, nullptr);
+  return;
+#endif
 
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 4, 0)
   lv_obj_t *img = lv_image_create(s.btn);
@@ -893,6 +897,14 @@ inline void subscribe_image_card_label(lv_obj_t *label, lv_obj_t *btn,
 
 inline void image_card_configure_label(BtnSlot &s, const ParsedCfg &p) {
   if (!s.text_lbl) return;
+#ifdef ESPCONTROL_JC8012P4A1_IMAGE_CARD_LABEL_BOOTFIX_20260611
+  (void) p;
+  // Reusing the base card label as an image overlay can trip LVGL's internal
+  // dot-truncation state after restoring old layouts. Keep image cards bootable
+  // on the 10-inch P4 while the overlay path is made safe.
+  image_card_delete_label_shadow(s.text_lbl, s.btn);
+  lv_obj_add_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN);
+#else
   if (!image_card_label_enabled(p)) {
     image_card_delete_label_shadow(s.text_lbl, s.btn);
     lv_obj_add_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -920,6 +932,7 @@ inline void image_card_configure_label(BtnSlot &s, const ParsedCfg &p) {
   if (p.label.empty() && !p.entity.empty()) {
     subscribe_image_card_label(s.text_lbl, s.btn, p.entity);
   }
+#endif
 }
 
 inline void image_card_configure_icon(BtnSlot &s, const ParsedCfg &p) {
@@ -1512,6 +1525,12 @@ inline void image_card_refresh_due() {
 inline bool bind_image_card(BtnSlot &s, const ParsedCfg &p, const GridConfig &cfg,
                             bool bind_click_handler = false) {
   if (p.type != "image") return false;
+#ifdef ESPCONTROL_JC8012P4A1_DISABLE_IMAGE_CARDS_20260611
+  (void) s;
+  (void) cfg;
+  (void) bind_click_handler;
+  return true;
+#endif
   lv_obj_t *widget = s.sensor_container
     ? static_cast<lv_obj_t *>(lv_obj_get_user_data(s.sensor_container))
     : nullptr;
