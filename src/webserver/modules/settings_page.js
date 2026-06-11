@@ -640,6 +640,7 @@ function buildSettingsPage(parent) {
     coverArtDelaySelect.className = "sp-select";
     coverArtDelaySelect.id = "sp-set-ss-cover-art-delay";
     [
+      { label: "Immediately", value: 0 },
       { label: "5 seconds", value: 5 },
       { label: "10 seconds", value: 10 },
       { label: "30 seconds", value: 30 },
@@ -1050,11 +1051,12 @@ function syncCoverArtScreensaverUi() {
     els.setCoverArtBadge.className = "sp-card-badge" + (state.coverArtScreensaverOn ? "" : " sp-hidden");
   }
   if (els.setCoverArtDelay) {
-    if (state.coverArtDelay < 5) {
-      state.coverArtDelay = 10;
-      postNumber(entityName("screen_saver_cover_art_delay"), state.coverArtDelay);
-    }
-    setSelectValue(els.setCoverArtDelay, state.coverArtDelay, formatDuration(state.coverArtDelay));
+    var coverArtDelay = Math.max(0, parseFloat(state.coverArtDelay) || 0);
+    state.coverArtDelay = coverArtDelay;
+    setSelectValue(
+      els.setCoverArtDelay,
+      coverArtDelay,
+      coverArtDelay > 0 ? formatDuration(coverArtDelay) : "Immediately");
   }
   if (els.setCoverArtTrackOverlayDuration) {
     var value = state.coverArtTrackOverlayDuration;

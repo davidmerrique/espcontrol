@@ -16,6 +16,7 @@ CONTRACT_HEADER = ROOT / "components" / "espcontrol" / "button_grid_contract_gen
 CARD_RUNTIME_HEADER = ROOT / "components" / "espcontrol" / "button_grid_card_runtime.h"
 BACKLIGHT_HEADER = ROOT / "components" / "espcontrol" / "backlight.h"
 LAYOUT_HEADER = ROOT / "components" / "espcontrol" / "button_grid_layout.h"
+DEVICES_DIR = ROOT / "devices"
 
 
 CPP_SOURCE = r'''
@@ -45,6 +46,7 @@ class StringRef {
 
 struct lv_obj_t {};
 struct lv_disp_t {};
+struct lv_font_t {};
 using lv_coord_t = int;
 using lv_style_selector_t = int;
 using lv_color_t = int;
@@ -58,6 +60,8 @@ constexpr int LV_STATE_PRESSED = 2;
 constexpr int LV_STATE_DEFAULT = 0;
 constexpr int LV_STATE_DISABLED = 4;
 constexpr int LV_LABEL_LONG_WRAP = 0;
+constexpr int LV_LABEL_LONG_CLIP = 1;
+constexpr int LV_TEXT_ALIGN_CENTER = 1;
 constexpr int LV_ALIGN_TOP_LEFT = 0;
 constexpr int LV_ALIGN_TOP_MID = 1;
 constexpr int LV_ALIGN_TOP_RIGHT = 2;
@@ -79,6 +83,7 @@ inline void lv_obj_set_style_bg_color(lv_obj_t *, int, lv_style_selector_t) {}
 inline void lv_obj_set_style_bg_grad_color(lv_obj_t *, lv_color_t, lv_style_selector_t) {}
 inline void lv_obj_set_style_bg_grad_dir(lv_obj_t *, int, lv_style_selector_t) {}
 inline void lv_obj_set_style_text_color(lv_obj_t *, lv_color_t, lv_style_selector_t) {}
+inline void lv_obj_set_style_text_align(lv_obj_t *, int, lv_style_selector_t) {}
 inline lv_color_t lv_obj_get_style_text_color(lv_obj_t *, lv_style_selector_t) { return 0; }
 inline void lv_obj_set_style_opa(lv_obj_t *, int, int) {}
 inline void lv_obj_set_style_text_opa(lv_obj_t *, int, int) {}
@@ -171,10 +176,10 @@ int main() {
     temperature_labels,
     6,
     &display_time,
-    &network_status_button,
-    &weather_icon_container,
-    true, true, true, true, true,
-    12, 17, 20, 10, 80);
+	    &network_status_button,
+	    &weather_icon_container,
+	    true, true, true, true, true,
+	    1024, 12, 17, 20, 10, 80, 10);
   assert(lv_obj_move_background_calls == 9);
   set_clock_bar_temperature_value_count(0);
 
@@ -466,7 +471,24 @@ def pure_config_header() -> str:
     return text[:index]
 
 
+def check_clock_bar_visual_gaps() -> None:
+    expected = {
+        "esp32-p4-86": '"12"',
+        "guition-esp32-p4-jc1060p470": '"10"',
+        "guition-esp32-p4-jc4880p443": '"12"',
+        "guition-esp32-p4-jc8012p4a1": '"10"',
+        "guition-esp32-s3-4848s040": '"8"',
+    }
+    for device, value in expected.items():
+        packages = DEVICES_DIR / device / "packages.yaml"
+        text = packages.read_text(encoding="utf-8")
+        needle = f"clock_bar_visual_gap: {value}"
+        if needle not in text:
+            raise RuntimeError(f"{packages} must define {needle}")
+
+
 def main() -> int:
+    check_clock_bar_visual_gaps()
     cxx = compiler()
     if not cxx:
         print("::error::No C++ compiler found for firmware parser checks", file=sys.stderr)

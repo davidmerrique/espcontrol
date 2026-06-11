@@ -712,30 +712,20 @@ inline bool clock_bar_item_is_temperature(int item) {
          item < CLOCK_BAR_ITEM_TEMPERATURE + CLOCK_BAR_TEMPERATURE_SLOT_COUNT;
 }
 
-inline int clock_bar_row_gap(int item_gap) {
-  int gap = item_gap / 8;
-  if (gap < 8) gap = 8;
-  if (gap > 14) gap = 14;
-  return gap;
-}
-
-inline int clock_bar_item_width(int item, int item_gap) {
+inline int clock_bar_item_text_box_width(int item, int item_gap) {
   if (clock_bar_item_is_temperature(item)) {
-    int width = item_gap - 40;
-    if (width < 36) width = 36;
-    if (width > 56) width = 56;
+    int width = item_gap - 8;
+    if (width < 56) width = 56;
+    if (width > 88) width = 88;
     return width;
   }
   if (item == CLOCK_BAR_ITEM_TIME) {
-    int width = item_gap - 18;
-    if (width < 54) width = 54;
-    if (width > 78) width = 78;
+    int width = item_gap;
+    if (width < 62) width = 62;
+    if (width > 96) width = 96;
     return width;
   }
-  int width = item_gap - 54;
-  if (width < 28) width = 28;
-  if (width > 40) width = 40;
-  return width;
+  return 0;
 }
 
 inline int clock_bar_item_at_order(const ClockBarParsedLayout &layout,
@@ -747,92 +737,140 @@ inline int clock_bar_item_at_order(const ClockBarParsedLayout &layout,
   return -1;
 }
 
-inline int clock_bar_packed_offset_before(const ClockBarParsedLayout &layout,
-                                          int section,
-                                          int order,
-                                          int item_gap) {
-  int x = 0;
-  int gap = clock_bar_row_gap(item_gap);
-  for (int i = 0; i < order; i++) {
-    int item = clock_bar_item_at_order(layout, section, i);
-    if (item < 0) continue;
-    if (x > 0) x += gap;
-    x += clock_bar_item_width(item, item_gap);
-  }
-  return x > 0 ? x + gap : 0;
-}
-
-inline int clock_bar_packed_offset_after(const ClockBarParsedLayout &layout,
-                                         int section,
-                                         int order,
-                                         int item_gap) {
-  int x = 0;
-  int gap = clock_bar_row_gap(item_gap);
-  for (int i = layout.count[section] - 1; i > order; i--) {
-    int item = clock_bar_item_at_order(layout, section, i);
-    if (item < 0) continue;
-    if (x > 0) x += gap;
-    x += clock_bar_item_width(item, item_gap);
-  }
-  return x > 0 ? x + gap : 0;
-}
-
-inline int clock_bar_section_packed_width(const ClockBarParsedLayout &layout,
-                                          int section,
-                                          int item_gap) {
+struct ClockBarLayoutBox {
+  lv_obj_t *obj = nullptr;
+  int item = -1;
+  int section = -1;
+  int order = 0;
   int width = 0;
-  int gap = clock_bar_row_gap(item_gap);
-  for (int i = 0; i < layout.count[section]; i++) {
-    int item = clock_bar_item_at_order(layout, section, i);
-    if (item < 0) continue;
-    if (width > 0) width += gap;
-    width += clock_bar_item_width(item, item_gap);
-  }
+  int y = 0;
+};
+
+inline int clock_bar_visual_gap_px(int gap) {
+  if (gap < 0) return 0;
+  if (gap > 32) return 32;
+  return gap;
+}
+
+inline int clock_bar_icon_fallback_width(int item_gap) {
+  int width = item_gap / 2;
+  if (width < 38) width = 38;
+  if (width > 48) width = 48;
   return width;
 }
 
-inline void align_clock_bar_layout_item(lv_obj_t *obj,
-                                        const ClockBarParsedLayout &layout,
-                                        int item,
-                                        int left_x,
-                                        int y,
-                                        int right_x,
-                                        int item_gap) {
-  if (!obj) return;
+inline int clock_bar_measure_item_width(lv_obj_t *obj, int item, int item_gap) {
+  if (!obj) return 0;
+  int text_width = clock_bar_item_text_box_width(item, item_gap);
+  if (text_width > 0) {
+    lv_obj_set_width(obj, text_width);
+    lv_label_set_long_mode(obj, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    return text_width;
+  }
+
+  lv_obj_update_layout(obj);
+  int width = lv_obj_get_width(obj);
+  if (width <= 0) width = clock_bar_icon_fallback_width(item_gap);
+  return width;
+}
+
+inline void clock_bar_add_layout_box(ClockBarLayoutBox *boxes,
+                                     int &box_count,
+                                     const ClockBarParsedLayout &layout,
+                                     lv_obj_t *obj,
+                                     int item,
+                                     int y,
+                                     int item_gap) {
+  if (!obj || !boxes || box_count >= CLOCK_BAR_ITEM_COUNT) return;
   if (item < 0 || item >= CLOCK_BAR_ITEM_COUNT) return;
   int section = layout.section[item];
   if (section < 0 || section >= CLOCK_BAR_SECTION_COUNT) return;
 
+  ClockBarLayoutBox &box = boxes[box_count++];
+  box.obj = obj;
+  box.item = item;
+  box.section = section;
+  box.order = layout.order[item];
+  box.width = clock_bar_measure_item_width(obj, item, item_gap);
+  box.y = y;
+}
+
+inline ClockBarLayoutBox *clock_bar_box_at_order(ClockBarLayoutBox *boxes,
+                                                 int box_count,
+                                                 int section,
+                                                 int order) {
+  for (int i = 0; i < box_count; i++) {
+    if (boxes[i].section == section && boxes[i].order == order) return &boxes[i];
+  }
+  return nullptr;
+}
+
+inline int clock_bar_section_box_count(ClockBarLayoutBox *boxes,
+                                       int box_count,
+                                       int section) {
+  int count = 0;
+  for (int i = 0; i < box_count; i++) {
+    if (boxes[i].section == section) count++;
+  }
+  return count;
+}
+
+inline int clock_bar_section_width(ClockBarLayoutBox *boxes,
+                                   int box_count,
+                                   int section,
+                                   int visual_gap) {
+  int width = 0;
+  int count = 0;
+  for (int order = 0; order < CLOCK_BAR_ITEM_COUNT; order++) {
+    ClockBarLayoutBox *box = clock_bar_box_at_order(boxes, box_count, section, order);
+    if (!box) continue;
+    if (count > 0) width += visual_gap;
+    width += box->width;
+    count++;
+  }
+  return width;
+}
+
+inline int clock_bar_section_start_x(ClockBarLayoutBox *boxes,
+                                     int box_count,
+                                     int section,
+                                     int screen_width,
+                                     int left_x,
+                                     int right_x,
+                                     int visual_gap) {
+  int total_width = clock_bar_section_width(boxes, box_count, section, visual_gap);
   if (section == CLOCK_BAR_SECTION_LEFT) {
-    int x = left_x + clock_bar_packed_offset_before(
-                         layout, section, layout.order[item], item_gap);
-    lv_obj_align(obj, LV_ALIGN_TOP_LEFT, x, y);
-    lv_obj_move_background(obj);
-    return;
+    return left_x;
   }
   if (section == CLOCK_BAR_SECTION_RIGHT) {
-    int x = -(right_x + clock_bar_packed_offset_after(
-                            layout, section, layout.order[item], item_gap));
-    lv_obj_align(obj, LV_ALIGN_TOP_RIGHT, x, y);
-    lv_obj_move_background(obj);
-    return;
+    return screen_width - right_x - total_width;
   }
   if (section == CLOCK_BAR_SECTION_MIDDLE) {
-    int total_width = clock_bar_section_packed_width(layout, section, item_gap);
-    int before = clock_bar_packed_offset_before(layout, section, layout.order[item], item_gap);
-    int width = clock_bar_item_width(item, item_gap);
-    int x = before + width / 2 - total_width / 2;
-    lv_obj_align(obj, LV_ALIGN_TOP_MID, x, y);
-    lv_obj_move_background(obj);
-    return;
+    return (screen_width - total_width) / 2;
   }
+  return left_x;
+}
 
-  align_clock_bar_widget(obj,
-                         section,
-                         layout.order[item],
-                         layout.count[section],
-                         left_x, y, right_x, item_gap);
-  lv_obj_move_background(obj);
+inline void align_clock_bar_layout_section(ClockBarLayoutBox *boxes,
+                                           int box_count,
+                                           int section,
+                                           int screen_width,
+                                           int left_x,
+                                           int right_x,
+                                           int visual_gap) {
+  int x = clock_bar_section_start_x(
+      boxes, box_count, section, screen_width, left_x, right_x, visual_gap);
+  int placed = 0;
+  int expected = clock_bar_section_box_count(boxes, box_count, section);
+  for (int order = 0; placed < expected && order < CLOCK_BAR_ITEM_COUNT; order++) {
+    ClockBarLayoutBox *box = clock_bar_box_at_order(boxes, box_count, section, order);
+    if (!box || !box->obj) continue;
+    lv_obj_align(box->obj, LV_ALIGN_TOP_LEFT, x, box->y);
+    lv_obj_move_background(box->obj);
+    x += box->width + visual_gap;
+    placed++;
+  }
 }
 
 inline bool clock_bar_layout_item_visible(int item, size_t temperature_count,
@@ -900,9 +938,11 @@ inline void apply_clock_bar_layout(const std::string &layout_text,
                                    bool weather_visible,
                                    bool indoor_temperature_visible,
                                    bool outdoor_temperature_visible,
+                                   int screen_width,
                                    int left_x, int label_y,
                                    int right_x, int network_y,
-                                   int item_gap) {
+                                   int item_gap,
+                                   int visual_gap) {
   ClockBarParsedLayout parsed_layout = parse_clock_bar_layout(layout_text);
   ClockBarParsedLayout layout = compact_clock_bar_layout(
       parsed_layout,
@@ -911,25 +951,27 @@ inline void apply_clock_bar_layout(const std::string &layout_text,
       time_visible,
       network_visible,
       weather_visible);
+  ClockBarLayoutBox boxes[CLOCK_BAR_ITEM_COUNT];
+  int box_count = 0;
   for (size_t i = 0; i < temperature_label_count && i < CLOCK_BAR_TEMPERATURE_SLOT_COUNT; i++) {
     int item = CLOCK_BAR_ITEM_TEMPERATURE + (int) i;
-    align_clock_bar_layout_item(temperature_labels[i],
-                                layout,
-                                item,
-                                left_x, label_y, right_x, item_gap);
+    clock_bar_add_layout_box(boxes, box_count, layout,
+                             temperature_labels[i], item, label_y, item_gap);
   }
-  align_clock_bar_layout_item(display_time,
-                              layout,
-                              CLOCK_BAR_ITEM_TIME,
-                              left_x, label_y, right_x, item_gap);
-  align_clock_bar_layout_item(network_status_button,
-                              layout,
-                              CLOCK_BAR_ITEM_NETWORK,
-                              left_x, network_y, right_x, item_gap);
-  align_clock_bar_layout_item(weather_icon_container,
-                              layout,
-                              CLOCK_BAR_ITEM_WEATHER,
-                              left_x, network_y, right_x, item_gap);
+  clock_bar_add_layout_box(boxes, box_count, layout,
+                           display_time, CLOCK_BAR_ITEM_TIME, label_y, item_gap);
+  clock_bar_add_layout_box(boxes, box_count, layout,
+                           network_status_button, CLOCK_BAR_ITEM_NETWORK, network_y, item_gap);
+  clock_bar_add_layout_box(boxes, box_count, layout,
+                           weather_icon_container, CLOCK_BAR_ITEM_WEATHER, network_y, item_gap);
+
+  int gap = clock_bar_visual_gap_px(visual_gap);
+  align_clock_bar_layout_section(boxes, box_count, CLOCK_BAR_SECTION_LEFT,
+                                 screen_width, left_x, right_x, gap);
+  align_clock_bar_layout_section(boxes, box_count, CLOCK_BAR_SECTION_MIDDLE,
+                                 screen_width, left_x, right_x, gap);
+  align_clock_bar_layout_section(boxes, box_count, CLOCK_BAR_SECTION_RIGHT,
+                                 screen_width, left_x, right_x, gap);
 }
 
 // ── Screensaver layout helpers ──────────────────────────────────────
