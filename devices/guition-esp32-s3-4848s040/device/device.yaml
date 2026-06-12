@@ -42,7 +42,7 @@ external_components:
       url: ${espcontrol_component_url}
       ref: ${espcontrol_component_ref}
       path: components
-    components: [espcontrol, web_server_idf, artwork_image]
+    components: [espcontrol, web_server_idf, artwork_image, mipi_rgb]
     refresh: 1s
 
 espcontrol:
@@ -118,6 +118,7 @@ esphome:
       then:
         - lambda: 'id(screen_rotation_ready) = true;'
         - script.execute: apply_screen_rotation
+        - script.execute: clock_bar_apply
 
 # ---------------------------------------------------------------------------
 # PSRAM (video frame buffer memory)
@@ -203,7 +204,9 @@ output:
   - platform: ledc
     pin: GPIO38
     id: gpio_backlight_pwm
-    frequency: 150Hz
+    # The 4848S040 backlight driver needs a low PWM rate; high rates make
+    # brightness levels below roughly 85% appear off on some boards.
+    frequency: 100Hz
     min_power: 0.01
     zero_means_zero: true
 
@@ -221,8 +224,13 @@ light:
         - if:
             condition:
               lambda: |-
-                return id(screen_schedule_asleep) ||
-                       (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+                auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
+                return (id(screen_schedule_asleep) &&
+                        !screen_schedule_clock_mode(id(schedule_mode).current_option())) ||
+                       screen_schedule_waiting_for_time(
+                         id(screen_schedule_trigger).state,
+                         id(schedule_enabled).state,
+                         now.is_valid());
             then:
               - script.execute: backlight_force_display_off
             else:
@@ -312,6 +320,18 @@ button:
       then:
         - script.execute: relay_3_push
 
+  - platform: template
+    name: Backlight Sweep Test
+    internal: true
+    disabled_by_default: true
+    entity_category: diagnostic
+    icon: mdi:brightness-percent
+    web_server:
+      sorting_group_id: sg_brightness
+    on_press:
+      then:
+        - script.execute: s3_backlight_sweep_test
+
 # ---------------------------------------------------------------------------
 # SPI bus (used by MIPI RGB driver for ST7701S init sequence)
 # ---------------------------------------------------------------------------
@@ -350,6 +370,9 @@ display:
     # Start WiFi before the RGB panel allocates its frame buffers; otherwise the
     # WiFi driver can fail to claim enough internal RX buffers on fresh boots.
     setup_priority: 240
+    # Keep the S3 RGB clock at the weekend release's stable value. Faster clocks
+    # can starve the PSRAM-backed frame buffer when the web server adds WiFi,
+    # flash, and memory traffic, causing visible screen shifts and pixel breakup.
     pclk_frequency: 8MHz
     update_interval: never
     auto_clear_enabled: False
@@ -396,6 +419,36 @@ script:
       - delay: 200ms
       - switch.turn_off: relay_3
 
+  - id: s3_backlight_sweep_test
+    mode: restart
+    then:
+      - script.execute: screensaver_wake
+      - script.wait: screensaver_wake
+      - light.turn_on:
+          id: display_backlight
+          brightness: 100%
+          transition_length: 0s
+      - delay: 3s
+      - light.turn_on:
+          id: display_backlight
+          brightness: 60%
+          transition_length: 0s
+      - delay: 3s
+      - light.turn_on:
+          id: display_backlight
+          brightness: 30%
+          transition_length: 0s
+      - delay: 3s
+      - light.turn_on:
+          id: display_backlight
+          brightness: 10%
+          transition_length: 0s
+      - delay: 3s
+      - light.turn_on:
+          id: display_backlight
+          brightness: 100%
+          transition_length: 0s
+
   - id: apply_screen_rotation
     then:
       - if:
@@ -441,3 +494,4 @@ select:
               lambda: 'return id(screen_rotation_ready);'
             then:
               - script.execute: apply_screen_rotation
+              - script.execute: clock_bar_apply

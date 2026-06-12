@@ -9,12 +9,6 @@ globals:
   - id: cover_art_media_playing
     type: bool
     initial_value: 'false'
-  - id: cover_art_media_subpage_opened
-    type: bool
-    initial_value: 'false'
-  - id: cover_art_media_subpage_pending_on_hide
-    type: bool
-    initial_value: 'false'
   - id: cover_art_url
     type: std::string
     initial_value: '""'
@@ -105,6 +99,9 @@ globals:
   - id: cover_art_accent_b
     type: int
     initial_value: '0'
+  - id: cover_art_manual_wake_ms
+    type: uint32_t
+    initial_value: '0'
 
 esphome:
   on_boot:
@@ -128,6 +125,7 @@ api:
         id(cover_art_api_wait_logged) = false;
         ESP_LOGI("cover_art", "Using Home Assistant artwork base URL: %s",
                  id(cover_art_home_assistant_base_url).c_str());
+        refresh_image_cards();
     - delay: 2s
     - script.execute: cover_art_resubscribe
 
@@ -435,14 +433,14 @@ script:
                          img->get_width(), img->get_height(), img->get_content_width(), img->get_content_height(),
                          img->get_content_offset_x(), img->get_content_offset_y());
             - script.execute: cover_art_apply_responsive_layout
+            - script.execute: cover_art_extract_accent_color
+            - script.wait: cover_art_extract_accent_color
             - lvgl.widget.update:
                 id: cover_art_image_widget
                 opa: 100%
             - lvgl.image.update:
                 id: cover_art_image_widget
                 src: cover_art_downloaded_image
-            - script.execute: cover_art_extract_accent_color
-            - script.wait: cover_art_extract_accent_color
             - lvgl.widget.show: cover_art_image_widget
             - if:
                 condition:
@@ -450,9 +448,10 @@ script:
                 then:
                   - script.execute: cover_art_show_track_overlay
           else:
-            - globals.set:
-                id: cover_art_image_available
-                value: 'false'
+            - lambda: |-
+                if (id(cover_art_loaded_url).empty()) {
+                  id(cover_art_image_available) = false;
+                }
 
   - id: cover_art_extract_accent_color
     mode: queued
@@ -587,7 +586,13 @@ script:
                       id(cover_art_fallback_url).clear();
                       id(cover_art_retry_url) = id(cover_art_url);
                       id(cover_art_retry_count) = 0;
-                  - script.execute: cover_art_show_black_screen
+                  - if:
+                      condition:
+                        lambda: |-
+                          return !id(cover_art_image_available) &&
+                                 id(cover_art_loaded_url).empty();
+                      then:
+                        - script.execute: cover_art_show_black_screen
                   - script.execute: cover_art_deferred_download
                 else:
                   - lambda: |-
@@ -598,7 +603,13 @@ script:
                         ESP_LOGW("cover_art", "Artwork download failed, retries exhausted (url %u chars)",
                                  (unsigned) id(cover_art_url).size());
                       }
-                  - script.execute: cover_art_show_black_screen
+                  - if:
+                      condition:
+                        lambda: |-
+                          return !id(cover_art_image_available) &&
+                                 id(cover_art_loaded_url).empty();
+                      then:
+                        - script.execute: cover_art_show_black_screen
                   - script.execute: cover_art_retry_download
 
   - id: cover_art_disable
@@ -613,12 +624,6 @@ script:
       - script.stop: cover_art_retry_download
       - globals.set:
           id: cover_art_media_playing
-          value: 'false'
-      - globals.set:
-          id: cover_art_media_subpage_opened
-          value: 'false'
-      - globals.set:
-          id: cover_art_media_subpage_pending_on_hide
           value: 'false'
       - globals.set:
           id: cover_art_image_available
@@ -663,7 +668,10 @@ script:
           then:
             - if:
                 condition:
-                  lambda: 'return id(cover_art_screensaver_active) && !id(cover_art_image_available);'
+                  lambda: |-
+                    return id(cover_art_screensaver_active) &&
+                           !id(cover_art_image_available) &&
+                           id(cover_art_loaded_url).empty();
                 then:
                   - script.execute: cover_art_show_black_screen
             - lambda: |-
@@ -769,7 +777,9 @@ script:
           id(cover_art_url) = chosen;
           id(cover_art_retry_url).clear();
           id(cover_art_retry_count) = 0;
-          id(cover_art_image_available) = false;
+          if (id(cover_art_loaded_url).empty()) {
+            id(cover_art_image_available) = false;
+          }
           if (id(cover_art_screensaver_active)) {
             id(cover_art_deferred_download).execute();
             id(cover_art_show_track_overlay).execute();
@@ -790,11 +800,21 @@ script:
           then:
             - if:
                 condition:
-                  lambda: 'return id(cover_art_screensaver_active) && id(cover_art_image_available);'
+                  lambda: |-
+                    return id(cover_art_screensaver_active) &&
+                           id(cover_art_image_available) &&
+                           !${cover_art_live_image_updates};
                 then:
-                  - script.execute: cover_art_deferred_download
+                  - lambda: |-
+                      ESP_LOGI("cover_art", "Keeping current artwork visible; live image updates disabled for this display");
                 else:
-                  - script.execute: cover_art_download
+                  - if:
+                      condition:
+                        lambda: 'return id(cover_art_screensaver_active) && id(cover_art_image_available);'
+                      then:
+                        - script.execute: cover_art_deferred_download
+                      else:
+                        - script.execute: cover_art_download
           else:
             - if:
                 condition:
@@ -932,9 +952,18 @@ script:
     mode: restart
     then:
       - script.stop: cover_art_delay_timer
+      - script.stop: backlight_fade_current_ui_to_black
+      - script.stop: backlight_sleep_display_off
+      - script.stop: screensaver_sleep_timer
+      - script.stop: screensaver_sleep_sensor
+      - script.stop: screensaver_sleep_display_off
+      - script.stop: show_dimmed_view
+      - script.stop: screensaver_dimmed_refresh_brightness
+      - script.stop: show_clock_view
+      - script.stop: clock_screensaver_refresh_brightness
       - script.execute: cover_art_sync_track_text
       - lambda: |-
-          if (id(cover_art_url).empty() || id(cover_art_url) != id(cover_art_loaded_url)) {
+          if (id(cover_art_loaded_url).empty()) {
             id(cover_art_image_available) = false;
           }
       - globals.set:
@@ -944,19 +973,19 @@ script:
           id: cover_art_screensaver_active
           value: 'true'
       - globals.set:
-          id: cover_art_media_subpage_pending_on_hide
-          value: 'true'
-      - globals.set:
           id: screensaver_display_off_active
           value: 'false'
       - globals.set:
           id: screensaver_dimmed_active
           value: 'false'
       - lvgl.resume:
+      - lambda: 'navigation_return_home(id(main_page)->obj);'
       - script.execute: hide_clock_view
       - script.execute: clock_bar_apply
       - lvgl.widget.hide: dim_screensaver_touch_guard
       - lvgl.widget.show: cover_art_screensaver
+      - lambda: 'lv_obj_move_foreground(id(cover_art_screensaver));'
+      - script.execute: backlight_apply_brightness
       - script.execute: cover_art_apply_responsive_layout
       - script.execute: cover_art_show_track_overlay
       - script.execute: cover_art_use_cached_artwork
@@ -996,26 +1025,15 @@ script:
       - lvgl.widget.hide: cover_art_screensaver
       - lvgl.widget.hide: cover_art_accent_overlay
       - lvgl.widget.hide: cover_art_track_panel
-      - script.execute: clock_bar_apply
       - if:
           condition:
-            lambda: |-
-              return id(cover_art_media_subpage_pending_on_hide) &&
-                     id(cover_art_media_playing) &&
-                     id(cover_art_open_media_subpage_enabled).state &&
-                     !id(cover_art_media_subpage_opened);
+            lambda: 'return std::string("${device_slug}") == "guition-esp32-s3-4848s040";'
           then:
+            - artwork_image.release: cover_art_downloaded_image
             - lambda: |-
-                std::string target = id(cover_art_media_subpage_target).state;
-                bool opened = target.empty()
-                  ? navigation_open_first_kind("media", id(main_page)->obj)
-                  : espcontrol_navigate(target, id(main_page)->obj);
-                if (opened) {
-                  id(cover_art_media_subpage_opened) = true;
-                }
-      - globals.set:
-          id: cover_art_media_subpage_pending_on_hide
-          value: 'false'
+                id(cover_art_image_available) = false;
+                id(cover_art_loaded_url).clear();
+      - script.execute: clock_bar_apply
 
   - id: cover_art_delay_timer
     mode: restart
@@ -1023,7 +1041,16 @@ script:
       - delay: !lambda |-
           float seconds = id(cover_art_delay).state;
           if (std::isnan(seconds) || seconds < 0.0f) seconds = 10.0f;
-          return (uint32_t)(seconds * 1000.0f);
+          uint32_t delay_ms = (uint32_t)(seconds * 1000.0f);
+          const uint32_t manual_wake_holdoff_ms = 60000;
+          if (id(cover_art_manual_wake_ms) != 0) {
+            uint32_t elapsed = (uint32_t)(millis() - id(cover_art_manual_wake_ms));
+            if (elapsed < manual_wake_holdoff_ms) {
+              uint32_t remaining = manual_wake_holdoff_ms - elapsed;
+              if (remaining > delay_ms) delay_ms = remaining;
+            }
+          }
+          return delay_ms;
       - if:
           condition:
             lambda: |-
@@ -1100,8 +1127,7 @@ script:
             std::string path = string_ref_limited(picture, COVER_ART_URL_MAX_LEN);
             if (path.empty() || path == "unknown" || path == "unavailable") return "";
             if (path.rfind("http://", 0) == 0 || path.rfind("https://", 0) == 0) return path;
-            std::string base = id(cover_art_home_assistant_url).state;
-            if (base.empty()) base = id(cover_art_home_assistant_base_url);
+            std::string base = id(cover_art_home_assistant_base_url);
             if (base.empty()) return "";
             while (!base.empty() && base.back() == '/') base.pop_back();
             return base + path;
@@ -1313,7 +1339,9 @@ script:
                          (unsigned) next.size());
                 id(cover_art_retry_url).clear();
                 id(cover_art_retry_count) = 0;
-                id(cover_art_image_available) = false;
+                if (id(cover_art_loaded_url).empty()) {
+                  id(cover_art_image_available) = false;
+                }
               }
             };
           if (!already_subscribed) {
@@ -1379,8 +1407,7 @@ script:
                 if (path.rfind("http://", 0) == 0 || path.rfind("https://", 0) == 0) {
                   url = path;
                 } else {
-                  std::string base = id(cover_art_home_assistant_url).state;
-                  if (base.empty()) base = id(cover_art_home_assistant_base_url);
+                  std::string base = id(cover_art_home_assistant_base_url);
                   if (!base.empty()) {
                     while (!base.empty() && base.back() == '/') base.pop_back();
                     url = base + path;
@@ -1537,11 +1564,8 @@ script:
           id: cover_art_media_playing
           value: 'false'
       - globals.set:
-          id: cover_art_media_subpage_opened
-          value: 'false'
-      - globals.set:
-          id: cover_art_media_subpage_pending_on_hide
-          value: 'false'
+          id: cover_art_manual_wake_ms
+          value: '0'
       - lambda: |-
           id(cover_art_media_position) = 0.0f;
           id(cover_art_position_anchor) = 0.0f;

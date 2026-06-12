@@ -40,6 +40,10 @@ def assert_profile_slugs(profile_slugs: list[str], values: list[str], label: str
     assert values == profile_slugs, f"{label} slugs differ: {values} != {profile_slugs}"
 
 
+def image_card_limit(profile: dict) -> int:
+    return int(profile["firmware"].get("display", {}).get("imageCardDownloaders", 4))
+
+
 def test_public_device_capabilities(profile_slugs: list[str]) -> None:
     expected = public_device_capabilities()
     actual = read_json(DEVICE_CAPABILITIES_JSON)
@@ -69,12 +73,16 @@ def test_public_device_capabilities(profile_slugs: list[str]) -> None:
         assert f'slug="{capability["installSlug"]}"' in install, f"{stem}: install snippet missing slug"
 
 
-def test_generated_web(profile_slugs: list[str]) -> None:
-    for slug in profile_slugs:
+def test_generated_web(profiles: dict[str, dict]) -> None:
+    for slug, profile in profiles.items():
         path = WEB_OUTPUT_DIR / slug / "www.js"
         assert path.is_file(), f"{slug}: generated web bundle is missing"
         text = path.read_text(encoding="utf-8")
         assert slug in text, f"{slug}: generated web bundle has wrong device id"
+        limit = image_card_limit(profile)
+        assert f"imageCardLimit:{limit}" in text or f'"imageCardLimit":{limit}' in text, (
+            f"{slug}: generated web bundle has wrong image card limit"
+        )
 
 
 def test_generated_yaml(profiles: dict[str, dict]) -> None:
@@ -88,8 +96,55 @@ def test_generated_yaml(profiles: dict[str, dict]) -> None:
         assert f'device_slug: "{slug}"' in package, f"{slug}: packages.yaml missing device slug"
         assert f'firmware_manifest_slug: "{slug}"' in package, f"{slug}: packages.yaml missing manifest slug"
         assert f"cfg.num_slots = {profile['slots']};" in sensors, f"{slug}: sensors.yaml missing slot count"
+        limit = image_card_limit(profile)
+        if limit > 0:
+            package_name = "image_cards.yaml" if limit == 4 else f"image_cards_{limit}.yaml"
+            assert package_name in package, f"{slug}: packages.yaml missing {package_name}"
+            assert f"cfg.image_card_image_count = {limit};" in sensors, (
+                f"{slug}: sensors.yaml missing image-card downloader count"
+            )
+            assert f"id(image_card_download_{limit})," in sensors, (
+                f"{slug}: sensors.yaml missing final image-card tile downloader"
+            )
+            assert f"id(image_card_modal_download_{limit})," in sensors, (
+                f"{slug}: sensors.yaml missing final image-card modal downloader"
+            )
+        else:
+            assert "image_cards:" not in package, f"{slug}: zero image-card profile should not include image cards"
+            assert "cfg.image_card_image_count" not in sensors, (
+                f"{slug}: zero image-card profile should not wire image-card downloaders"
+            )
         if profile["firmware"].get("display", {}).get("infoOnly"):
             assert "cfg.info_only = true;" in sensors, f"{slug}: sensors.yaml missing info-only grid flag"
+
+
+def test_square_s3_reapplies_clock_bar_layout() -> None:
+    slug = "guition-esp32-s3-4848s040"
+    sensors = (ROOT / "devices" / slug / "device" / "sensors.yaml").read_text(encoding="utf-8")
+    device = (ROOT / "devices" / slug / "device" / "device.yaml").read_text(encoding="utf-8")
+    assert (
+        "grid_refresh_layout(slots, cfg,\n"
+        "            id(button_order).state,\n"
+        "            id(main_page)->obj);\n"
+        "      - script.execute: clock_bar_apply"
+    ) in sensors, "S3 grid refresh must reapply clock-bar layout like the working square profile"
+    assert (
+        "grid_phase2(slots, cfg, sp_cfgs, sp_ext, sp_ext2, sp_ext3,\n"
+        "              id(button_order).state,\n"
+        "              id(button_on_color).state,\n"
+        "              id(button_off_color).state,\n"
+        "              id(sensor_card_color).state,\n"
+        "              id(main_page)->obj);\n"
+        "        - script.execute: clock_bar_apply"
+    ) in sensors, "S3 boot setup must reapply clock-bar layout after subpages are created"
+    assert (
+        "- script.execute: apply_screen_rotation\n"
+        "        - script.execute: clock_bar_apply"
+    ) in device, "S3 restored rotation must reapply clock-bar layout"
+    assert (
+        "- script.execute: apply_screen_rotation\n"
+        "              - script.execute: clock_bar_apply"
+    ) in device, "S3 rotation changes must reapply clock-bar layout"
 
 
 def test_setup_icon_glyphs() -> None:
@@ -273,6 +328,24 @@ def test_grid_phase2_uses_cleaned_spanned_layout() -> None:
     )
 
 
+def test_spanned_cards_refresh_after_clock_bar_padding_changes() -> None:
+    clock_bar = (ROOT / "components" / "espcontrol" / "clock_bar.h").read_text(encoding="utf-8")
+    layout = (ROOT / "components" / "espcontrol" / "button_grid_layout.h").read_text(encoding="utf-8")
+    grid = (ROOT / "components" / "espcontrol" / "button_grid_grid.h").read_text(encoding="utf-8")
+    assert "struct ClockBarResponsiveGridCard" in clock_bar, (
+        "spanned card dimensions must be tracked outside the one-time grid placement pass"
+    )
+    assert "clock_bar_refresh_responsive_grid_cards();" in clock_bar, (
+        "clock-bar padding changes must resize registered wide/tall/large cards"
+    )
+    assert "clock_bar_register_responsive_grid_card(" in layout, (
+        "wide/tall/large cards must register their measured grid span"
+    )
+    assert "clock_bar_clear_responsive_grid_cards(main_page_obj);" in grid, (
+        "main-grid refreshes must replace old responsive card registrations"
+    )
+
+
 def test_temperature_unit_changes_refresh_weather_cards() -> None:
     config = (ROOT / "components" / "espcontrol" / "button_grid_config.h").read_text(encoding="utf-8")
     match = re.search(
@@ -340,12 +413,14 @@ def main() -> int:
     profile_slugs = list(profiles.keys())
     assert profile_slugs == compatibility_required_slugs(), "current compatibility device slug fixture is stale"
     test_public_device_capabilities(profile_slugs)
-    test_generated_web(profile_slugs)
+    test_generated_web(profiles)
     test_generated_yaml(profiles)
+    test_square_s3_reapplies_clock_bar_layout()
     test_setup_icon_glyphs()
     test_weather_card_visual_matches_preview()
     test_weather_card_mode_visibility_reset()
     test_grid_phase2_uses_cleaned_spanned_layout()
+    test_spanned_cards_refresh_after_clock_bar_padding_changes()
     test_temperature_unit_changes_refresh_weather_cards()
     test_current_weather_state_updates_availability()
     test_firmware_matrices(profile_slugs)

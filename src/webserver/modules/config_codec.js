@@ -101,6 +101,25 @@ function normalizeButtonConfig(b) {
   if (b && b.type === "webhook") {
     if (typeof normalizeWebhookConfig === "function") normalizeWebhookConfig(b);
   }
+  if (b && b.type === "screen_lock") {
+    b.entity = "";
+    b.label = "";
+    b.sensor = "";
+    b.unit = "";
+    b.precision = "";
+    b.options = "";
+    b.icon = "Lock";
+    b.icon_on = "Lock Open";
+  }
+  if (b && b.type === "image") {
+    b.icon_on = "Auto";
+    b.sensor = "";
+    b.unit = "";
+    b.precision = "";
+    b.options = normalizeImageOptions(b.options);
+    b.icon = imageIconEnabled(b) ? (b.icon && b.icon !== "Auto" ? b.icon : "Camera") : "Auto";
+    if (!imageLabelEnabled(b)) b.label = "";
+  }
   if (b && b.type === "light_switch") {
     b.sensor = "";
     b.unit = "";
@@ -146,7 +165,7 @@ function normalizeButtonConfig(b) {
     if (!b.icon || b.icon === "Auto") b.icon = "Motion Sensor Off";
     if (!b.icon_on || b.icon_on === "Auto") b.icon_on = "Motion Sensor";
     b.options = normalizePresenceOptions(b.options);
-  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "media" && b.type !== "presence" && b.type !== "subpage" && !cardLargeNumbersSupported(b)) {
+  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "screen_lock" && b.type !== "media" && b.type !== "presence" && b.type !== "subpage" && b.type !== "image" && !cardLargeNumbersSupported(b)) {
     b.options = "";
   }
   return b;
@@ -191,6 +210,12 @@ var CLIMATE_LABEL_DISPLAY_OPTION = "label_display";
 var CLIMATE_NUMBER_DISPLAY_OPTION = "number_display";
 var MEDIA_VOLUME_MAX_OPTION = "volume_max";
 var SUBPAGE_KIND_OPTION = "subpage_kind";
+var IMAGE_LABEL_OPTION = "image_label";
+var IMAGE_ICON_OPTION = "image_icon";
+var IMAGE_MODAL_MODE_OPTION = "image_modal_mode";
+var IMAGE_REFRESH_OPTION = "image_refresh";
+var IMAGE_REFRESH_MODE_OPTION = "image_refresh_mode";
+var IMAGE_CARD_LIMIT = Math.max(0, parseInt(CFG && CFG.imageCardLimit != null ? CFG.imageCardLimit : 4, 10) || 0);
 var ALARM_ACTIONS = [
   { value: "away", label: "Arm Away", service: "alarm_control_panel.alarm_arm_away", icon: "Shield Lock" },
   { value: "home", label: "Arm Home", service: "alarm_control_panel.alarm_arm_home", icon: "Shield Home" },
@@ -308,6 +333,214 @@ function normalizeMediaOptions(options, mode) {
   }
   out = copyLargeNumbersOption(out, options);
   return out;
+}
+
+function imageRefreshIntervalValues() {
+  var spec = cardContractOptionSpec("image", IMAGE_REFRESH_OPTION);
+  return spec && spec.values ? spec.values.slice() : ["off", "10", "30", "60", "300"];
+}
+
+function imageRefreshModeValues() {
+  var spec = cardContractOptionSpec("image", IMAGE_REFRESH_MODE_OPTION);
+  return spec && spec.values ? spec.values.slice() : ["changes_timer", "timer"];
+}
+
+function imageModalModeValues() {
+  var spec = cardContractOptionSpec("image", IMAGE_MODAL_MODE_OPTION);
+  return spec && spec.values ? spec.values.slice() : ["fill", "fit"];
+}
+
+function normalizeImageRefreshInterval(value) {
+  value = String(value || "").trim();
+  return imageRefreshIntervalValues().indexOf(value) >= 0 ? value : "off";
+}
+
+function normalizeImageRefreshMode(value) {
+  value = String(value || "").trim();
+  return imageRefreshModeValues().indexOf(value) >= 0 ? value : "changes_timer";
+}
+
+function normalizeImageModalMode(value) {
+  value = String(value || "").trim();
+  return imageModalModeValues().indexOf(value) >= 0 ? value : "fill";
+}
+
+function imageRefreshInterval(b) {
+  return normalizeImageRefreshInterval(configOptionValue(b && b.options, IMAGE_REFRESH_OPTION));
+}
+
+function imageRefreshMode(b) {
+  return normalizeImageRefreshMode(configOptionValue(b && b.options, IMAGE_REFRESH_MODE_OPTION));
+}
+
+function imageCardLimit() {
+  return IMAGE_CARD_LIMIT;
+}
+
+function imageCardLimitMessage() {
+  if (IMAGE_CARD_LIMIT <= 0) return "Image cards are not available on this display.";
+  return "Image cards use shared firmware download slots. You can save up to " +
+    IMAGE_CARD_LIMIT + " image cards total across the main page and subpages.";
+}
+
+function isImageCard(button) {
+  return !!button && button.type === "image";
+}
+
+function activeGridSlots(grid) {
+  var slots = [];
+  var seen = {};
+  (grid || []).forEach(function (slot) {
+    if (slot <= 0 || seen[slot]) return;
+    seen[slot] = true;
+    slots.push(slot);
+  });
+  return slots;
+}
+
+function imageCardCountInButtons(buttons, grid) {
+  var count = 0;
+  var slots = activeGridSlots(grid);
+  if (!slots.length && buttons && buttons.length) {
+    for (var fallbackSlot = 1; fallbackSlot <= buttons.length; fallbackSlot++) {
+      slots.push(fallbackSlot);
+    }
+  }
+  slots.forEach(function (slot) {
+    if (isImageCard(buttons && buttons[slot - 1])) count++;
+  });
+  return count;
+}
+
+function imageCardCountInSubpage(sp) {
+  return imageCardCountInButtons(sp && sp.buttons, sp && sp.grid);
+}
+
+function imageCardCountInClipboardEntry(entry) {
+  var count = isImageCard(entry) ? 1 : 0;
+  if (entry && entry.subpageConfig) {
+    count += imageCardCountInSubpage(parseSubpageConfig(entry.subpageConfig));
+  }
+  return count;
+}
+
+function imageCardCountInClipboardEntries(entries) {
+  var count = 0;
+  (entries || []).forEach(function (entry) {
+    count += imageCardCountInClipboardEntry(entry);
+  });
+  return count;
+}
+
+function imageCardCountWithCandidate(candidate) {
+  var count = 0;
+  var matchedCandidate = false;
+
+  activeGridSlots(state.grid).forEach(function (slot) {
+    var button = state.buttons[slot - 1];
+    if (candidate && !candidate.isSub && candidate.slot === slot) {
+      button = candidate.button;
+      matchedCandidate = true;
+    }
+    if (isImageCard(button)) count++;
+  });
+
+  for (var homeSlot in state.subpages) {
+    var sp = state.subpages[homeSlot];
+    activeGridSlots(sp && sp.grid).forEach(function (slot) {
+      var button = sp && sp.buttons && sp.buttons[slot - 1];
+      if (candidate && candidate.isSub &&
+          String(candidate.homeSlot) === String(homeSlot) &&
+          candidate.slot === slot) {
+        button = candidate.button;
+        matchedCandidate = true;
+      }
+      if (isImageCard(button)) count++;
+    });
+  }
+
+  if (candidate && !matchedCandidate && isImageCard(candidate.button)) count++;
+  return count;
+}
+
+function canAddImageCards(extraCount) {
+  extraCount = parseInt(extraCount || 0, 10);
+  if (!isFinite(extraCount) || extraCount <= 0) return true;
+  return imageCardCountWithCandidate() + extraCount <= IMAGE_CARD_LIMIT;
+}
+
+function showImageCardLimitBanner() {
+  showBanner(imageCardLimitMessage(), "error");
+}
+
+function imageModalMode(b) {
+  return normalizeImageModalMode(configOptionValue(b && b.options, IMAGE_MODAL_MODE_OPTION));
+}
+
+function imageLabelEnabled(b) {
+  return !!(b && configOptionEnabled(b.options, IMAGE_LABEL_OPTION));
+}
+
+function imageIconEnabled(b) {
+  return !!(b && configOptionEnabled(b.options, IMAGE_ICON_OPTION));
+}
+
+function normalizeImageOptions(options) {
+  var out = "";
+  if (configOptionEnabled(options, IMAGE_LABEL_OPTION)) {
+    out = setConfigOption(out, IMAGE_LABEL_OPTION, true);
+  }
+  if (configOptionEnabled(options, IMAGE_ICON_OPTION)) {
+    out = setConfigOption(out, IMAGE_ICON_OPTION, true);
+  }
+  var modalMode = normalizeImageModalMode(configOptionValue(options, IMAGE_MODAL_MODE_OPTION));
+  if (modalMode !== "fill") {
+    out = setConfigOptionValue(out, IMAGE_MODAL_MODE_OPTION, modalMode);
+  }
+  return out;
+}
+
+function setImageLabelEnabled(b, enabled) {
+  if (!b) return "";
+  b.options = setConfigOption(b.options, IMAGE_LABEL_OPTION, !!enabled);
+  if (!enabled) b.label = "";
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
+}
+
+function setImageIconEnabled(b, enabled) {
+  if (!b) return "";
+  b.options = setConfigOption(b.options, IMAGE_ICON_OPTION, !!enabled);
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
+}
+
+function setImageModalMode(b, value) {
+  if (!b) return "";
+  var mode = normalizeImageModalMode(value);
+  b.options = setConfigOptionValue(b.options, IMAGE_MODAL_MODE_OPTION, mode === "fill" ? "" : mode);
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
+}
+
+function setImageRefreshInterval(b, value) {
+  if (!b) return "";
+  var interval = normalizeImageRefreshInterval(value);
+  b.options = setConfigOptionValue(b.options, IMAGE_REFRESH_OPTION, interval === "off" ? "" : interval);
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
+}
+
+function setImageRefreshMode(b, value) {
+  if (!b) return "";
+  var mode = normalizeImageRefreshMode(value);
+  b.options = setConfigOptionValue(
+    b.options,
+    IMAGE_REFRESH_MODE_OPTION,
+    mode === "changes_timer" ? "" : mode
+  );
+  b.options = normalizeImageOptions(b.options);
+  return b.options;
 }
 
 function normalizeSubpageKind(value) {
@@ -1011,17 +1244,21 @@ function buttonConfigFields(b) {
   }
   var isActionOptionSelect = !!(b && (actionCardIsOptionSelect(b) || isOptionSelectType(type)));
   if (isActionOptionSelect) type = "action";
+  var label = b && b.label || "";
+  if (type === "screen_lock") label = "";
   var sensor = isActionOptionSelect ? ACTION_CARD_OPTION_SELECT_ACTION :
-    (isBrightnessSliderType(type) || type === "climate" || type === "light_switch" || type === "alarm" || isFanCardType(type)) ? "" : (b && b.sensor || "");
-  var unit = (isActionOptionSelect || type === "climate" || type === "light_switch" || type === "alarm" || type === "alarm_action" || isFanCardType(type)) ? "" : (b && b.unit || "");
+    (isBrightnessSliderType(type) || type === "climate" || type === "light_switch" || type === "alarm" || type === "screen_lock" || isFanCardType(type)) ? "" : (b && b.sensor || "");
+  var unit = (isActionOptionSelect || type === "climate" || type === "light_switch" || type === "alarm" || type === "alarm_action" || type === "screen_lock" || isFanCardType(type)) ? "" : (b && b.unit || "");
   var icon = b && b.icon || "Auto";
   if (isActionOptionSelect && (!icon || icon === "Auto" || icon === "Chevron Down")) icon = "Flash";
   if (type === "alarm" && (!icon || icon === "Auto")) icon = "Security";
+  if (type === "screen_lock") icon = "Lock";
   if (type === "alarm_action" && (!icon || icon === "Auto")) icon = (alarmActionInfo(sensor) || alarmActionSpecs()[0]).icon;
   if (isFanCardType(type) && (!icon || icon === "Auto")) icon = fanCardDefaultIcon(type);
   var iconOn = (isActionOptionSelect || type === "alarm" || type === "alarm_action" || (isFanCardType(type) && type !== "fan_switch")) ? "Auto" : (b && b.icon_on || "Auto");
   if (type === "fan_switch" && (!iconOn || iconOn === "Auto")) iconOn = "Fan";
-  var precision = (isActionOptionSelect || type === "light_switch" || type === "alarm" || type === "alarm_action" || isFanCardType(type)) ? "" : (b && b.precision || "");
+  if (type === "screen_lock") iconOn = "Lock Open";
+  var precision = (isActionOptionSelect || type === "light_switch" || type === "alarm" || type === "alarm_action" || type === "screen_lock" || isFanCardType(type)) ? "" : (b && b.precision || "");
   if (type === "media") {
     sensor = mediaEditorMode(sensor);
     precision = sensor === "now_playing"
@@ -1029,6 +1266,13 @@ function buttonConfigFields(b) {
       : (mediaStateDisplayModeSupported(sensor) && precision === "state" ? "state" : "");
   }
   if (type === "climate") precision = normalizeClimatePrecisionConfig(precision);
+  if (type === "image") {
+    iconOn = "Auto";
+    sensor = "";
+    unit = "";
+    precision = "";
+    if (!imageLabelEnabled(b)) label = "";
+  }
   if (type === "door_window") precision = normalizeDoorWindowSubtype(precision);
   var options = b && b.options || "";
   if (type === "") {
@@ -1051,16 +1295,25 @@ function buttonConfigFields(b) {
     iconOn = webhookButton.icon_on || "Auto";
     precision = webhookButton.precision || "";
     options = webhookButton.options || "";
+  } else if (type === "screen_lock") {
+    options = "";
   } else if (type === "sensor") {
     options = normalizeSensorOptions(options, precision);
   } else if (type === "door_window") {
     options = normalizeDoorWindowOptions(options);
   } else if (type === "presence") {
     options = normalizePresenceOptions(options);
+  } else if (type === "image") {
+    options = normalizeImageOptions(options);
   } else if (isActionOptionSelect || isFanCardType(type)) {
     options = "";
-  } else if (type !== "action" && type !== "alarm_action" && type !== "garage" && type !== "webhook" && type !== "media" && type !== "presence" && !cardLargeNumbersSupported({ type: type, precision: precision })) {
+  } else if (type !== "action" && type !== "alarm_action" && type !== "garage" && type !== "webhook" && type !== "screen_lock" && type !== "media" && type !== "presence" && !cardLargeNumbersSupported({ type: type, precision: precision })) {
     options = "";
+  }
+  if (type === "image") {
+    icon = configOptionEnabled(options, IMAGE_ICON_OPTION)
+      ? (icon && icon !== "Auto" ? icon : "Camera")
+      : "Auto";
   }
   if (type === "door_window") {
     b = b || {};
@@ -1082,8 +1335,8 @@ function buttonConfigFields(b) {
     precision = "";
   }
   return trimConfigFields([
-    (type === "door_window" || type === "presence") ? "" : (b && b.entity || ""),
-    b && b.label || "",
+    (type === "door_window" || type === "presence" || type === "screen_lock") ? "" : (b && b.entity || ""),
+    label,
     icon,
     iconOn,
     sensor,

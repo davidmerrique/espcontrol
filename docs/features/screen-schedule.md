@@ -40,6 +40,4 @@ Pressing and holding a button on the touchscreen for 3 seconds puts the screen t
 
 ## Brightness
 
-Screen schedule works alongside the daytime and nighttime brightness settings. When the screen is awake during scheduled-on hours, brightness still follows sunrise and sunset for your selected timezone. **Screen Dimmed** uses its own overnight brightness setting. **Screen Off** turns the physical backlight off, while **Clock** uses its own clock brightness and text colour settings.
-
-If Home Assistant needs temporary control of the display brightness, turn off **Screen: Automatic Brightness** before setting `Display Backlight`. This pauses the day/night brightness adjustment without disabling the Night Schedule itself.
+Screen schedule works alongside the daytime and nighttime brightness settings. When the screen is awake during scheduled-on hours, brightness follows the calculated sunrise and sunset for your selected timezone, or the manual Dawn and Dusk times when **Automatic Brightness** is off. **Screen Dimmed** uses its own overnight brightness setting. **Screen Off** turns the physical backlight off, while **Clock** uses its own clock brightness and text colour settings.

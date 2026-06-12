@@ -15,6 +15,7 @@ FIRMWARE_DIR = ROOT / "components" / "espcontrol"
 CORE_INFRA_PATH = ROOT / "common" / "device" / "core_infra.yaml"
 API_NAVIGATE_PATH = ROOT / "common" / "device" / "api_navigate.yaml"
 COVER_ART_PATH = ROOT / "common" / "device" / "screen_cover_art.yaml"
+ARTWORK_IMAGE_PATH = ROOT / "components" / "artwork_image" / "artwork_image.cpp"
 BACKLIGHT_PATH = ROOT / "common" / "addon" / "backlight.yaml"
 TIME_ADDON_PATH = ROOT / "common" / "addon" / "time.yaml"
 SUN_CALC_PATH = ROOT / "components" / "espcontrol" / "sun_calc.h"
@@ -72,10 +73,6 @@ WEATHER_FORECAST_REQUEST_PATTERN = re.compile(
     r"inline\s+void\s+request_weather_forecast_entity\s*\([^)]*\)\s*\{(?P<body>.*?)\n\}",
     re.DOTALL,
 )
-CLOCK_BAR_WEATHER_SUBSCRIPTION_PATTERN = re.compile(
-    r"inline\s+void\s+subscribe_clock_bar_weather_icon\s*\([^)]*\)\s*\{(?P<body>.*?)\n\}",
-    re.DOTALL,
-)
 COVER_COMMAND_REQUEST_PATTERN = re.compile(
     r"inline\s+void\s+send_cover_command_action\s*\([^)]*\)\s*\{(?P<body>.*?)\n\}",
     re.DOTALL,
@@ -122,8 +119,11 @@ def firmware_ha_boundary_errors(firmware_dir: Path, root: Path) -> list[str]:
         "ha_retry_unavailable_states" not in text
         or "ha_unavailable_state_retry_refs" not in text
         or "HA_UNAVAILABLE_STATE_RETRY_INTERVAL_MS" not in text
+        or "HA_UNAVAILABLE_STATE_RETRY_RESPONSE_TIMEOUT_MS" not in text
     ):
         errors.append(f"{rel}: retry unavailable subscribed states after Home Assistant finishes startup")
+    if "waiting_for_response = false" not in text:
+        errors.append(f"{rel}: expire unanswered unavailable-state retries after Home Assistant startup")
     if "ha_entity_state_unavailable_ref(entity_id, state)" not in text:
         errors.append(f"{rel}: use entity-aware unavailable checks for subscribed state retries")
     if "ha_reset_unavailable_state_retries" not in text:
@@ -146,6 +146,10 @@ def firmware_ha_boundary_errors(firmware_dir: Path, root: Path) -> list[str]:
         errors.append(f"{rel}: missing ha_action_send helper")
     elif "ha_api_state_connected()" not in action_send_match.group("body"):
         errors.append(f"{rel}: send Home Assistant actions only after state subscription is ready")
+    elif "HA_ACTION_INTERNAL_FREE_MIN_BYTES" not in action_send_match.group("body"):
+        errors.append(f"{rel}: defer Home Assistant actions when S3 internal heap is critically low")
+    if "Home Assistant attribute request" not in text:
+        errors.append(f"{rel}: defer one-off Home Assistant attribute reads when S3 internal heap is critically low")
 
     return errors
 
@@ -333,6 +337,16 @@ def firmware_time_reconnect_errors(time_path: Path, root: Path) -> list[str]:
         errors.append(f"{rel}: wait for Home Assistant state readiness before reconnect time sync")
     if "on_client_connected:" in text and "delay: 2s" not in text:
         errors.append(f"{rel}: defer Home Assistant time sync after API reconnect")
+    api_connect_match = re.search(
+        r"(?ms)^api:\n\s+on_client_connected:\n(?P<body>.*?)(?:^#|^select:|^text:|^text_sensor:|^time:|^script:|\Z)",
+        text,
+    )
+    if api_connect_match:
+        api_connect_body = api_connect_match.group("body")
+        if "script.execute: backlight_recalc_sunrise_sunset" not in api_connect_body:
+            errors.append(f"{rel}: recalculate sunrise and sunset after reconnect time sync")
+        if "script.execute: screen_schedule_check" not in api_connect_body:
+            errors.append(f"{rel}: recheck the screen schedule after reconnect time sync")
     return errors
 
 
@@ -390,6 +404,8 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
     body = request.group("body")
     if "ha_api_state_connected()" not in body:
         errors.append(f"{rel}: wait for Home Assistant state subscription before automatic forecast requests")
+    if "low internal heap" not in body:
+        errors.append(f"{rel}: retry automatic forecast requests instead of sending during critically low internal heap")
     if "ha_cancel_action_response_callback(req.call_id" not in text:
         errors.append(f"{rel}: cancel forecast response callbacks when sends fail")
     if (
@@ -409,9 +425,9 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
     if "WEATHER_FORECAST_RETRY_DELAY_MS" not in text or "weather_forecast_schedule_retry" not in text:
         errors.append(f"{rel}: retry failed weather forecast requests later")
     if (
-        "response if response is defined and response is not none else none" not in text
+        "response if response is defined and response is not none else {}" not in text
         or "'forecast' in response_data" not in text
-        or "response_data[entity] if response_data is not none and entity in response_data else none" not in text
+        or "response_data[entity] if entity in response_data else {}" not in text
     ):
         errors.append(f"{rel}: accept both direct and entity-keyed Home Assistant forecast response shapes")
     if (
@@ -425,9 +441,8 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
     ):
         errors.append(f"{rel}: select today/tomorrow weather forecasts by date/datetime before falling back to list order")
     if (
-        "entity_response['temperature_unit']" not in text
-        or "entity_response['unit_of_measurement']" not in text
-        or "entity_response['unit']" not in text
+        "unit_keys = ['temperature_unit','native_temperature_unit','unit_of_measurement','native_unit_of_measurement','unit']" not in text
+        or "key in entity_response" not in text
         or "state_attr(entity, 'temperature_unit')" not in text
         or "state_attr(entity, 'unit_of_measurement')" not in text
     ):
@@ -448,13 +463,9 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
     ):
         errors.append(f"{rel}: accept max/min weather forecast temperature field aliases")
     if (
-        "item_unit" not in text
-        or "today['temperature_unit']" not in text
-        or "today['unit_of_measurement']" not in text
-        or "today['unit']" not in text
-        or "tomorrow['native_temperature_unit']" not in text
-        or "tomorrow['unit_of_measurement']" not in text
-        or "tomorrow['unit']" not in text
+        "unit_keys" not in text
+        or "today is not none and key in today" not in text
+        or "tomorrow is not none and key in tomorrow" not in text
     ):
         errors.append(f"{rel}: preserve forecast temperature units from individual forecast items")
     if "parse_weather_forecast_temp" in text and "std::isfinite(parsed)" not in text:
@@ -470,26 +481,6 @@ def firmware_weather_request_errors(firmware_dir: Path, root: Path) -> list[str]
         or "apply_weather_forecast_actions_required_for_entity" not in body
     ):
         errors.append(f"{rel}: detect Home Assistant forecast timeout errors robustly")
-    return errors
-
-
-def firmware_clock_bar_weather_subscription_errors(firmware_dir: Path, root: Path) -> list[str]:
-    path = firmware_dir / "button_grid_subscriptions.h"
-    if not path.exists():
-        return []
-    rel = path.relative_to(root)
-    text = path.read_text(encoding="utf-8")
-    errors: list[str] = []
-
-    subscription = CLOCK_BAR_WEATHER_SUBSCRIPTION_PATTERN.search(text)
-    if not subscription:
-        errors.append(f"{rel}: missing clock bar weather subscription helper")
-        return errors
-    body = subscription.group("body")
-    if "ha_api_state_connected()" not in body:
-        errors.append(f"{rel}: wait for Home Assistant state readiness before clock bar weather subscription")
-    if "if (!ha_subscribe_state(" not in body or "active_entity.clear();" not in body:
-        errors.append(f"{rel}: retry clock bar weather subscription when early subscription fails")
     return errors
 
 
@@ -609,6 +600,175 @@ def firmware_cover_art_stale_image_errors(path: Path, root: Path) -> list[str]:
     return errors
 
 
+def firmware_image_card_entity_errors(firmware_dir: Path, root: Path) -> list[str]:
+    path = firmware_dir / "button_grid_image.h"
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "image_card_entity_supported" not in text:
+        errors.append(f"{rel}: centralize image card entity-domain support")
+    if 'entity_id.rfind("camera.", 0) == 0' not in text:
+        errors.append(f"{rel}: keep camera entities supported by image cards")
+    if 'entity_id.rfind("image.", 0) == 0' not in text:
+        errors.append(f"{rel}: support Home Assistant image entities in image cards")
+    if 'if (!image_card_entity_supported(p.entity))' not in text:
+        errors.append(f"{rel}: use the shared image card entity-domain guard")
+    if "only supports camera entities" in text:
+        errors.append(f"{rel}: do not reject Home Assistant image entities as unavailable")
+    return errors
+
+
+def firmware_image_card_base_url_errors(firmware_dir: Path, root: Path) -> list[str]:
+    path = firmware_dir / "button_grid_image.h"
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "base_url_provider" not in text:
+        errors.append(f"{rel}: keep image card Home Assistant base URL lookup live")
+    if ("image_card_join_url(image_card_base_url(ctx), raw)" not in text and
+        ("std::string base_url = image_card_base_url(ctx)" not in text or
+         "image_card_join_url(base_url, raw)" not in text)):
+        errors.append(f"{rel}: resolve image card base URL when entity_picture is handled")
+    if 'ctx->base_url = cfg.home_assistant_base_url ? cfg.home_assistant_base_url() : "";' in text:
+        if "ctx->base_url_provider = cfg.home_assistant_base_url" not in text:
+            errors.append(f"{rel}: do not rely only on the startup-time image card base URL")
+    return errors
+
+
+def firmware_image_card_quality_errors(firmware_dir: Path, root: Path) -> list[str]:
+    path = firmware_dir / "button_grid_image.h"
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "IMAGE_CARD_MODAL_MAX_TARGET_SIDE_PX" not in text:
+        errors.append(f"{rel}: cap high-resolution image card modal downloads")
+    if "IMAGE_CARD_MAX_CONTEXTS = 6" not in text:
+        errors.append(f"{rel}: support six concurrent image cards on P4 displays")
+    if "image_card_limit_target_size" not in text:
+        errors.append(f"{rel}: scale image card modal downloads to a display-appropriate size")
+    if "image_card_memory_available" not in text or "IMAGE_CARD_MEMORY_HEADROOM_BYTES" not in text:
+        errors.append(f"{rel}: check free memory before image-card downloads")
+    if "MALLOC_CAP_SPIRAM" not in text or "external_largest" not in text:
+        errors.append(f"{rel}: include PSRAM in image-card memory checks")
+    if "ctx->image->cancel_update();" not in text:
+        errors.append(f"{rel}: cancel in-flight image downloads before opening image card modals")
+    if "Deferring image refresh while modal is open" not in text:
+        errors.append(f"{rel}: defer image downloads while image card modals are open")
+    if "image_card_clear_widget_source(ui.image_widget)" not in text:
+        errors.append(f"{rel}: detach image sources before deleting image card modals")
+    if (
+        "ctx->image->set_target_size(width, height)" not in text
+        and "image_card_tile_decode_size(width, height, &target_width, &target_height)" not in text
+        and "ctx->image->set_target_size(decode_width, decode_height)" not in text
+    ):
+        errors.append(f"{rel}: set image card download target size before requesting images")
+    if "modal_image" not in text or "image_card_request_modal_source_url" not in text:
+        errors.append(f"{rel}: use a separate modal image downloader for expanded image-card quality")
+    if "ctx->modal_image->request_update_url(ctx->modal_url" not in text:
+        errors.append(f"{rel}: request expanded image-card downloads through the modal downloader")
+    if "image_card_set_widget_source(ui.image_widget, ctx->modal_image)" not in text:
+        errors.append(f"{rel}: swap expanded image cards to the modal-quality image after it downloads")
+    if "ctx->modal_image->release()" not in text:
+        errors.append(f"{rel}: release modal image-card buffers when the modal closes")
+    if 'image_card_set_loading_state(loading, "Too many")' not in text:
+        errors.append(f"{rel}: show a visible image-card limit message when downloaders run out")
+    if "image_card_modal_refresh_supported" not in text or "control_modal_current_is_jc4880p443_size" not in text:
+        errors.append(f"{rel}: avoid extra modal image downloads on the 4.3-inch P4 screen")
+    if "Closing image modal" not in text:
+        errors.append(f"{rel}: log image-card modal close events")
+    if "lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN)" not in text:
+        errors.append(f"{rel}: clip image card modal content to rounded panel corners")
+    if "image_card_apply_corner_clip" not in text:
+        errors.append(f"{rel}: preserve image card rounded corners while pressed")
+    if "image_card_pressed_selector" not in text:
+        errors.append(f"{rel}: apply image card corner clipping to the pressed state")
+    if "image_card_refresh_tile_geometry" not in text or "resized tile" not in text:
+        errors.append(f"{rel}: refresh image-card downloads when card size changes")
+    if "image_card_reset_resized_tile" not in text or "ctx->image->release()" not in text:
+        errors.append(f"{rel}: clear stale image-card tile buffers when card size changes")
+    if "image_card_tile_request_size" not in text:
+        errors.append(f"{rel}: keep small-display image card tile downloads sized to the tile")
+
+    grid_path = firmware_dir / "button_grid_grid.h"
+    if grid_path.exists():
+        grid_rel = grid_path.relative_to(root)
+        grid_text = grid_path.read_text(encoding="utf-8")
+        if "image_card_refresh_tile_geometry(ctx)" not in grid_text:
+            errors.append(f"{grid_rel}: update active image-card geometry during grid refresh")
+    return errors
+
+
+def firmware_image_card_startup_errors(
+    firmware_dir: Path,
+    core_infra_path: Path,
+    root: Path,
+) -> list[str]:
+    path = firmware_dir / "button_grid_image.h"
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "inline void refresh_image_cards()" not in text:
+        errors.append(f"{rel}: refresh image cards when Home Assistant reconnects")
+    if "IMAGE_CARD_API_RETRY_INTERVAL_MS" not in text:
+        errors.append(f"{rel}: retry image-card startup quickly after Home Assistant API connects")
+    if "if (!ha_api_connected()) return;" not in text:
+        errors.append(f"{rel}: arm image-card refresh from the Home Assistant API connection")
+    if "if (!ha_api_connected())" not in text or "ha_get_attribute(" not in text:
+        errors.append(f"{rel}: request image-card attributes once the Home Assistant API is connected")
+    if '"access_token"' not in text or "image_card_proxy_path_with_token" not in text:
+        errors.append(f"{rel}: load Home Assistant image-card proxy URLs with the entity access token")
+    if '"/api/image_proxy/" + entity_id' not in text or '"/api/camera_proxy/" + entity_id' not in text:
+        errors.append(f"{rel}: fall back to Home Assistant proxy URLs when image-card entity_picture is unavailable")
+    if "Waiting for Home Assistant base URL" not in text:
+        errors.append(f"{rel}: keep image cards loading until the Home Assistant base URL is ready")
+    if "subscribe_image_card_entity_state" not in text or "ha_subscribe_state(" not in text:
+        errors.append(f"{rel}: refresh image cards when the camera/image entity state changes")
+    if "image_card_context_current" not in text or "generation == ha_subscription_generation()" not in text:
+        errors.append(f"{rel}: ignore stale image-card callbacks after grid rebuild")
+    if (
+        ("image_card_tile_request_size(width, height" not in text and
+         "image_card_tile_request_size(decode_width, decode_height" not in text)
+        or "image_card_high_quality_request_size" not in text
+    ):
+        errors.append(f"{rel}: request high-quality Home Assistant image card source downloads")
+    if "image_card_sized_url(ctx->source_url, request_width, request_height)" not in text:
+        errors.append(f"{rel}: request bounded Home Assistant image card proxy downloads")
+    if '"/api/camera_proxy/"' not in text or '"/api/image_proxy/"' not in text:
+        errors.append(f"{rel}: recognize Home Assistant camera and image proxy URLs")
+
+    if core_infra_path.exists():
+        core_rel = core_infra_path.relative_to(root)
+        core_text = core_infra_path.read_text(encoding="utf-8")
+        if "is_home_assistant && ha_api_connected()" not in core_text:
+            errors.append(f"{core_rel}: start image-card refresh when Home Assistant API connects")
+        if core_text.count("refresh_image_cards();") < 4:
+            errors.append(f"{core_rel}: refresh image cards through Home Assistant connect retries")
+    return errors
+
+
+def firmware_artwork_image_auth_errors(path: Path, root: Path) -> list[str]:
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "HTTP_AUTH_TYPE_BASIC" in text:
+        errors.append(
+            f"{rel}: keep local Home Assistant image proxy requests off HTTP Basic auth"
+        )
+    if "config.auth_type = HTTP_AUTH_TYPE_NONE;" not in text:
+        errors.append(f"{rel}: explicitly disable HTTP auth for local artwork requests")
+    return errors
+
+
 def firmware_screensaver_wake_guard_errors(backlight_path: Path, cover_art_path: Path, root: Path) -> list[str]:
     errors: list[str] = []
     if backlight_path.exists():
@@ -653,6 +813,132 @@ def firmware_screensaver_wake_guard_errors(backlight_path: Path, cover_art_path:
                 errors.append(f"{rel}: clear the cover art wake guard after touch release")
             if "lvgl.widget.hide: cover_art_wake_touch_guard" not in body:
                 errors.append(f"{rel}: hide the cover art wake touch guard after release")
+    return errors
+
+
+def firmware_clock_screensaver_overlay_errors(backlight_path: Path, root: Path) -> list[str]:
+    errors: list[str] = []
+    if not backlight_path.exists():
+        return errors
+
+    rel = backlight_path.relative_to(root)
+    text = backlight_path.read_text(encoding="utf-8")
+    sleep_body = yaml_script_body(text, "screensaver_sleep_timer")
+    show_body = yaml_script_body(text, "show_clock_view")
+    keep_on_top_body = yaml_script_body(text, "clock_screensaver_keep_on_top")
+
+    if sleep_body is None:
+        errors.append(f"{rel}: missing screensaver_sleep_timer script")
+    else:
+        show_index = sleep_body.find("script.execute: show_clock_view")
+        if show_index == -1:
+            errors.append(f"{rel}: keep clock screensaver activation explicit")
+        else:
+            pre_clock_show = sleep_body[:show_index]
+            cleanup_tokens = (
+                "media_volume_hide_modal();",
+                "climate_control_hide_modal();",
+                "option_select_hide_modal();",
+                "switch_confirmation_hide_modal();",
+                "alarm_pin_hide_modal();",
+                "network_status_hide_modal();",
+                "script.execute: hide_cover_art_view",
+            )
+            if any(token in pre_clock_show for token in cleanup_tokens):
+                errors.append(f"{rel}: let the clock screensaver overlay the existing UI without closing it")
+
+    if show_body is None:
+        errors.append(f"{rel}: missing show_clock_view script")
+    elif (
+        "hide_clock_bar_top_layer_widgets(" not in show_body
+        or "lv_obj_clear_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN);" not in show_body
+        or "lv_obj_move_foreground(id(clock_screensaver));" not in show_body
+    ):
+        errors.append(f"{rel}: raise the clock screensaver above existing top-layer UI")
+
+    if keep_on_top_body is None:
+        errors.append(f"{rel}: missing clock screensaver keep-on-top script")
+    else:
+        required_keep_on_top_tokens = (
+            "if (!id(is_clock_showing)) return;",
+            "hide_clock_bar_top_layer_widgets(",
+            "refresh_screensaver_fullscreen(id(clock_screensaver), id(dim_screensaver_touch_guard));",
+            "lv_obj_move_foreground(id(clock_screensaver));",
+        )
+        if any(token not in keep_on_top_body for token in required_keep_on_top_tokens):
+            errors.append(f"{rel}: keep hiding clock-bar widgets and re-raising the active clock screensaver above overlays")
+        if "lv_obj_clear_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN)" in keep_on_top_body:
+            errors.append(
+                f"{rel}: do not un-hide the clock screensaver in keep-on-top; "
+                "show_clock_view owns widget visibility to avoid premature display during the fade"
+            )
+
+    if (
+        "interval: 1s" not in text
+        or "script.execute: clock_screensaver_keep_on_top" not in text.split("interval:", 1)[-1]
+    ):
+        errors.append(f"{rel}: keep the active clock screensaver above overlays after it starts")
+
+    dimmed_body = yaml_script_body(text, "show_dimmed_view")
+    if dimmed_body is None:
+        errors.append(f"{rel}: missing show_dimmed_view script")
+    elif "lv_obj_move_foreground(id(dim_screensaver_touch_guard))" not in dimmed_body:
+        errors.append(f"{rel}: raise the dim screensaver touch guard above any existing top-layer elements")
+
+    return errors
+
+
+def firmware_screen_schedule_screensaver_overlay_errors(cover_art_path: Path, root: Path) -> list[str]:
+    errors: list[str] = []
+    if not cover_art_path.exists():
+        return errors
+
+    rel = cover_art_path.relative_to(root)
+    text = cover_art_path.read_text(encoding="utf-8")
+    show_body = yaml_script_body(text, "show_cover_art_view")
+
+    if show_body is None:
+        errors.append(f"{rel}: missing show_cover_art_view script")
+    elif "lv_obj_move_foreground(id(cover_art_screensaver))" not in show_body:
+        errors.append(f"{rel}: raise the cover art screensaver above any existing top-layer elements")
+
+    return errors
+
+
+def firmware_screen_schedule_screensaver_override_errors(backlight_path: Path, root: Path) -> list[str]:
+    errors: list[str] = []
+    if not backlight_path.exists():
+        return errors
+
+    rel = backlight_path.relative_to(root)
+    text = backlight_path.read_text(encoding="utf-8")
+
+    idle_body = yaml_script_body(text, "screensaver_idle_check")
+    if idle_body is None:
+        errors.append(f"{rel}: missing screensaver_idle_check script")
+    else:
+        night_index = idle_body.find("screen_schedule_night_active(")
+        mode_index = idle_body.find("return id(screensaver_mode).state")
+        schedule_index = idle_body.find("id(screen_schedule_check).execute();", night_index)
+        if night_index == -1 or schedule_index == -1 or (
+            mode_index != -1 and schedule_index > mode_index
+        ):
+            errors.append(f"{rel}: let the night screen schedule override timer screensaver actions")
+
+    wake_body = yaml_script_body(text, "screensaver_presence_wake")
+    if wake_body is None:
+        errors.append(f"{rel}: missing screensaver_presence_wake script")
+    else:
+        wake_index = wake_body.find("script.execute: screensaver_wake")
+        pre_wake_body = wake_body[:wake_index] if wake_index != -1 else wake_body
+        required_tokens = (
+            "screen_schedule_waiting_for_time(",
+            "screen_schedule_night_active(",
+            "id(screen_schedule_check).execute();",
+        )
+        if wake_index == -1 or any(token not in pre_wake_body for token in required_tokens):
+            errors.append(f"{rel}: let the night screen schedule override sensor screensaver wake")
+
     return errors
 
 
@@ -785,14 +1071,21 @@ def run_scan() -> int:
     errors.extend(firmware_time_reconnect_errors(TIME_ADDON_PATH, ROOT))
     errors.extend(firmware_ntp_startup_errors(TIME_ADDON_PATH, SUN_CALC_PATH, CONNECTIVITY_PATHS, ROOT))
     errors.extend(firmware_weather_request_errors(FIRMWARE_DIR, ROOT))
-    errors.extend(firmware_clock_bar_weather_subscription_errors(FIRMWARE_DIR, ROOT))
     errors.extend(firmware_weather_disconnect_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_weather_reconnect_errors(CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_unavailable_retry_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_cover_request_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_cover_art_external_input_errors(COVER_ART_PATH, ROOT))
     errors.extend(firmware_cover_art_stale_image_errors(COVER_ART_PATH, ROOT))
+    errors.extend(firmware_image_card_entity_errors(FIRMWARE_DIR, ROOT))
+    errors.extend(firmware_image_card_base_url_errors(FIRMWARE_DIR, ROOT))
+    errors.extend(firmware_image_card_quality_errors(FIRMWARE_DIR, ROOT))
+    errors.extend(firmware_image_card_startup_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
+    errors.extend(firmware_artwork_image_auth_errors(ARTWORK_IMAGE_PATH, ROOT))
     errors.extend(firmware_screensaver_wake_guard_errors(BACKLIGHT_PATH, COVER_ART_PATH, ROOT))
+    errors.extend(firmware_clock_screensaver_overlay_errors(BACKLIGHT_PATH, ROOT))
+    errors.extend(firmware_screen_schedule_screensaver_overlay_errors(COVER_ART_PATH, ROOT))
+    errors.extend(firmware_screen_schedule_screensaver_override_errors(BACKLIGHT_PATH, ROOT))
     errors.extend(firmware_climate_step_errors(FIRMWARE_DIR, ROOT))
     errors.extend(
         firmware_s3_api_errors(
@@ -971,24 +1264,6 @@ def expect_weather_request_errors(name: str, text: str, expected: tuple[str, ...
             assert not errors, f"{name}: expected no errors, got {errors!r}"
 
 
-def expect_clock_bar_weather_subscription_errors(
-    name: str,
-    text: str,
-    expected: tuple[str, ...],
-) -> None:
-    with TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        firmware_dir = root / "components" / "espcontrol"
-        firmware_dir.mkdir(parents=True)
-        (firmware_dir / "button_grid_subscriptions.h").write_text(text, encoding="utf-8")
-
-        errors = firmware_clock_bar_weather_subscription_errors(firmware_dir, root)
-        for item in expected:
-            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
-        if not expected:
-            assert not errors, f"{name}: expected no errors, got {errors!r}"
-
-
 def expect_weather_disconnect_errors(
     name: str,
     config_text: str,
@@ -1075,6 +1350,70 @@ def expect_cover_art_stale_image_errors(name: str, text: str, expected: tuple[st
             assert not errors, f"{name}: expected no errors, got {errors!r}"
 
 
+def expect_image_card_entity_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        firmware_dir = root / "components" / "espcontrol"
+        firmware_dir.mkdir(parents=True)
+        (firmware_dir / "button_grid_image.h").write_text(text, encoding="utf-8")
+
+        errors = firmware_image_card_entity_errors(firmware_dir, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_image_card_base_url_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        firmware_dir = root / "components" / "espcontrol"
+        firmware_dir.mkdir(parents=True)
+        (firmware_dir / "button_grid_image.h").write_text(text, encoding="utf-8")
+
+        errors = firmware_image_card_base_url_errors(firmware_dir, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_image_card_quality_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        firmware_dir = root / "components" / "espcontrol"
+        firmware_dir.mkdir(parents=True)
+        (firmware_dir / "button_grid_image.h").write_text(text, encoding="utf-8")
+
+        errors = firmware_image_card_quality_errors(firmware_dir, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_image_card_startup_errors(
+    name: str,
+    text: str,
+    core_text: str,
+    expected: tuple[str, ...],
+) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        firmware_dir = root / "components" / "espcontrol"
+        core_path = root / "common" / "device" / "core_infra.yaml"
+        firmware_dir.mkdir(parents=True)
+        core_path.parent.mkdir(parents=True)
+        (firmware_dir / "button_grid_image.h").write_text(text, encoding="utf-8")
+        core_path.write_text(core_text, encoding="utf-8")
+
+        errors = firmware_image_card_startup_errors(firmware_dir, core_path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
 def expect_screensaver_wake_guard_errors(
     name: str,
     backlight_text: str,
@@ -1091,6 +1430,50 @@ def expect_screensaver_wake_guard_errors(
         cover_art_path.write_text(cover_art_text, encoding="utf-8")
 
         errors = firmware_screensaver_wake_guard_errors(backlight_path, cover_art_path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_clock_screensaver_overlay_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        path = root / "common" / "addon" / "backlight.yaml"
+        path.parent.mkdir(parents=True)
+        path.write_text(text, encoding="utf-8")
+        errors = firmware_clock_screensaver_overlay_errors(path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_screen_schedule_screensaver_override_errors(
+    name: str,
+    text: str,
+    expected: tuple[str, ...],
+) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        path = root / "common" / "addon" / "backlight.yaml"
+        path.parent.mkdir(parents=True)
+        path.write_text(text, encoding="utf-8")
+        errors = firmware_screen_schedule_screensaver_override_errors(path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_artwork_image_auth_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        path = root / "components" / "artwork_image" / "artwork_image.cpp"
+        path.parent.mkdir(parents=True)
+        path.write_text(text, encoding="utf-8")
+
+        errors = firmware_artwork_image_auth_errors(path, root)
         for item in expected:
             assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
         if not expected:
@@ -1204,7 +1587,7 @@ def run_self_test() -> int:
             "button_grid_ha.h": (
                 "inline bool ha_subscribe_state() {\n  return true;\n}\n"
                 "inline bool ha_subscribe_attribute() {\n  return true;\n}\n"
-                "inline bool ha_action_send() {\n  return ha_api_state_connected();\n}\n"
+                "inline bool ha_action_send() {\n  return ha_api_state_connected() && HA_ACTION_INTERNAL_FREE_MIN_BYTES;\n}\n"
             )
         },
         ("expose a helper to cancel stale HA action response callbacks",),
@@ -1628,7 +2011,13 @@ def run_self_test() -> int:
         "  on_client_connected:\n"
         "    - lambda: |-\n"
         "        id(homeassistant_time).update();\n",
-        ("guard Home Assistant time updates", "wait for Home Assistant state readiness", "defer Home Assistant time sync"),
+        (
+            "guard Home Assistant time updates",
+            "wait for Home Assistant state readiness",
+            "defer Home Assistant time sync",
+            "recalculate sunrise and sunset",
+            "recheck the screen schedule",
+        ),
     )
     expect_time_reconnect_errors(
         "home assistant time sync waits for state readiness",
@@ -1637,6 +2026,10 @@ def run_self_test() -> int:
         "    - delay: 2s\n"
         "    - lambda: |-\n"
         "        if (ha_api_state_connected()) id(homeassistant_time).update();\n"
+        "    - delay: 1s\n"
+        "    - script.execute: time_update\n"
+        "    - script.execute: backlight_recalc_sunrise_sunset\n"
+        "    - script.execute: screen_schedule_check\n"
         "script:\n"
         "  - id: time_update\n"
         "    then:\n"
@@ -1701,33 +2094,11 @@ def run_self_test() -> int:
         "  weather_forecast_cancel_pending_requests();\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"failed\");\n"
         "  if (!ha_api_available()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  ha_action_send(req);\n"
         "}\n",
         ("wait for Home Assistant state subscription",),
-    )
-    expect_clock_bar_weather_subscription_errors(
-        "clock bar weather subscribes before state readiness",
-        "inline void subscribe_clock_bar_weather_icon() {\n"
-        "  active_entity = next_entity;\n"
-        "  ha_subscribe_state(next_entity, cb);\n"
-        "}\n",
-        (
-            "wait for Home Assistant state readiness",
-            "retry clock bar weather subscription",
-        ),
-    )
-    expect_clock_bar_weather_subscription_errors(
-        "clock bar weather waits for state readiness",
-        "inline void subscribe_clock_bar_weather_icon() {\n"
-        "  if (!ha_api_state_connected()) return;\n"
-        "  active_entity = next_entity;\n"
-        "  if (!ha_subscribe_state(next_entity, cb)) {\n"
-        "    active_entity.clear();\n"
-        "    return;\n"
-        "  }\n"
-        "}\n",
-        (),
     )
     expect_weather_request_errors(
         "weather callback leak on send failure",
@@ -1738,6 +2109,7 @@ def run_self_test() -> int:
         "  weather_forecast_cancel_pending_requests();\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"failed\");\n"
         "  if (!ha_api_state_connected()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  if (!ha_action_send(req)) return;\n"
         "}\n",
@@ -1752,6 +2124,7 @@ def run_self_test() -> int:
         "  weather_forecast_cancel_pending_requests();\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"setup failed\");\n"
         "  if (!ha_api_state_connected()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  if (!ha_action_send(req)) {\n"
         "    weather_forecast_clear_pending(req.call_id);\n"
@@ -1770,6 +2143,7 @@ def run_self_test() -> int:
         "  weather_forecast_cancel_pending_requests();\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"setup failed\");\n"
         "  if (!ha_api_state_connected()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  bool valid = false;\n"
         "  if (!valid) {\n"
@@ -1784,6 +2158,7 @@ def run_self_test() -> int:
         "  constexpr uint32_t WEATHER_FORECAST_RETRY_DELAY_MS = 300000;\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"failed\");\n"
         "  if (!ha_api_state_connected()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  ha_cancel_action_response_callback(req.call_id, \"send failed\");\n"
         "}\n",
@@ -1796,6 +2171,7 @@ def run_self_test() -> int:
         "  weather_forecast_track_pending(req.call_id);\n"
         "  weather_forecast_cancel_pending_requests();\n"
         "  if (!ha_api_state_connected()) return;\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  ha_register_action_response_callback(req.call_id, cb);\n"
         "  ha_cancel_action_response_callback(req.call_id, \"send failed\");\n"
         "  ha_action_send(req);\n"
@@ -1808,6 +2184,7 @@ def run_self_test() -> int:
         "  if (!weather_forecast_actions_ready()) return;\n"
         "  weather_forecast_track_pending(req.call_id);\n"
         "  weather_forecast_cancel_pending_requests();\n"
+        "  weather_forecast_schedule_retry(entity_id, day, \"low internal heap\");\n"
         "  weather_forecast_schedule_retry(entity_id, day, \"failed\");\n"
         "}\n",
         ("detect Home Assistant forecast timeout errors robustly",),
@@ -1944,6 +2321,229 @@ def run_self_test() -> int:
         "      - lvgl.widget.hide: cover_art_image_widget\n",
         ("do not show an unavailable cover art message",),
     )
+    expect_image_card_entity_errors(
+        "legacy camera-only image card guard",
+        "inline bool image_card_entity_supported(const std::string &entity_id) {\n"
+        "  return entity_id.rfind(\"camera.\", 0) == 0;\n"
+        "}\n"
+        "if (p.entity.rfind(\"camera.\", 0) != 0) {\n"
+        "  ESP_LOGW(\"image_card\", \"Image card only supports camera entities: %s\", p.entity.c_str());\n"
+        "}\n",
+        (
+            "support Home Assistant image entities in image cards",
+            "use the shared image card entity-domain guard",
+            "do not reject Home Assistant image entities as unavailable",
+        ),
+    )
+    expect_image_card_entity_errors(
+        "camera and image entities accepted",
+        "inline bool image_card_entity_supported(const std::string &entity_id) {\n"
+        "  return entity_id.rfind(\"camera.\", 0) == 0 || entity_id.rfind(\"image.\", 0) == 0;\n"
+        "}\n"
+        "if (!image_card_entity_supported(p.entity)) {\n"
+        "  ESP_LOGW(\"image_card\", \"Image card only supports camera and image entities: %s\", p.entity.c_str());\n"
+        "}\n",
+        (),
+    )
+    expect_image_card_base_url_errors(
+        "image card uses stale startup base URL",
+        "std::string base_url;\n"
+        "inline void image_card_handle_picture(ImageCardCtx *ctx, esphome::StringRef picture) {\n"
+        "  std::string raw = string_ref_limited(picture, 4096);\n"
+        "  std::string url = image_card_join_url(ctx->base_url, raw);\n"
+        "}\n"
+        "ctx->base_url = cfg.home_assistant_base_url ? cfg.home_assistant_base_url() : \"\";\n",
+        (
+            "keep image card Home Assistant base URL lookup live",
+            "resolve image card base URL when entity_picture is handled",
+            "do not rely only on the startup-time image card base URL",
+        ),
+    )
+    expect_image_card_base_url_errors(
+        "image card resolves live base URL",
+        "std::function<std::string()> base_url_provider;\n"
+        "std::string base_url;\n"
+        "inline std::string image_card_base_url(ImageCardCtx *ctx) {\n"
+        "  return ctx->base_url_provider ? ctx->base_url_provider() : ctx->base_url;\n"
+        "}\n"
+        "inline void image_card_handle_picture(ImageCardCtx *ctx, esphome::StringRef picture) {\n"
+        "  std::string raw = string_ref_limited(picture, 4096);\n"
+        "  std::string url = image_card_join_url(image_card_base_url(ctx), raw);\n"
+        "}\n"
+        "ctx->base_url = cfg.home_assistant_base_url ? cfg.home_assistant_base_url() : \"\";\n"
+        "ctx->base_url_provider = cfg.home_assistant_base_url;\n",
+        (),
+    )
+    expect_image_card_quality_errors(
+        "image card modal only scales tile image",
+        "inline void image_card_open_modal(ImageCardCtx *ctx) {\n"
+        "  image_card_set_widget_source(ui.image_widget, ctx->image);\n"
+        "  image_card_apply_modal_geometry(ctx);\n"
+        "}\n",
+        (
+            "cap high-resolution image card modal downloads",
+            "scale image card modal downloads to a display-appropriate size",
+            "cancel in-flight image downloads before opening image card modals",
+            "defer image downloads while image card modals are open",
+            "detach image sources before deleting image card modals",
+            "set image card download target size before requesting images",
+            "use a separate modal image downloader for expanded image-card quality",
+            "request expanded image-card downloads through the modal downloader",
+            "swap expanded image cards to the modal-quality image after it downloads",
+            "release modal image-card buffers when the modal closes",
+            "support six concurrent image cards on P4 displays",
+            "check free memory before image-card downloads",
+            "include PSRAM in image-card memory checks",
+            "show a visible image-card limit message when downloaders run out",
+            "avoid extra modal image downloads on the 4.3-inch P4 screen",
+            "log image-card modal close events",
+            "clip image card modal content to rounded panel corners",
+            "preserve image card rounded corners while pressed",
+            "apply image card corner clipping to the pressed state",
+            "clear stale image-card tile buffers when card size changes",
+            "keep small-display image card tile downloads sized to the tile",
+        ),
+    )
+    expect_image_card_quality_errors(
+        "image card modal requests capped image",
+        "constexpr int IMAGE_CARD_MAX_CONTEXTS = 6;\n"
+        "constexpr int IMAGE_CARD_MODAL_MAX_TARGET_SIDE_PX = 800;\n"
+        "constexpr size_t IMAGE_CARD_MEMORY_HEADROOM_BYTES = 96 * 1024;\n"
+        "inline lv_style_selector_t image_card_pressed_selector() { return LV_STATE_PRESSED; }\n"
+        "inline void image_card_apply_corner_clip(lv_obj_t *obj, lv_coord_t radius) {}\n"
+        "inline bool image_card_memory_available(ImageCardCtx *ctx, const char *stage,\n"
+        "                                        int width, int height) {\n"
+        "  size_t external_largest = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);\n"
+        "  return external_largest > 0;\n"
+        "}\n"
+        "inline bool image_card_modal_refresh_supported() {\n"
+        "  return !control_modal_current_is_jc4880p443_size();\n"
+        "}\n"
+        "inline void image_card_limit_target_size(lv_coord_t source_width, lv_coord_t source_height,\n"
+        "                                         int *target_width, int *target_height) {}\n"
+        "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
+        "  ctx->image->set_target_size(width, height);\n"
+        "  image_card_tile_request_size(width, height, &request_width, &request_height);\n"
+        "  ctx->url = image_card_cache_bust_url(image_card_sized_url(ctx->source_url, request_width, request_height));\n"
+        "}\n"
+        "inline void image_card_tile_request_size(lv_coord_t target_width, lv_coord_t target_height,\n"
+        "                                        int *request_width, int *request_height) {\n"
+        "  image_card_high_quality_request_size(target_width, target_height, request_width, request_height);\n"
+        "  image_card_limit_target_size(target_width, target_height, request_width, request_height);\n"
+        "}\n"
+        "inline void image_card_refresh_tile_geometry(ImageCardCtx *ctx) {\n"
+        "  image_card_schedule_source_refresh(ctx, 1, \"resized tile\");\n"
+        "}\n"
+        "inline void image_card_reset_resized_tile(ImageCardCtx *ctx) {\n"
+        "  ctx->image->release();\n"
+        "}\n"
+        "inline void image_card_request_modal_source_url(ImageCardCtx *ctx) {\n"
+        "  ctx->modal_image->request_update_url(ctx->modal_url, max_source_dim);\n"
+        "}\n"
+        "inline void image_card_open_modal(ImageCardCtx *ctx) {\n"
+        "  lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN);\n"
+        "  image_card_clear_widget_source(ui.image_widget);\n"
+        "  image_card_set_widget_source(ui.image_widget, ctx->modal_image);\n"
+        "  if (image_card_modal_active_for(ctx)) {\n"
+        "    ESP_LOGD(\"image_card\", \"Deferring image refresh while modal is open for %s\", ctx->entity_id.c_str());\n"
+        "  }\n"
+        "  ctx->image->cancel_update();\n"
+        "  ESP_LOGI(\"image_card\", \"Closing image modal for %s\", ctx->entity_id.c_str());\n"
+        "  ctx->modal_image->release();\n"
+        "}\n"
+        "inline bool bind_image_card(BtnSlot &s, const ParsedCfg &p, const GridConfig &cfg,\n"
+        "                            const ThemePalette &palette) {\n"
+        "  lv_obj_t *loading = image_card_loading_widget(widget);\n"
+        "  image_card_set_loading_state(loading, \"Too many\");\n"
+        "  return true;\n"
+        "}\n",
+        (),
+    )
+    expect_image_card_startup_errors(
+        "image card missing startup reconnect refresh",
+        "inline void image_card_request_picture(ImageCardCtx *ctx) {\n"
+        "  bool requested = ha_get_attribute(ctx->entity_id, std::string(\"entity_picture\"), callback);\n"
+        "}\n"
+        "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
+        "  ctx->url = image_card_cache_bust_url(ctx->source_url);\n"
+        "}\n",
+        "api:\n"
+        "  on_client_connected:\n"
+        "    - lambda: |-\n"
+        "        refresh_weather_forecast_cards();\n",
+        (
+            "refresh image cards when Home Assistant reconnects",
+            "retry image-card startup quickly after Home Assistant API connects",
+            "arm image-card refresh from the Home Assistant API connection",
+            "request image-card attributes once the Home Assistant API is connected",
+            "refresh image cards when the camera/image entity state changes",
+            "ignore stale image-card callbacks after grid rebuild",
+            "request high-quality Home Assistant image card source downloads",
+            "request bounded Home Assistant image card proxy downloads",
+            "recognize Home Assistant camera and image proxy URLs",
+            "start image-card refresh when Home Assistant API connects",
+            "refresh image cards through Home Assistant connect retries",
+        ),
+    )
+    expect_image_card_startup_errors(
+        "image card refreshes on Home Assistant reconnect",
+        "constexpr uint32_t IMAGE_CARD_API_RETRY_INTERVAL_MS = 250;\n"
+        "inline bool image_card_home_assistant_proxy_url(const std::string &url) {\n"
+        "  return url.find(\"/api/camera_proxy/\") != std::string::npos ||\n"
+        "         url.find(\"/api/image_proxy/\") != std::string::npos;\n"
+        "}\n"
+        "inline std::string image_card_entity_proxy_path(const std::string &entity_id) {\n"
+        "  if (entity_id.rfind(\"camera.\", 0) == 0) return \"/api/camera_proxy/\" + entity_id;\n"
+        "  if (entity_id.rfind(\"image.\", 0) == 0) return \"/api/image_proxy/\" + entity_id;\n"
+        "  return \"\";\n"
+        "}\n"
+        "inline void image_card_handle_picture(ImageCardCtx *ctx) {\n"
+        "  ESP_LOGD(\"image_card\", \"Waiting for Home Assistant base URL before loading %s\", ctx->entity_id.c_str());\n"
+        "}\n"
+        "inline void image_card_request_picture(ImageCardCtx *ctx) {\n"
+        "  if (!ha_api_connected()) return;\n"
+        "  ha_get_attribute(ctx->entity_id, std::string(\"access_token\"), callback);\n"
+        "  image_card_proxy_path_with_token(proxy_path, token);\n"
+        "  ha_get_attribute(ctx->entity_id, std::string(\"entity_picture\"), callback);\n"
+        "}\n"
+        "inline bool image_card_context_current(ImageCardCtx *ctx,\n"
+        "                                       const std::string &entity_id,\n"
+        "                                       uint32_t generation) {\n"
+        "  return generation == ha_subscription_generation();\n"
+        "}\n"
+        "inline void subscribe_image_card_entity_state(ImageCardCtx *ctx,\n"
+        "                                              const std::string &entity_id) {\n"
+        "  ha_subscribe_state(entity_id, callback);\n"
+        "}\n"
+        "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
+        "  image_card_tile_request_size(width, height, &request_width, &request_height);\n"
+        "  ctx->url = image_card_cache_bust_url(image_card_sized_url(ctx->source_url, request_width, request_height));\n"
+        "}\n"
+        "inline void image_card_tile_request_size(lv_coord_t target_width, lv_coord_t target_height,\n"
+        "                                        int *request_width, int *request_height) {\n"
+        "  image_card_high_quality_request_size(target_width, target_height, request_width, request_height);\n"
+        "}\n"
+        "inline void refresh_image_cards() {\n"
+        "  if (!ha_api_connected()) return;\n"
+        "  image_card_request_picture(ctx);\n"
+        "}\n",
+        "api:\n"
+        "  on_client_connected:\n"
+        "    - lambda: |-\n"
+        "        if (is_home_assistant && ha_api_connected()) {\n"
+        "        refresh_image_cards();\n"
+        "        }\n"
+        "    - delay: 2s\n"
+        "    - lambda: |-\n"
+        "        refresh_image_cards();\n"
+        "    - delay: 8s\n"
+        "    - lambda: |-\n"
+        "        refresh_image_cards();\n"
+        "    - delay: 20s\n"
+        "    - lambda: |-\n"
+        "        refresh_image_cards();\n",
+        (),
+    )
     valid_cover_art_wake_guard = (
         "script:\n"
         "  - id: cover_art_wake_touch_block\n"
@@ -1998,6 +2598,200 @@ def run_self_test() -> int:
         "                      id: screensaver_wake_touch_guard_active\n"
         "                      value: 'false'\n",
         valid_cover_art_wake_guard,
+        (),
+    )
+    expect_clock_screensaver_overlay_errors(
+        "clock screensaver closes active UI before showing",
+        "script:\n"
+        "  - id: screensaver_sleep_timer\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          media_volume_hide_modal();\n"
+        "          climate_control_hide_modal();\n"
+        "      - script.execute: hide_cover_art_view\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: 'return screensaver_action_clock_mode(id(screensaver_action).current_option());'\n"
+        "          then:\n"
+        "            - script.execute: show_clock_view\n"
+        "  - id: show_clock_view\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          hide_clock_bar_top_layer_widgets(nullptr, 0, nullptr, nullptr);\n"
+        "          lv_obj_clear_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN);\n"
+        "          lv_obj_move_foreground(id(clock_screensaver));\n"
+        "  - id: clock_screensaver_keep_on_top\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (!id(is_clock_showing)) return;\n"
+        "          hide_clock_bar_top_layer_widgets(nullptr, 0, nullptr, nullptr);\n"
+        "          refresh_screensaver_fullscreen(id(clock_screensaver), id(dim_screensaver_touch_guard));\n"
+        "          lv_obj_move_foreground(id(clock_screensaver));\n"
+        "  - id: show_dimmed_view\n"
+        "    then:\n"
+        "      - lambda: 'lv_obj_move_foreground(id(dim_screensaver_touch_guard));'\n"
+        "interval:\n"
+        "  - interval: 1s\n"
+        "    then:\n"
+        "      - script.execute: clock_screensaver_keep_on_top\n",
+        ("overlay the existing UI without closing it",),
+    )
+    expect_clock_screensaver_overlay_errors(
+        "clock screensaver overlays active UI",
+        "script:\n"
+        "  - id: screensaver_sleep_timer\n"
+        "    then:\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: 'return screensaver_action_clock_mode(id(screensaver_action).current_option());'\n"
+        "          then:\n"
+        "            - script.execute: show_clock_view\n"
+        "          else:\n"
+        "            - lambda: |-\n"
+        "                media_volume_hide_modal();\n"
+        "            - script.execute: hide_cover_art_view\n"
+        "  - id: show_clock_view\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          hide_clock_bar_top_layer_widgets(nullptr, 0, nullptr, nullptr);\n"
+        "          lv_obj_clear_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN);\n"
+        "          lv_obj_move_foreground(id(clock_screensaver));\n"
+        "  - id: clock_screensaver_keep_on_top\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (!id(is_clock_showing)) return;\n"
+        "          hide_clock_bar_top_layer_widgets(nullptr, 0, nullptr, nullptr);\n"
+        "          refresh_screensaver_fullscreen(id(clock_screensaver), id(dim_screensaver_touch_guard));\n"
+        "          lv_obj_move_foreground(id(clock_screensaver));\n"
+        "  - id: show_dimmed_view\n"
+        "    then:\n"
+        "      - lambda: 'lv_obj_move_foreground(id(dim_screensaver_touch_guard));'\n"
+        "interval:\n"
+        "  - interval: 1s\n"
+        "    then:\n"
+        "      - script.execute: clock_screensaver_keep_on_top\n",
+        (),
+    )
+    expect_clock_screensaver_overlay_errors(
+        "clock screensaver stays behind top layer UI",
+        "script:\n"
+        "  - id: screensaver_sleep_timer\n"
+        "    then:\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: 'return screensaver_action_clock_mode(id(screensaver_action).current_option());'\n"
+        "          then:\n"
+        "            - script.execute: show_clock_view\n"
+        "  - id: show_clock_view\n"
+        "    then:\n"
+        "      - lvgl.widget.show: clock_screensaver\n",
+        ("raise the clock screensaver above existing top-layer UI",),
+    )
+    valid_schedule_screensaver_override = (
+        "script:\n"
+        "  - id: screensaver_idle_check\n"
+        "    then:\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: |-\n"
+        "              if (screen_schedule_night_active(\n"
+        "                    id(screen_schedule_trigger).state,\n"
+        "                    id(schedule_enabled).state,\n"
+        "                    id(presence_detected),\n"
+        "                    now.is_valid(),\n"
+        "                    now.is_valid() ? now.hour : 0,\n"
+        "                    (int) id(schedule_on_hour).state,\n"
+        "                    (int) id(schedule_off_hour).state)) {\n"
+        "                id(screen_schedule_check).execute();\n"
+        "                return false;\n"
+        "              }\n"
+        "              return id(screensaver_mode).state == \"timer\";\n"
+        "  - id: screensaver_presence_wake\n"
+        "    then:\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: |-\n"
+        "              if (screen_schedule_waiting_for_time(\n"
+        "                    id(screen_schedule_trigger).state,\n"
+        "                    id(schedule_enabled).state,\n"
+        "                    now.is_valid()) ||\n"
+        "                  screen_schedule_night_active(\n"
+        "                    id(screen_schedule_trigger).state,\n"
+        "                    id(schedule_enabled).state,\n"
+        "                    id(presence_detected),\n"
+        "                    now.is_valid(),\n"
+        "                    now.is_valid() ? now.hour : 0,\n"
+        "                    (int) id(schedule_on_hour).state,\n"
+        "                    (int) id(schedule_off_hour).state)) {\n"
+        "                id(screen_schedule_check).execute();\n"
+        "                return false;\n"
+        "              }\n"
+        "              return id(screensaver_mode).state == \"sensor\";\n"
+        "          then:\n"
+        "            - script.execute: screensaver_wake\n"
+    )
+    expect_screen_schedule_screensaver_override_errors(
+        "night schedule overrides timer and sensor screensaver",
+        valid_schedule_screensaver_override,
+        (),
+    )
+    expect_screen_schedule_screensaver_override_errors(
+        "timer screensaver bypasses night schedule",
+        valid_schedule_screensaver_override.replace(
+            "                id(screen_schedule_check).execute();\n"
+            "                return false;\n"
+            "              }\n"
+            "              return id(screensaver_mode).state == \"timer\";\n",
+            "                std::string mode = id(schedule_mode).current_option();\n"
+            "                if (screen_schedule_clock_mode(mode)) return false;\n"
+            "              }\n"
+            "              return id(screensaver_mode).state == \"timer\";\n",
+            1,
+        ),
+        ("override timer screensaver actions",),
+    )
+    expect_screen_schedule_screensaver_override_errors(
+        "sensor screensaver wake bypasses night schedule",
+        valid_schedule_screensaver_override.replace(
+            "              if (screen_schedule_waiting_for_time(\n"
+            "                    id(screen_schedule_trigger).state,\n"
+            "                    id(schedule_enabled).state,\n"
+            "                    now.is_valid()) ||\n"
+            "                  screen_schedule_night_active(\n"
+            "                    id(screen_schedule_trigger).state,\n"
+            "                    id(schedule_enabled).state,\n"
+            "                    id(presence_detected),\n"
+            "                    now.is_valid(),\n"
+            "                    now.is_valid() ? now.hour : 0,\n"
+            "                    (int) id(schedule_on_hour).state,\n"
+            "                    (int) id(schedule_off_hour).state)) {\n"
+            "                id(screen_schedule_check).execute();\n"
+            "                return false;\n"
+            "              }\n",
+            "",
+            1,
+        ),
+        ("override sensor screensaver wake",),
+    )
+    expect_artwork_image_auth_errors(
+        "local artwork image request uses Basic auth",
+        "std::shared_ptr<http_request::HttpContainer> ArtworkImage::get_local_idf_(\n"
+        "    const std::string &url, const std::vector<http_request::Header> &headers) {\n"
+        "  esp_http_client_config_t config = {};\n"
+        "  config.auth_type = HTTP_AUTH_TYPE_BASIC;\n"
+        "}\n",
+        (
+            "keep local Home Assistant image proxy requests off HTTP Basic auth",
+            "explicitly disable HTTP auth for local artwork requests",
+        ),
+    )
+    expect_artwork_image_auth_errors(
+        "local artwork image request disables HTTP auth",
+        "std::shared_ptr<http_request::HttpContainer> ArtworkImage::get_local_idf_(\n"
+        "    const std::string &url, const std::vector<http_request::Header> &headers) {\n"
+        "  esp_http_client_config_t config = {};\n"
+        "  config.auth_type = HTTP_AUTH_TYPE_NONE;\n"
+        "}\n",
         (),
     )
     expect_climate_step_errors(

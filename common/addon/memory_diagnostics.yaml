@@ -1,0 +1,73 @@
+# =============================================================================
+# MEMORY DIAGNOSTICS - Device memory exposed to Home Assistant
+# =============================================================================
+# Current free internal heap, minimum free internal heap since boot, and free
+# PSRAM exposed as percentages. Raw byte sensors are internal and update once
+# per minute through ESPHome's debug component.
+# =============================================================================
+
+debug:
+  update_interval: 60s
+
+sensor:
+  - platform: debug
+    free:
+      name: "Memory: Heap Free Bytes"
+      id: memory_heap_free_bytes
+      entity_category: diagnostic
+      internal: true
+    min_free:
+      name: "Memory: Heap Min Free Bytes"
+      id: memory_heap_min_free_bytes
+      entity_category: diagnostic
+      internal: true
+    psram:
+      name: "Memory: PSRAM Free Bytes"
+      id: memory_psram_free_bytes
+      entity_category: diagnostic
+      internal: true
+
+  - platform: template
+    name: "Memory: Heap Free"
+    id: memory_heap_free_percent
+    icon: mdi:memory
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      const float total = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+      if (total <= 0.0f || isnan(id(memory_heap_free_bytes).state)) {
+        return NAN;
+      }
+      return id(memory_heap_free_bytes).state * 100.0f / total;
+
+  - platform: template
+    name: "Memory: Heap Min Free"
+    id: memory_heap_min_free_percent
+    icon: mdi:memory
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      const float total = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+      if (total <= 0.0f || isnan(id(memory_heap_min_free_bytes).state)) {
+        return NAN;
+      }
+      return id(memory_heap_min_free_bytes).state * 100.0f / total;
+
+  - platform: template
+    name: "Memory: PSRAM Free"
+    id: memory_psram_free_percent
+    icon: mdi:memory
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      const float total = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+      if (total <= 0.0f || isnan(id(memory_psram_free_bytes).state)) {
+        return NAN;
+      }
+      return id(memory_psram_free_bytes).state * 100.0f / total;

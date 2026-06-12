@@ -166,6 +166,8 @@ assert.deepStrictEqual(
     brightness_day: "88",
     brightness_night: "55",
     automatic_brightness: false,
+    brightness_dawn_time: "5:30",
+    brightness_dusk_time: "21:05",
     schedule_enabled: true,
     schedule_on_hour: 7,
     schedule_off_hour: 22,
@@ -181,6 +183,9 @@ assert.deepStrictEqual(
     brightnessDayVal: 88,
     brightnessNightVal: 55,
     automaticBrightnessEnabled: false,
+    brightnessDawnTime: "05:30",
+    brightnessDuskTime: "21:05",
+    scheduleTrigger: "time",
     scheduleEnabled: true,
     scheduleOnHour: 7,
     scheduleOffHour: 22,
@@ -197,8 +202,6 @@ assert.deepStrictEqual(
 const panelSettings = model.normalizeBackupPanelSettings({
   temperature_unit: "centigrade",
   clock_bar_time: false,
-  clock_bar_weather_icon: true,
-  clock_bar_weather_entity: "weather.home",
   language: "it",
   clock_format: "24h",
   ntp_server_1: "pool.ntp.org",
@@ -221,9 +224,8 @@ const panelSettings = model.normalizeBackupPanelSettings({
   screenRotationOptions: ["0", "90", "180", "270"],
 });
 assert.strictEqual(panelSettings.temperatureUnit, "\u00B0C", "panel temperature unit normalizes");
-assert.strictEqual(panelSettings.clockBarTime, false, "panel clock bar time imports");
-assert.strictEqual(panelSettings.clockBarWeatherIcon, true, "panel clock bar weather icon imports");
-assert.strictEqual(panelSettings.clockBarWeatherEntity, "weather.home", "panel clock bar weather entity imports");
+assert.strictEqual(panelSettings.clockBarTime, true, "panel clock bar time resets on");
+assert.strictEqual(panelSettings.networkStatusIcon, true, "panel clock bar network status resets on");
 assert.strictEqual(panelSettings.language, "it", "panel language imports");
 assert.strictEqual(panelSettings.clockFormat, "24h", "panel clock format validates against options");
 assert.strictEqual(panelSettings.ntpServer1, "pool.ntp.org", "panel NTP server imports");
@@ -266,8 +268,6 @@ const legacyPanelSettings = model.normalizeBackupPanelSettings({}, {
   screenRotationOptions: ["0", "90", "180", "270"],
 });
 assert.strictEqual(legacyPanelSettings.clockBarTime, true, "legacy panel settings default clock bar time on");
-assert.strictEqual(legacyPanelSettings.clockBarWeatherIcon, false, "legacy panel settings default clock bar weather icon off");
-assert.strictEqual(legacyPanelSettings.clockBarWeatherEntity, "", "legacy panel settings default clock bar weather entity empty");
 assert.strictEqual(legacyPanelSettings.coverArtHideExternalInput, true, "legacy panel settings default cover art external-input setting on");
 
 console.log("Model contract tests passed.");

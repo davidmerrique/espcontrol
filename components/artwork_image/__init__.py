@@ -49,12 +49,14 @@ CONF_ALLOW_INSECURE_LOCAL_URLS = "allow_insecure_local_urls"
 CONF_PLACEHOLDER = "placeholder"
 CONF_TRANSPARENCY = "transparency"
 CONF_UPDATE = "update"
+CONF_RESIZE_MODE = "resize_mode"
 
 _LOGGER = logging.getLogger(__name__)
 
 artwork_image_ns = cg.esphome_ns.namespace("artwork_image")
 
 ImageFormat = artwork_image_ns.enum("ImageFormat")
+ImageResizeMode = artwork_image_ns.enum("ImageResizeMode")
 
 
 class Format:
@@ -152,6 +154,9 @@ ARTWORK_IMAGE_SCHEMA = (
             cv.Required(CONF_ID): cv.declare_id(ArtworkImage),
             cv.Required(CONF_TYPE): validate_type(IMAGE_TYPE),
             cv.Optional(CONF_RESIZE): cv.dimensions,
+            cv.Optional(CONF_RESIZE_MODE, default="FIT"): cv.one_of(
+                "FIT", "COVER", upper=True
+            ),
             cv.Optional(CONF_BYTE_ORDER): cv.one_of(
                 "BIG_ENDIAN", "LITTLE_ENDIAN", upper=True
             ),
@@ -255,7 +260,7 @@ async def to_code(config):
         try:
             from esphome.core import CORE
 
-            if CORE.is_esp32 and CORE.using_esp_idf:
+            if CORE.is_esp32 and not CORE.using_arduino:
                 esp32.add_idf_sdkconfig_option("CONFIG_ESP_TLS_INSECURE", True)
                 esp32.add_idf_sdkconfig_option(
                     "CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY", True
@@ -283,6 +288,7 @@ async def to_code(config):
         width,
         height,
         image_format.enum,
+        getattr(ImageResizeMode, config[CONF_RESIZE_MODE]),
         get_image_type_enum(config[CONF_TYPE]),
         transparent,
         config[CONF_BUFFER_SIZE],

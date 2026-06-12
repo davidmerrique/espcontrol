@@ -196,12 +196,14 @@ inline const char *card_contract_card_label(const std::string &type) {
   if (type == "media") return "Media";
   if (type == "option_select") return "Option Select";
   if (type == "push") return "Trigger";
+  if (type == "screen_lock") return "Screen Lock";
   if (type == "webhook") return "Webhook";
   if (type == "sensor") return "Sensor";
   if (type == "slider") return "Slider";
   if (type == "subpage") return "Subpage";
   if (type == "timezone") return "Date & Time";
   if (type == "weather") return "Weather";
+  if (type == "image") return "Camera Card";
   if (type == "weather_forecast") return "Weather Forecast";
   return type.empty() ? "Switch" : type.c_str();
 }
@@ -231,12 +233,14 @@ inline bool card_contract_allow_in_subpage(const std::string &type) {
   if (type == "media") return true;
   if (type == "option_select") return true;
   if (type == "push") return true;
+  if (type == "screen_lock") return true;
   if (type == "webhook") return true;
   if (type == "sensor") return true;
   if (type == "slider") return true;
   if (type == "subpage") return false;
   if (type == "timezone") return true;
   if (type == "weather") return true;
+  if (type == "image") return true;
   if (type == "weather_forecast") return true;
   return false;
 }
@@ -266,12 +270,14 @@ inline const char *card_contract_default_icon_name(const std::string &type) {
   if (type == "media") return "Auto";
   if (type == "option_select") return "Flash";
   if (type == "push") return "Gesture Tap";
+  if (type == "screen_lock") return "Lock";
   if (type == "webhook") return "Auto";
   if (type == "sensor") return "Auto";
   if (type == "slider") return "Auto";
   if (type == "subpage") return "Auto";
   if (type == "timezone") return "Auto";
   if (type == "weather") return "Auto";
+  if (type == "image") return "Auto";
   if (type == "weather_forecast") return "Auto";
   return "Auto";
 }
@@ -301,12 +307,14 @@ inline const char *card_contract_default_icon_on_name(const std::string &type) {
   if (type == "media") return "Auto";
   if (type == "option_select") return "Auto";
   if (type == "push") return "Auto";
+  if (type == "screen_lock") return "Lock Open";
   if (type == "webhook") return "Auto";
   if (type == "sensor") return "Auto";
   if (type == "slider") return "Auto";
   if (type == "subpage") return "Auto";
   if (type == "timezone") return "Auto";
   if (type == "weather") return "Auto";
+  if (type == "image") return "Auto";
   if (type == "weather_forecast") return "Auto";
   return "Auto";
 }
@@ -369,6 +377,7 @@ inline const char *card_contract_subpage_type_code(const std::string &type) {
   if (type == "media") return "M";
   if (type == "climate") return "H";
   if (type == "push") return "P";
+  if (type == "screen_lock") return "SL";
   if (type == "webhook") return "WH";
   if (type == "internal") return "I";
   if (type == "subpage") return "G";
@@ -403,6 +412,7 @@ inline std::string card_contract_subpage_type_from_code(const std::string &code)
   if (code == "M") return "media";
   if (code == "H") return "climate";
   if (code == "P") return "push";
+  if (code == "SL") return "screen_lock";
   if (code == "WH") return "webhook";
   if (code == "I") return "internal";
   if (code == "G") return "subpage";

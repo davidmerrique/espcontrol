@@ -129,9 +129,7 @@ registerButtonType("", {
     var showSensor = !!b.sensor;
     var sensorMode = b.precision === "text" ? "text" : "numeric";
 
-    helpers.renderCardEntityField(panel, b, helpers, SWITCH_CARD_METADATA);
-    helpers.renderCardIconPicker(panel, b, helpers, SWITCH_CARD_METADATA.iconOff);
-    helpers.renderCardIconPicker(panel, b, helpers, SWITCH_CARD_METADATA.iconOn);
+    helpers.renderBasicCardFields(panel, b, helpers, SWITCH_CARD_METADATA);
 
     var sensorToggle = helpers.renderCardOptionToggle(panel, b, helpers, SWITCH_CARD_METADATA.activeDisplay);
     var sensorSection = condField();
@@ -305,10 +303,7 @@ registerButtonType("light_switch", {
   renderSettings: function (panel, b, slot, helpers) {
     renderLightControlTypeField(panel, b, helpers);
 
-    helpers.renderCardEntityField(panel, b, helpers, LIGHT_SWITCH_CARD_METADATA);
-    helpers.renderCardTextField(panel, b, helpers, LIGHT_SWITCH_CARD_METADATA.labelField);
-    helpers.renderCardIconPicker(panel, b, helpers, LIGHT_SWITCH_CARD_METADATA.iconOff);
-    helpers.renderCardIconPicker(panel, b, helpers, LIGHT_SWITCH_CARD_METADATA.iconOn);
+    helpers.renderBasicCardFields(panel, b, helpers, LIGHT_SWITCH_CARD_METADATA);
   },
   renderPreview: function (b, helpers) {
     var label = b.label || b.entity || "Configure";

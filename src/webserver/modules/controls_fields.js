@@ -128,7 +128,7 @@ function cardLargeNumbersSupportsCardSize(b, helpers, metadata) {
   if (large.supportedCardSize) {
     return !!cardMetadataValue(large.supportedCardSize, b, helpers);
   }
-  return cardSize === 4;
+  return cardSize === CARD_SIZE_LARGE;
 }
 
 function cardLargeNumbersMetadata(b) {
@@ -143,7 +143,7 @@ function cardLargeNumbersActiveForCardSize(b, helpers, metadata) {
     return false;
   }
   if (largeNumbersExplicitlyDisabled(b && b.options)) return false;
-  return (helpers.cardSize || 1) === 4 || cardLargeNumbersEnabled(b);
+  return (helpers.cardSize || CARD_SIZE_SINGLE) === CARD_SIZE_LARGE || cardLargeNumbersEnabled(b);
 }
 
 function cardLargeNumbersHidePreviewLabel(b, helpers, metadata) {
@@ -306,6 +306,38 @@ function renderCardOptionToggle(panel, b, helpers, metadata) {
   return row;
 }
 
+function renderCardIconPair(panel, b, helpers, offMetadata, onMetadata) {
+  return {
+    off: helpers.renderCardIconPicker(panel, b, helpers, offMetadata),
+    on: helpers.renderCardIconPicker(panel, b, helpers, onMetadata),
+  };
+}
+
+function renderCardActiveColorToggle(panel, b, helpers, metadata, setEnabled) {
+  return helpers.renderCardOptionToggle(panel, b, helpers, Object.assign({}, metadata, {
+    onChange: function (button, cardHelpers, checked) {
+      setEnabled(button, checked);
+      cardHelpers.saveField("options", button.options);
+    },
+  }));
+}
+
+function renderBasicCardFields(panel, b, helpers, metadata, options) {
+  options = options || {};
+  if (options.entity !== false && metadata.entity) {
+    helpers.renderCardEntityField(panel, b, helpers, metadata);
+  }
+  if (options.label !== false && metadata.labelField) {
+    helpers.renderCardTextField(panel, b, helpers, metadata.labelField);
+  }
+  if (options.icon !== false && metadata.icon) {
+    helpers.renderCardIconPicker(panel, b, helpers, metadata.icon);
+  }
+  if (options.iconPair !== false && (metadata.iconOff || metadata.iconOn)) {
+    renderCardIconPair(panel, b, helpers, metadata.iconOff, metadata.iconOn);
+  }
+}
+
 function renderCardSegmentControl(panel, b, helpers, metadata) {
   metadata = metadata || {};
   var segment = metadata.segment || metadata;
@@ -333,6 +365,28 @@ function cardBadgeLabelHtml(helpers, label, badgeIcon) {
   return '<span class="sp-btn-label-row"><span class="sp-btn-label">' +
     helpers.escHtml(label) +
   '</span><span class="sp-type-badge mdi mdi-' + badgeIcon + '"></span></span>';
+}
+
+function cardIconHtml(iconSlugName, extraHtml) {
+  return '<span class="sp-btn-icon mdi mdi-' + iconSlugName + '"></span>' + (extraHtml || "");
+}
+
+function cardIconSlug(b, helpers, fallback, field) {
+  field = field || "icon";
+  var value = b && b[field];
+  if (value && value !== "Auto") return iconSlug(value);
+  return iconSlug(cardMetadataValue(fallback, b, helpers) || "Auto");
+}
+
+function cardBadgePreview(b, helpers, options) {
+  options = options || {};
+  return {
+    iconHtml: cardIconHtml(
+      cardIconSlug(b, helpers, options.iconFallback, options.iconField),
+      options.iconExtraHtml || ""
+    ),
+    labelHtml: cardBadgeLabelHtml(helpers, options.label || "Configure", options.badge),
+  };
 }
 
 function condField() {

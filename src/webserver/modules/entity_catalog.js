@@ -106,22 +106,6 @@ var ENTITY_CATALOG = {
         "clock_bar__temperature_entities"
       ]
     },
-    "screen_clock_bar_weather_icon": {
-      "domain": "switch",
-      "name": "Screen: Clock Bar Weather Icon",
-      "objectIds": [
-        "screen__clock_bar_weather_icon",
-        "screen_clock_bar_weather_icon",
-        "clock_bar_weather_icon_enabled"
-      ]
-    },
-    "clock_bar_weather_entity": {
-      "domain": "text",
-      "name": "Clock Bar: Weather Entity",
-      "objectIds": [
-        "clock_bar__weather_entity"
-      ]
-    },
     "screen_network_status_icon": {
       "domain": "switch",
       "name": "Screen: Network Status Icon",
@@ -204,15 +188,6 @@ var ENTITY_CATALOG = {
         "cover_art_media_player_entity"
       ]
     },
-    "screen_saver_cover_art_ha_url": {
-      "domain": "text",
-      "name": "Screen Saver: Cover Art Fallback Server",
-      "objectIds": [
-        "screen_saver__home_assistant_url",
-        "screen_saver_cover_art_ha_url",
-        "cover_art_home_assistant_url"
-      ]
-    },
     "screen_saver_cover_art_delay": {
       "domain": "number",
       "name": "Screen Saver: Cover Art Delay",
@@ -228,7 +203,8 @@ var ENTITY_CATALOG = {
       "objectIds": [
         "screen_saver__track_overlay_duration",
         "screen_saver_track_overlay_duration",
-        "track_overlay_duration"
+        "track_overlay_duration",
+        "screen_saver__show_track_overlay"
       ]
     },
     "screen_saver_hide_cover_art_external_input": {
@@ -238,27 +214,8 @@ var ENTITY_CATALOG = {
         "screen_saver__hide_cover_art_on_external_input",
         "screen_saver_hide_cover_art_on_external_input",
         "hide_cover_art_on_external_input",
-        "cover_art_hide_external_input"
-      ]
-    },
-    "screen_saver_open_media_subpage": {
-      "domain": "switch",
-      "name": "Screen Saver: Open Media Subpage While Playing",
-      "objectIds": [
-        "screen_saver__open_media_subpage_while_playing",
-        "screen_saver_open_media_subpage_while_playing",
-        "screen_saver__open_media_subpage",
-        "screen_saver_open_media_subpage",
-        "open_media_subpage_while_playing"
-      ]
-    },
-    "screen_saver_media_subpage": {
-      "domain": "text",
-      "name": "Screen Saver: Media Subpage",
-      "objectIds": [
-        "screen_saver__media_subpage",
-        "screen_saver_media_subpage",
-        "cover_art_media_subpage"
+        "cover_art_hide_external_input",
+        "screen_saver__hide_for_external_sources"
       ]
     },
     "screen_saver_daytime_clock_brightness": {
@@ -363,6 +320,15 @@ var ENTITY_CATALOG = {
         "screen__schedule_enabled"
       ]
     },
+    "screen_schedule_trigger": {
+      "domain": "text",
+      "name": "Screen: Schedule Trigger",
+      "objectIds": [
+        "screen__schedule_trigger",
+        "screen_schedule_trigger",
+        "schedule_trigger"
+      ]
+    },
     "screen_schedule_mode": {
       "domain": "select",
       "name": "Screen: Schedule Mode",
@@ -436,6 +402,24 @@ var ENTITY_CATALOG = {
     "screen_nighttime_brightness": {
       "domain": "number",
       "name": "Screen: Nighttime Brightness"
+    },
+    "screen_brightness_dawn_time": {
+      "domain": "text",
+      "name": "Screen: Brightness Dawn Time",
+      "objectIds": [
+        "screen__brightness_dawn_time",
+        "screen_brightness_dawn_time",
+        "brightness_dawn_time"
+      ]
+    },
+    "screen_brightness_dusk_time": {
+      "domain": "text",
+      "name": "Screen: Brightness Dusk Time",
+      "objectIds": [
+        "screen__brightness_dusk_time",
+        "screen_brightness_dusk_time",
+        "brightness_dusk_time"
+      ]
     },
     "firmware_version": {
       "domain": "text_sensor",
@@ -519,8 +503,6 @@ var ENTITY_CATALOG = {
       "screen_clock_bar_layout",
       "screen_clock_bar_time",
       "clock_bar_temperature_entities",
-      "screen_clock_bar_weather_icon",
-      "clock_bar_weather_entity",
       "screen_network_status_icon",
       "screen_temperature_degree_symbol",
       "screen_subpage_chevron",
@@ -534,12 +516,9 @@ var ENTITY_CATALOG = {
       "media_player_sleep_prevention_entity",
       "screen_saver_cover_art",
       "screen_saver_cover_art_entity",
-      "screen_saver_cover_art_ha_url",
       "screen_saver_cover_art_delay",
       "screen_saver_track_overlay_duration",
       "screen_saver_hide_cover_art_external_input",
-      "screen_saver_open_media_subpage",
-      "screen_saver_media_subpage",
       "screen_saver_daytime_clock_brightness",
       "screen_saver_nighttime_clock_brightness",
       "screen_saver_clock_brightness",
@@ -559,6 +538,7 @@ var ENTITY_CATALOG = {
       "wifi_strength",
       "screen_automatic_brightness",
       "screen_schedule_enabled",
+      "screen_schedule_trigger",
       "screen_schedule_mode",
       "screen_schedule_on_hour",
       "screen_schedule_off_hour",
@@ -569,6 +549,8 @@ var ENTITY_CATALOG = {
       "screen_schedule_clock_text_color",
       "screen_daytime_brightness",
       "screen_nighttime_brightness",
+      "screen_brightness_dawn_time",
+      "screen_brightness_dusk_time",
       "firmware_version",
       "firmware_update",
       "firmware_check_for_update",

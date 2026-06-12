@@ -23,6 +23,7 @@ enum class ControlModalKind {
   NETWORK_STATUS,
   ALARM_PIN,
   ALARM_CONTROL,
+  IMAGE_CARD,
   TODO_LIST,
 };
 
@@ -32,6 +33,7 @@ struct ControlModalActive {
   ControlModalKind kind = ControlModalKind::NONE;
   lv_obj_t *overlay = nullptr;
   ControlModalCloseCallback close_callback = nullptr;
+  uint32_t close_guard_until_ms = 0;
   bool closing = false;
 };
 
@@ -62,12 +64,25 @@ inline void control_modal_set_active(ControlModalKind kind, lv_obj_t *overlay,
   active.kind = kind;
   active.overlay = overlay;
   active.close_callback = close_callback;
+  active.close_guard_until_ms = 0;
   active.closing = false;
+}
+
+inline bool control_modal_close_guard_active(const ControlModalActive &active) {
+  return active.close_guard_until_ms != 0 &&
+         (int32_t)(lv_tick_get() - active.close_guard_until_ms) < 0;
+}
+
+inline void control_modal_block_close_for(uint32_t delay_ms) {
+  ControlModalActive &active = control_modal_active();
+  if (active.kind == ControlModalKind::NONE || delay_ms == 0) return;
+  active.close_guard_until_ms = lv_tick_get() + delay_ms;
 }
 
 inline void control_modal_close_active() {
   ControlModalActive &active = control_modal_active();
   if (active.kind == ControlModalKind::NONE || active.closing) return;
+  if (control_modal_close_guard_active(active)) return;
 
   ControlModalKind closing_kind = active.kind;
   void (*close_callback)() = active.close_callback;
@@ -214,6 +229,20 @@ inline bool control_modal_uses_large_landscape_tuning(const ControlModalLayout &
 inline lv_coord_t control_modal_screen_width(lv_coord_t fallback = 480) {
   lv_disp_t *disp = lv_disp_get_default();
   return disp ? lv_disp_get_hor_res(disp) : fallback;
+}
+
+inline bool control_modal_current_is_jc4880p443_size() {
+  lv_disp_t *disp = lv_disp_get_default();
+  lv_coord_t width = disp ? lv_disp_get_hor_res(disp) : 0;
+  lv_coord_t height = disp ? lv_disp_get_ver_res(disp) : 0;
+  return display_modal_is_jc4880p443_size(width, height);
+}
+
+inline bool control_modal_current_is_4848_size() {
+  lv_disp_t *disp = lv_disp_get_default();
+  lv_coord_t width = disp ? lv_disp_get_hor_res(disp) : 0;
+  lv_coord_t height = disp ? lv_disp_get_ver_res(disp) : 0;
+  return display_modal_is_4848_size(width, height);
 }
 
 inline lv_coord_t control_modal_controls_down_px(const ControlModalLayout &layout) {
@@ -398,6 +427,15 @@ inline void control_modal_style_chrome_button(lv_obj_t *btn,
   lv_obj_set_style_radius(btn, layout.back_size / 2, LV_PART_MAIN);
   if (top_right) lv_obj_align(btn, LV_ALIGN_TOP_RIGHT, -layout.inset, layout.inset);
   else control_modal_apply_back_button_layout(btn, layout);
+}
+
+inline void control_modal_style_translucent_chrome_button(lv_obj_t *btn) {
+  if (!btn) return;
+  lv_obj_set_style_bg_color(btn, lv_color_hex(DARK_OVERLAY), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(btn, LV_OPA_50, LV_PART_MAIN);
+  lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+  lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
+  control_modal_apply_pressed_fill(btn);
 }
 
 inline ControlModalShell control_modal_open_shell(ControlModalKind kind,

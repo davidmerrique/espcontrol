@@ -65,32 +65,26 @@ registerButtonType("door_window", {
     }));
     var subtypeSelect = subtypeField.select;
 
-    helpers.renderCardEntityField(panel, b, helpers, DOOR_WINDOW_CARD_METADATA);
+    helpers.renderBasicCardFields(panel, b, helpers, DOOR_WINDOW_CARD_METADATA);
 
-    helpers.renderCardTextField(panel, b, helpers, DOOR_WINDOW_CARD_METADATA.labelField);
-
-    var closedIconPicker = helpers.renderCardIconPicker(panel, b, helpers, {
+    var iconPickers = helpers.renderCardIconPair(panel, b, helpers, {
       pickerIdSuffix: "closed-icon-picker",
       idSuffix: "icon",
       field: "icon",
       label: "Closed Icon",
       fallback: function () { return doorWindowClosedIcon(b.precision); },
-    });
-
-    var openIconPicker = helpers.renderCardIconPicker(panel, b, helpers, {
+    }, {
       pickerIdSuffix: "open-icon-picker",
       idSuffix: "icon-on",
       field: "icon_on",
       label: "Open Icon",
       fallback: function () { return doorWindowOpenIcon(b.precision); },
     });
+    var closedIconPicker = iconPickers.off;
+    var openIconPicker = iconPickers.on;
 
-    helpers.renderCardOptionToggle(panel, b, helpers, Object.assign({}, DOOR_WINDOW_CARD_METADATA.activeColor, {
-      onChange: function (button, cardHelpers, checked) {
-        setDoorWindowActiveColorEnabled(button, checked);
-        cardHelpers.saveField("options", button.options);
-      },
-    }));
+    helpers.renderCardActiveColorToggle(panel, b, helpers,
+      DOOR_WINDOW_CARD_METADATA.activeColor, setDoorWindowActiveColorEnabled);
 
     function syncIconPicker(picker, value) {
       var preview = picker.querySelector(".sp-icon-picker-preview");
@@ -123,11 +117,11 @@ registerButtonType("door_window", {
   },
   renderPreview: function (b, helpers) {
     var subtype = normalizeDoorWindowSubtype(b.precision);
-    var icon = b.icon && b.icon !== "Auto" ? b.icon : doorWindowClosedIcon(subtype);
     var label = b.label || b.sensor || (subtype === "window" ? "Window" : "Door");
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconSlug(icon) + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, subtype === "window" ? "window-closed" : "door"),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: doorWindowClosedIcon(subtype),
+      badge: subtype === "window" ? "window-closed" : "door",
+    });
   },
 });

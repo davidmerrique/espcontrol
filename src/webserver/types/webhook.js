@@ -142,7 +142,10 @@ registerButtonType("webhook", {
       }
     });
 
-    helpers.renderCardIconPicker(panel, b, helpers, WEBHOOK_CARD_METADATA.icon);
+    helpers.renderBasicCardFields(panel, b, helpers, WEBHOOK_CARD_METADATA, {
+      entity: false,
+      label: false,
+    });
 
     function saveHeaders() {
       helpers.saveField("options", setWebhookHeaders(b, headersField.input.value));
@@ -150,10 +153,10 @@ registerButtonType("webhook", {
   },
   renderPreview: function (b, helpers) {
     var label = b.label || b.entity || "Webhook";
-    var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "flash";
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, WEBHOOK_CARD_METADATA.preview.badge),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: "Flash",
+      badge: WEBHOOK_CARD_METADATA.preview.badge,
+    });
   },
 });

@@ -25,11 +25,44 @@ function buttonTypeInfoOnlyVisible(key) {
     "calendar",
     "clock",
     "door_window",
+    "image",
     "presence",
     "timezone",
     "weather",
     "weather_forecast",
   ].indexOf(key || "") !== -1;
+}
+
+var CARD_TYPE_PICKER_DETAILS = {
+  "": { icon: "toggle-switch", description: "Toggle lights, switches, helpers, or fans." },
+  action: { icon: "flash", description: "Run a Home Assistant action or service." },
+  alarm: { icon: "shield-home", description: "Control or trigger alarm panel actions." },
+  calendar: { icon: "calendar-clock", description: "Show date, time, or world clock values." },
+  climate: { icon: "thermostat", description: "Show climate status and temperature controls." },
+  cover: { icon: "window-shutter", description: "Control blinds, curtains, or covers." },
+  door_window: { icon: "door-open", description: "Show open or closed sensor state." },
+  presence: { icon: "account", description: "Show person or presence status." },
+  fan_speed: { icon: "fan", description: "Control fan speed, mode, or direction." },
+  garage: { icon: "garage", description: "Show and control a garage door." },
+  image: { icon: "image", description: "Display an image card where supported." },
+  internal: { icon: "power-plug", description: "Control built-in device relays." },
+  light_brightness: { icon: "lightbulb", description: "Configure light switch, brightness, or temperature controls." },
+  lock: { icon: "lock", description: "Show and control a lock." },
+  media: { icon: "speaker", description: "Control media playback or volume." },
+  push: { icon: "gesture-tap-button", description: "Fire a momentary button event." },
+  sensor: { icon: "gauge", description: "Display sensor values or states." },
+  slider: { icon: "tune-vertical", description: "Adjust a numeric or brightness value." },
+  subpage: { icon: "view-grid-plus", description: "Open a nested page of cards." },
+  webhook: { icon: "webhook", description: "Send a direct HTTP request." },
+  weather: { icon: "weather-partly-cloudy", description: "Show weather or forecast data." },
+};
+
+function buttonTypePickerDetails(key, label) {
+  var details = CARD_TYPE_PICKER_DETAILS[key || ""] || {};
+  return {
+    icon: details.icon || "card-outline",
+    description: details.description || ("Configure a " + (label || "card") + " card."),
+  };
 }
 
 function buttonTypePickerOptionList(isSub, selectedTypeKey) {
@@ -59,22 +92,28 @@ function buttonTypePickerOptionList(isSub, selectedTypeKey) {
       if (selectedTypeKey === td.key && showSelectedExperimental !== false) selectedHiddenExperimental = td;
       continue;
     }
-    typeOpts.push({ key: td.key, label: label, disabled: false });
+    typeOpts.push(Object.assign({
+      key: td.key,
+      label: label,
+      disabled: false,
+    }, buttonTypePickerDetails(td.key, label)));
   }
   if (selectedHiddenExperimental) {
-    typeOpts.push({
+    var selectedExperimentalLabel = buttonTypeRegistryValue(selectedHiddenExperimental, "label", selectedHiddenExperimental.key || "Toggle") +
+      " (experimental)";
+    typeOpts.push(Object.assign({
       key: selectedHiddenExperimental.key,
-      label: buttonTypeRegistryValue(selectedHiddenExperimental, "label", selectedHiddenExperimental.key || "Toggle") +
-        " (experimental)",
+      label: selectedExperimentalLabel,
       disabled: true,
-    });
+    }, buttonTypePickerDetails(selectedHiddenExperimental.key, selectedExperimentalLabel)));
   }
   if (selectedUnsupported) {
-    typeOpts.push({
+    var unsupportedLabel = selectedUnsupported.label + " (not available)";
+    typeOpts.push(Object.assign({
       key: selectedUnsupported.key,
-      label: selectedUnsupported.label + " (not available)",
+      label: unsupportedLabel,
       disabled: true,
-    });
+    }, buttonTypePickerDetails(selectedUnsupported.key, unsupportedLabel)));
   }
   typeOpts.sort(function (a, b) {
     return a.label.localeCompare(b.label);

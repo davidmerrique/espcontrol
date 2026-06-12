@@ -55,6 +55,11 @@ function assertGeneratedRotationOptions(slug, generated, key, options) {
 
 const hooks = loadHooks();
 assert(hooks, "web test hooks were not exported");
+assert.strictEqual(
+  hooks.backupExportFileName(new Date(2026, 5, 9)),
+  "espcontrol-7-inch-2026-06-09.json",
+  "backup export filename includes screen size and date"
+);
 assert.deepStrictEqual(Array.from(hooks.buttonTypesMissingCardMetadata()), [], "all registered card types define card metadata");
 assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.clockBar), [
   "switch-screen__clock_bar",
@@ -66,11 +71,6 @@ assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.clockBarTime), [
   "switch-screen_clock_bar_time",
   "switch-clock_bar_time_enabled",
 ], "clock bar time SSE aliases are registered together");
-assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.clockBarWeather), [
-  "switch-screen__clock_bar_weather_icon",
-  "switch-screen_clock_bar_weather_icon",
-  "switch-clock_bar_weather_icon_enabled",
-], "clock bar weather SSE aliases are registered together");
 assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.scheduleWakeTimeout), [
   "number-screen__schedule_wake_timeout",
   "number-screen_schedule_wake_timeout",
@@ -80,31 +80,62 @@ assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.ntpServer1), [
   "text-screen__ntp_server_1",
   "text-ntp_server_1",
 ], "NTP server SSE aliases are registered together");
-assert(
-  Array.from(hooks.SSE_ALIAS_GROUPS.openMediaSubpage).includes("switch-screen_saver__open_media_subpage_while_playing"),
-  "open media subpage SSE aliases include the full generated object id"
-);
 assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.coverArtHideExternalInput), [
   "switch-screen_saver__hide_cover_art_on_external_input",
   "switch-screen_saver_hide_cover_art_on_external_input",
   "switch-hide_cover_art_on_external_input",
   "switch-cover_art_hide_external_input",
+  "switch-screen_saver__hide_for_external_sources",
 ], "cover art external-input SSE aliases are registered together");
-assert(
-  Array.from(hooks.entityLookupNames("screen_saver_open_media_subpage")).includes("screen_saver__open_media_subpage_while_playing"),
-  "open media subpage post aliases include the full generated object id"
-);
+assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.trackOverlayDuration), [
+  "number-screen_saver__track_overlay_duration",
+  "number-screen_saver_track_overlay_duration",
+  "number-track_overlay_duration",
+  "number-screen_saver__show_track_overlay",
+], "cover art track-overlay SSE aliases are registered together");
 assert(
   Array.from(hooks.entityLookupNames("screen_saver_hide_cover_art_external_input")).includes("screen_saver__hide_cover_art_on_external_input"),
   "cover art external-input post aliases include the full generated object id"
 );
+assert(
+  Array.from(hooks.entityLookupNames("screen_saver_hide_cover_art_external_input")).includes("screen_saver__hide_for_external_sources"),
+  "cover art external-input post aliases include the legacy external-sources object id"
+);
+assert.deepStrictEqual(Array.from(hooks.coverArtHideExternalInputPostUrls(false)), [
+  "/switch/screen_saver__hide_cover_art_on_external_input/turn_off",
+  "/switch/screen_saver_hide_cover_art_on_external_input/turn_off",
+  "/switch/hide_cover_art_on_external_input/turn_off",
+  "/switch/cover_art_hide_external_input/turn_off",
+  "/switch/screen_saver__hide_for_external_sources/turn_off",
+  "/switch/Screen%20Saver%3A%20Hide%20for%20external%20sources/turn_off",
+], "cover art external-input posts include all firmware object id aliases");
+assert(
+  Array.from(hooks.entityLookupNames("screen_saver_track_overlay_duration")).includes("screen_saver__show_track_overlay"),
+  "cover art track-overlay post aliases include the legacy show-track-overlay object id"
+);
 assert.strictEqual(hooks.clockBarVisibleInPreviewFor(true, "off"), true, "clock bar preview is visible when enabled");
 assert.strictEqual(hooks.clockBarVisibleInPreviewFor(true, "dim"), true, "clock bar preview stays visible for dimmed screen saver");
-assert.strictEqual(hooks.clockBarVisibleInPreviewFor(true, "clock"), false, "clock bar preview is hidden for clock screen saver");
+assert.strictEqual(hooks.clockBarVisibleInPreviewFor(true, "clock"), true, "clock bar preview stays visible when clock screen saver is configured");
 assert.strictEqual(hooks.clockBarVisibleInPreviewFor(false, "off"), false, "clock bar preview is hidden when disabled");
+assert.strictEqual(hooks.clockBarStateAfterEvents([
+  { id: "switch-screen__clock_bar", state: "ON", value: true },
+  { id: "switch-clock_bar_enabled", state: "OFF", value: false },
+]), true, "clock bar preview keeps the enabled state when a stale alias reports off later");
+assert.strictEqual(hooks.clockBarStateAfterEvents([
+  { id: "switch-screen__clock_bar", state: "ON", value: true },
+  { id: "switch-screen__clock_bar", state: "OFF", value: false },
+]), false, "clock bar preview still turns off when the same source reports off");
+assert.strictEqual(hooks.removedLegacyStateEvent({
+  id: "text-screen_saver__cover_art_fallback_server",
+  state: "http://old-art-server.local",
+}), true, "cover art fallback server is treated as a removed legacy event");
+assert.strictEqual(hooks.removedLegacyStateEvent({
+  id: "text-screen_saver__cover_art_entity",
+  state: "media_player.living_room",
+}), false, "current cover art entity events are not treated as removed legacy events");
 
 const manifest = JSON.parse(fs.readFileSync(DEVICE_MANIFEST, "utf8"));
-for (const slug of Object.keys(manifest.devices || {})) {
+for (const [slug, device] of Object.entries(manifest.devices || {})) {
   const webOutput = path.join(WEB_OUTPUT_DIR, slug, "www.js");
   const generated = fs.readFileSync(webOutput, "utf8");
   const sandbox = createWebSandbox();
@@ -115,6 +146,17 @@ for (const slug of Object.keys(manifest.devices || {})) {
     `${slug}: generated web UI must export the same test hooks used by local checks`
   );
   const generatedHooks = sandbox.__ESPCONTROL_TEST_HOOKS__.config;
+  const expectedScreenSize = String(device.public.screenSize)
+    .toLowerCase()
+    .replace(/\binches\b/g, "inch")
+    .replace(/\bin\b/g, "inch")
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  assert.strictEqual(
+    generatedHooks.backupExportFileName(new Date(2026, 5, 9)),
+    `espcontrol-${expectedScreenSize}-2026-06-09.json`,
+    `${slug}: backup export filename includes screen size and date`
+  );
   const generatedTimezones = Array.from(generatedHooks.defaultTimezoneOptions());
   assert(
     generatedTimezones.includes("UTC (GMT+0)") && generatedTimezones.includes("Europe/London (GMT+0)"),
@@ -142,6 +184,12 @@ for (const [slug, device] of Object.entries(manifest.devices || {})) {
   assert.deepStrictEqual(device.rotation.options, ALL_ROTATIONS, `${slug}: normal rotation options`);
   assert.strictEqual(device.rotation.experimentalOptions, undefined, `${slug}: no hidden rotation options`);
   assertGeneratedRotationOptions(slug, featureConfig, "screenRotationOptions", ALL_ROTATIONS);
+  if (Object.prototype.hasOwnProperty.call(device.rotation, "displayOffset")) {
+    assert(
+      featureConfig.includes(`screenRotationDisplayOffset:${device.rotation.displayOffset}`),
+      `${slug}: generated web UI must include screen rotation display offset ${device.rotation.displayOffset}`
+    );
+  }
   assert(
     !featureConfig.includes("screenRotationExperimentalOptions"),
     `${slug}: generated web UI must not hide rotation options behind the dev flag`
@@ -206,6 +254,18 @@ assert(infoOnlyPickerKeys.includes("weather"), "info-only displays can still add
 assert(!infoOnlyPickerKeys.includes(""), "info-only displays hide switch controls");
 assert(!infoOnlyPickerKeys.includes("subpage"), "info-only displays hide subpage cards");
 assert(!infoOnlyPickerKeys.includes("media"), "info-only displays hide media controls");
+const pickerOptions = Array.from(hooks.buttonTypePickerOptionsFor(false, null));
+assert(pickerOptions.length > 8, "main card picker exposes the visible card choices");
+for (const option of pickerOptions) {
+  assert.strictEqual(typeof option.icon, "string", `${option.key}: picker option has an icon`);
+  assert(option.icon.length > 0, `${option.key}: picker option icon is not empty`);
+  assert.strictEqual(typeof option.description, "string", `${option.key}: picker option has a description`);
+  assert(option.description.length > 0, `${option.key}: picker option description is not empty`);
+}
+const switchPickerOption = pickerOptions.find((option) => option.key === "");
+assert(switchPickerOption, "switch card appears in the main card picker");
+assert.strictEqual(switchPickerOption.icon, "toggle-switch", "switch picker option uses the expected icon");
+assert(/Toggle lights/.test(switchPickerOption.description), "switch picker option includes concise help text");
 assert(
   hooks.buttonTypePreviewFor("alarm", { label: "Alarm", icon: "Security", type: "alarm" }).iconHtml.includes("mdi-shield-off"),
   "alarm preview defaults to the status icon"
@@ -435,6 +495,33 @@ assert(weatherForecastPreview.iconHtml.includes("sp-forecast-value"), "weather f
 assert(weatherForecastPreview.iconHtml.includes("sp-sensor-preview-large"), "weather forecast preview supports large numbers");
 assert(weatherForecastPreview.iconHtml.includes("\u00b0F"), "weather forecast preview uses the selected temperature unit");
 assert(weatherForecastPreview.labelHtml.includes("Garden"), "weather forecast preview uses the custom label");
+
+const imagePreview = hooks.buttonTypePreviewFor("image", {
+  entity: "camera.seaside",
+  label: "Seaside",
+  type: "image",
+  options: "image_label",
+});
+assert(!imagePreview.iconHtml.includes("sp-image-preview-icon"), "image preview hides the top-left icon by default");
+assert(!imagePreview.iconHtml.includes("sp-image-preview-text"), "image preview does not show centered placeholder text");
+assert(!imagePreview.iconHtml.includes(">Image<"), "image preview does not show centered Image copy");
+assert(imagePreview.labelHtml.includes("Seaside"), "image preview keeps the configured label");
+
+const imageIconPreview = hooks.buttonTypePreviewFor("image", {
+  entity: "camera.seaside",
+  label: "Seaside",
+  type: "image",
+  options: "image_icon",
+});
+assert(imageIconPreview.iconHtml.includes("sp-image-preview-icon mdi mdi-camera"), "image preview shows a top-left camera icon when enabled");
+assert(!imageIconPreview.labelHtml.includes("Seaside"), "image preview hides the label when label option is off");
+const customImageIconPreview = hooks.buttonTypePreviewFor("image", {
+  entity: "image.seaside",
+  icon: "Image",
+  type: "image",
+  options: "image_icon",
+});
+assert(customImageIconPreview.iconHtml.includes("sp-image-preview-icon mdi mdi-image"), "image preview can use a selected image icon when enabled");
 
 const sensorNumericPreview = hooks.buttonTypePreviewFor("sensor", {
   sensor: "sensor.office_temperature",
@@ -1007,6 +1094,51 @@ assert.strictEqual(
   }),
   null
 );
+const publicVersionIndex = {
+  device: "guition-esp32-p4-jc1060p470",
+  versions: [{
+    version: "v1.12.0",
+    release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.12.0",
+    ota: {
+      path: "guition-esp32-p4-jc1060p470.ota.bin",
+      md5: "0123456789abcdef0123456789abcdef",
+    },
+  }, {
+    version: "v1.11.0",
+    release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.11.0",
+    ota: {
+      path: "versions/v1.11.0/guition-esp32-p4-jc1060p470.ota.bin",
+      md5: "abcdef0123456789abcdef0123456789",
+    },
+  }],
+};
+assert.deepStrictEqual(plain(hooks.firmwareInfosFromPublicVersions(publicVersionIndex)), [{
+  latest_version: "v1.12.0",
+  release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.12.0",
+  ota_url: "https://jtenniswood.github.io/espcontrol/firmware/guition-esp32-p4-jc1060p470/guition-esp32-p4-jc1060p470.ota.bin",
+  ota_filename: "guition-esp32-p4-jc1060p470.ota.bin",
+  ota_md5: "0123456789abcdef0123456789abcdef",
+}, {
+  latest_version: "v1.11.0",
+  release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.11.0",
+  ota_url: "https://jtenniswood.github.io/espcontrol/firmware/guition-esp32-p4-jc1060p470/versions/v1.11.0/guition-esp32-p4-jc1060p470.ota.bin",
+  ota_filename: "guition-esp32-p4-jc1060p470.ota.bin",
+  ota_md5: "abcdef0123456789abcdef0123456789",
+}]);
+assert.deepStrictEqual(plain(hooks.firmwareStateAfterVersionIndex("v1.12.0", publicVersionIndex)), {
+  latest: "v1.12.0",
+  selected: "v1.12.0",
+  installAvailable: false,
+  selectorVisible: true,
+  installedSelected: true,
+});
+assert.deepStrictEqual(plain(hooks.firmwareStateAfterVersionIndex("v1.12.0", publicVersionIndex, "v1.11.0")), {
+  latest: "v1.12.0",
+  selected: "v1.11.0",
+  installAvailable: true,
+  selectorVisible: true,
+  installedSelected: false,
+});
 assert.strictEqual(hooks.firmwareVersionLabelFor("", true), "Checking version...");
 assert.strictEqual(hooks.firmwareVersionLabelFor("", false), "Version unknown");
 assert.deepStrictEqual(plain(hooks.entityDetailPaths("text_sensor", hooks.entityLookupNames("firmware_version"))), [

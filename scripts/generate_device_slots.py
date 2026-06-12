@@ -11,6 +11,7 @@ from pathlib import Path
 from product_schema import slot_devices
 
 ROOT = Path(__file__).resolve().parents[1]
+PANEL_DEVICE_SETTINGS_RESET_VERSION = 20260611
 
 
 PACKAGE_HEADER = """# =============================================================================
@@ -89,6 +90,7 @@ def cover_art_substitution_lines(device: dict) -> list[str]:
             "cover_art_progress_height": "4",
             "cover_art_text_color": "0xFFFFFF",
             "cover_art_square_overlay": "true",
+            "cover_art_live_image_updates": "false",
         },
         "seeed-sensecap-indicator-d1": {
             "cover_art_size": "480",
@@ -254,6 +256,8 @@ def cover_art_substitution_lines(device: dict) -> list[str]:
     layout = layouts.get(device["slug"])
     if not layout:
         return []
+    layout = {**layout}
+    layout.setdefault("cover_art_live_image_updates", "true")
     return [f'  {key}: "{value}"' for key, value in layout.items()]
 
 
@@ -350,6 +354,7 @@ def package_file_text(device: dict) -> str:
             include_line("backlight", "!include ../../common/addon/backlight.yaml"),
             include_line("bl_schedule", "!include ../../common/addon/backlight_schedule.yaml"),
             include_line("network", f"!include ../../common/addon/network{network_suffix}.yaml"),
+            include_line("memory_diag", "!include ../../common/addon/memory_diagnostics.yaml"),
             include_line(
                 "fw_update",
                 f"!include ../../common/addon/firmware_update{firmware_update_suffix}.yaml",
@@ -368,6 +373,18 @@ def package_file_text(device: dict) -> str:
             include_line("screen_setup", "!include ../../common/device/screen_button_setup.yaml"),
             include_line("screen_clock", "!include ../../common/device/screen_clock.yaml"),
             include_line("screen_art", "!include ../../common/device/screen_cover_art.yaml"),
+            *(
+                [
+                    include_line(
+                        "image_cards",
+                        "!include ../../common/device/image_cards.yaml"
+                        if int(device.get("image_card_downloaders", 4)) == 4
+                        else f"!include ../../common/device/image_cards_{int(device.get('image_card_downloaders', 4))}.yaml",
+                    )
+                ]
+                if int(device.get("image_card_downloaders", 4)) > 0
+                else []
+            ),
             "  # ---------------------------------------------------------------------------",
             "  # Main page and dynamic sensor subscriptions (after setup screens)",
             "  # ---------------------------------------------------------------------------",
@@ -434,6 +451,7 @@ def macro_array(name: str, macro: str, slots: int, per_line: int = 4) -> list[st
 
 
 def cfg_lines(device: dict) -> list[str]:
+    image_card_count = int(device.get("image_card_downloaders", 4))
     lines = [
         "            GridConfig cfg = {};",
         f"            cfg.num_slots = {device['slots']};",
@@ -497,10 +515,44 @@ def cfg_lines(device: dict) -> list[str]:
     lines.append("            cfg.pause_home_idle = []() {")
     lines.append("              id(home_screen_idle_suspended) = true;")
     lines.append("              id(home_screen_idle_check).stop();")
+    lines.append("              id(screensaver_idle_check).stop();")
+    lines.append("              id(screensaver_sleep_timer).stop();")
+    lines.append("              id(screensaver_sleep_sensor).stop();")
+    lines.append("              id(screensaver_sleep_display_off).stop();")
+    lines.append("              id(backlight_sleep_display_off).stop();")
+    lines.append("              id(backlight_fade_current_ui_to_black).stop();")
+    lines.append("              id(backlight_schedule_display_off).stop();")
+    lines.append("              id(show_clock_view).stop();")
+    lines.append("              id(show_dimmed_view).stop();")
+    lines.append("              id(clock_screensaver_refresh_brightness).stop();")
+    lines.append("              id(screensaver_dimmed_refresh_brightness).stop();")
+    lines.append("              id(display_asleep) = false;")
+    lines.append("              id(screensaver_display_off_active) = false;")
+    lines.append("              id(screensaver_dimmed_active) = false;")
+    lines.append("              lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);")
+    lines.append("              id(backlight_apply_brightness).execute();")
     lines.append("            };")
     lines.append("            cfg.resume_home_idle = []() {")
     lines.append("              id(home_screen_idle_suspended) = false;")
     lines.append("              id(home_screen_idle_check).execute();")
+    lines.append("              id(screensaver_idle_check).execute();")
+    lines.append("            };")
+    if image_card_count > 0:
+        lines.append("            static esphome::artwork_image::ArtworkImage *image_card_downloaders[] = {")
+        for num in range(1, image_card_count + 1):
+            lines.append(f"              id(image_card_download_{num}),")
+        lines.append("            };")
+        lines.append("            static esphome::artwork_image::ArtworkImage *image_card_modal_downloaders[] = {")
+        for num in range(1, image_card_count + 1):
+            lines.append(f"              id(image_card_modal_download_{num}),")
+        lines.append("            };")
+        lines.append("            cfg.image_card_images = image_card_downloaders;")
+        lines.append("            cfg.image_card_modal_images = image_card_modal_downloaders;")
+        lines.append(f"            cfg.image_card_image_count = {image_card_count};")
+    lines.append("            cfg.home_assistant_base_url = []() {")
+    lines.append("              std::string base = id(cover_art_home_assistant_base_url);")
+    lines.append("              while (!base.empty() && base.back() == '/') base.pop_back();")
+    lines.append("              return base;")
     lines.append("            };")
     lines.append("            register_webhook_sender([](const std::string &url, const std::string &method, const std::string &body, const std::vector<esphome::http_request::Header> &headers) {")
     lines.append("              auto response = id(http_req).start(url, method, body, headers);")
@@ -520,6 +572,8 @@ def cfg_lines(device: dict) -> list[str]:
     lines.append("            set_width_compensation_vertical_axis(cfg.width_compensation_vertical);")
     lines.append("            apply_width_compensation(id(display_time), cfg.width_compensation_percent);")
     lines.append("            apply_width_compensation(id(temperatures), cfg.width_compensation_percent);")
+    for index in range(2, 7):
+        lines.append(f"            apply_width_compensation(id(temperature_{index}), cfg.width_compensation_percent);")
     lines.append("            apply_width_compensation(id(clock_label), cfg.width_compensation_percent);")
     return lines
 
@@ -623,7 +677,7 @@ def phase2_block(device: dict) -> str:
 
 def script_block(device: dict) -> str:
     after_refresh = []
-    if device["slug"] == "esp32-p4-86":
+    if device["slug"] in {"esp32-p4-86", "guition-esp32-s3-4848s040"}:
         after_refresh.append("      - script.execute: clock_bar_apply")
     return "\n".join(
         [
@@ -637,8 +691,24 @@ def script_block(device: dict) -> str:
             "            id(main_page)->obj);",
             *after_refresh,
             "",
+            reset_existing_panel_settings_script(device),
+            "",
         ]
     )
+
+
+def reset_existing_panel_settings_script(device: dict) -> str:
+    lines = [
+        "  - id: reset_existing_panel_settings_once",
+        "    then:",
+        "      - lambda: |-",
+        f"          const int reset_version = {PANEL_DEVICE_SETTINGS_RESET_VERSION};",
+        "          if (id(panel_device_settings_reset_version) >= reset_version) return;",
+        '          ESP_LOGI("config", "Preserving stored panel settings across firmware update");',
+        "          id(panel_device_settings_reset_version) = reset_version;",
+        "          global_preferences->sync();",
+    ]
+    return "\n".join(lines)
 
 
 def replace_phase(text: str, phase: int, block: str, call: str, slug: str) -> str:
@@ -660,21 +730,9 @@ def replace_phase(text: str, phase: int, block: str, call: str, slug: str) -> st
 
 def replace_script_block(text: str, device: dict) -> str:
     block = script_block(device)
-    marker = re.compile(
-        r"(?ms)^script:\n"
-        r"  - id: refresh_button_grid\n"
-        r".*?^          grid_(?:phase1|refresh_layout)\(slots, cfg,\n"
-        r"^            id\(button_order\)\.state,\n"
-        r"(?:(?:^            id\(button_on_color\)\.state,\n"
-        r"^            id\(button_off_color\)\.state,\n"
-        r"^            id\(sensor_card_color\)\.state,\n"
-        r"))?"
-        r"^            id\(main_page\)->obj\);\n"
-        r"(?:^      - script\.execute: clock_bar_apply\n)*"
-        r"^\n?"
-    )
+    marker = re.compile(r"(?ms)^script:\n.*?(?=^esphome:)")
     if marker.search(text):
-        return marker.sub(block, text, count=1)
+        return marker.sub(block + "\n", text, count=1)
     insert_at = text.find("\nesphome:")
     if insert_at < 0:
         raise ValueError(f"Could not find esphome block for {device['slug']}")

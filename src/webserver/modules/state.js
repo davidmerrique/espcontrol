@@ -72,9 +72,8 @@ var state = {
   _clockBarTemperatureEntitiesReceived: false,
   temperatureUnit: "Auto",
   clockBarOn: false,
+  _clockBarStateValues: {},
   clockBarTimeOn: true,
-  clockBarWeatherOn: false,
-  clockBarWeatherEntity: "",
   networkStatusOn: true,
   networkTransport: "wifi",
   wifiStrengthPercent: 100,
@@ -85,12 +84,9 @@ var state = {
   mediaPlayerSleepPreventionEntity: "",
   coverArtScreensaverOn: false,
   coverArtMediaPlayerEntity: "",
-  coverArtHomeAssistantUrl: "",
   coverArtDelay: 10,
   coverArtTrackOverlayDuration: 5,
   coverArtHideExternalInputOn: true,
-  coverArtOpenMediaSubpageOn: false,
-  coverArtMediaSubpageTarget: "",
   screensaverMode: "disabled",
   _screensaverModeReceived: false,
   screensaverAction: "off",
@@ -108,6 +104,10 @@ var state = {
   brightnessDayVal: 100,
   brightnessNightVal: 75,
   automaticBrightnessEnabled: true,
+  brightnessDawnTime: "06:00",
+  brightnessDuskTime: "18:00",
+  scheduleTrigger: "disabled",
+  _scheduleTriggerReceived: false,
   scheduleEnabled: false,
   scheduleOnHour: 6,
   scheduleOffHour: 23,
@@ -146,6 +146,9 @@ var state = {
   firmwareOtaUrl: "",
   firmwareOtaFilename: "",
   firmwareOtaMd5: "",
+  firmwareVersionOptions: [],
+  firmwareSelectedVersion: "",
+  firmwareVersionIndexLoaded: false,
   autoUpdate: true,
   updateFrequency: "Daily",
   updateFreqOptions: ["Hourly", "Daily", "Weekly", "Monthly"],
@@ -153,8 +156,6 @@ var state = {
   configLocked: false,
   configLockReason: "",
   clockBarLayout: null,
-  clockBarSelectedItem: "",
-  clockBarAddDraft: null,
   clockBarDragItem: "",
   clockBarTempRestoreIndoor: false,
   clockBarTempRestoreOutdoor: true,
@@ -183,7 +184,7 @@ function getActiveScreensaverMode() {
 }
 
 function clockBarVisibleInPreview() {
-  return !!state.clockBarOn && normalizeScreensaverAction(state.screensaverAction) !== "clock";
+  return !!state.clockBarOn;
 }
 
 function normalizeScreenRotation(value) {
@@ -313,7 +314,18 @@ function clockBarTemperatureUnitSymbol() {
   return state.temperatureDegreeSymbolOn ? "\u00B0" : "";
 }
 
-var MAX_CLOCK_BAR_TEMPERATURES = 6;
+var MAX_CLOCK_BAR_TEMPERATURES = 1;
+var CLOCK_BAR_FIXED_LAYOUT_STRING = "left:temperature|middle:time|right:network";
+var CLOCK_BAR_FIXED_LAYOUT = {
+  left: ["temperature"],
+  middle: ["time"],
+  right: ["network"],
+};
+
+function defaultClockBarTemperatureEntity(index) {
+  if (index === 0) return "sensor.outdoor_temperature";
+  return "";
+}
 
 function normalizeClockBarTemperatureEntries(value) {
   var input = Array.isArray(value) ? value : String(value || "").split(/[|,\n]/);
@@ -357,9 +369,9 @@ function applyClockBarTemperatureEntities(list, postDevice) {
   state._clockBarTemperatureEntitiesReceived = true;
   var configured = clockBarTemperatureEntities();
   state._outdoorOn = configured.length > 0;
-  state._indoorOn = configured.length > 1;
+  state._indoorOn = false;
   state.outdoorEntity = configured[0] || "";
-  state.indoorEntity = configured[1] || "";
+  state.indoorEntity = "";
   if (postDevice) {
     postClockBarTemperatureEntities(serializeClockBarTemperatureEntities(state.clockBarTemperatureEntities));
     postSwitch(entityName("outdoor_temp_enable"), state._outdoorOn);
@@ -381,6 +393,10 @@ function appendScreenRotationOption(select, opt) {
 
 function normalizeHour(value, fallback) {
   return EspControlModel.normalizeHour(value, fallback);
+}
+
+function normalizeTimeOfDay(value, fallback) {
+  return EspControlModel.normalizeTimeOfDay(value, fallback);
 }
 
 function normalizeScheduleWakeTimeout(value) {
@@ -405,6 +421,10 @@ function normalizeScheduleDimmedBrightness(value) {
 
 function normalizeScheduleMode(value) {
   return EspControlModel.normalizeScheduleMode(value);
+}
+
+function normalizeScheduleTrigger(value, scheduleEnabled) {
+  return EspControlModel.normalizeScheduleTrigger(value, scheduleEnabled);
 }
 
 function normalizeScreensaverAction(value) {
@@ -557,6 +577,8 @@ function formatHour(hour) {
 }
 
 function syncScreenScheduleUi() {
+  state.scheduleTrigger = normalizeScheduleTrigger(state.scheduleTrigger, state.scheduleEnabled);
+  state.scheduleEnabled = state.scheduleTrigger !== "disabled";
   state.scheduleOnHour = normalizeHour(state.scheduleOnHour, 6);
   state.scheduleOffHour = normalizeHour(state.scheduleOffHour, 23);
   state.scheduleMode = normalizeScheduleMode(state.scheduleMode);
@@ -564,10 +586,23 @@ function syncScreenScheduleUi() {
   state.scheduleWakeBrightness = normalizeScheduleWakeBrightness(state.scheduleWakeBrightness);
   state.scheduleDimmedBrightness = normalizeScheduleDimmedBrightness(state.scheduleDimmedBrightness);
   state.scheduleClockBrightness = normalizeScheduleClockBrightness(state.scheduleClockBrightness);
+  state.brightnessDawnTime = normalizeTimeOfDay(state.brightnessDawnTime, "06:00");
+  state.brightnessDuskTime = normalizeTimeOfDay(state.brightnessDuskTime, "18:00");
   if (els.setAutomaticBrightnessToggle) {
     els.setAutomaticBrightnessToggle.checked = !!state.automaticBrightnessEnabled;
   }
+  if (els.setBrightnessDawnTime) els.setBrightnessDawnTime.value = state.brightnessDawnTime;
+  if (els.setBrightnessDuskTime) els.setBrightnessDuskTime.value = state.brightnessDuskTime;
+  if (els.setBrightnessManualTimes) {
+    els.setBrightnessManualTimes.className =
+      "sp-cond-field" + (!state.automaticBrightnessEnabled ? " sp-visible" : "");
+  }
   if (els.setScheduleToggle) els.setScheduleToggle.checked = !!state.scheduleEnabled;
+  if (els.setScheduleModeButtons) {
+    els.setScheduleModeButtons.disabled.className = state.scheduleTrigger === "disabled" ? "active" : "";
+    els.setScheduleModeButtons.time.className = state.scheduleTrigger === "time" ? "active" : "";
+    els.setScheduleModeButtons.sensor.className = state.scheduleTrigger === "sensor" ? "active" : "";
+  }
   if (els.setScheduleOnHour) els.setScheduleOnHour.value = String(state.scheduleOnHour);
   if (els.setScheduleOffHour) els.setScheduleOffHour.value = String(state.scheduleOffHour);
   if (els.setScheduleMode) {
@@ -602,7 +637,10 @@ function syncScreenScheduleUi() {
       "sp-cond-field" + (state.scheduleMode === "clock" ? " sp-visible" : "");
   }
   if (els.setScheduleTimes) {
-    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleEnabled ? "" : " sp-hidden");
+    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleTrigger === "time" ? "" : " sp-hidden");
+  }
+  if (els.setScheduleSensor) {
+    els.setScheduleSensor.className = "sp-schedule-times" + (state.scheduleTrigger === "sensor" ? "" : " sp-hidden");
   }
   if (els.setScheduleBadge) {
     els.setScheduleBadge.className = "sp-card-badge" + (state.scheduleEnabled ? "" : " sp-hidden");
@@ -610,11 +648,6 @@ function syncScreenScheduleUi() {
 }
 
 function syncTemperatureUi() {
-  if (els.setClockBarTemperatureEntity && isClockBarTemperatureItem(state.clockBarSelectedItem)) {
-    var index = clockBarTemperatureItemIndex(state.clockBarSelectedItem);
-    var list = clockBarTemperatureEntries();
-    syncInput(els.setClockBarTemperatureEntity, list[index] || "");
-  }
   if (els.setIndoorToggle) els.setIndoorToggle.checked = !!state._indoorOn;
   if (els.setIndoorField) {
     els.setIndoorField.className = "sp-cond-field" + (state._indoorOn ? " sp-visible" : "");
@@ -623,10 +656,6 @@ function syncTemperatureUi() {
   if (els.setOutdoorField) {
     els.setOutdoorField.className = "sp-cond-field" + (state._outdoorOn ? " sp-visible" : "");
   }
-}
-
-function syncClockBarWeatherUi() {
-  syncInput(els.setClockBarWeatherEntity, state.clockBarWeatherEntity);
 }
 
 function syncNtpServerUi() {
@@ -690,18 +719,10 @@ function syncThemeFromDevice(theme, options) {
 
 function syncClockBarUi() {
   var visible = clockBarVisibleInPreview();
-  var clearedClockBarSelection = false;
-  if (!visible && (state.clockBarSelectedItem || state.clockBarAddDraft)) {
-    state.clockBarSelectedItem = "";
-    state.clockBarAddDraft = null;
-    clearedClockBarSelection = true;
-    hideSettingsOverlay();
-  }
   syncPreviewGridTop();
   if (els.topbar) els.topbar.className = "sp-topbar" + (visible ? "" : " sp-hidden");
   if (els.setClockBarToggle) els.setClockBarToggle.checked = !!state.clockBarOn;
   if (els.setClockBarTimeToggle) els.setClockBarTimeToggle.checked = !!state.clockBarTimeOn;
-  if (els.setClockBarWeatherToggle) els.setClockBarWeatherToggle.checked = !!state.clockBarWeatherOn;
   if (els.setNetworkStatusToggle) {
     els.setNetworkStatusToggle.checked = !!state.networkStatusOn;
   }
@@ -715,14 +736,8 @@ function syncClockBarUi() {
     els.setSubpageChevronToggle.checked = !!state.subpageChevronsOn;
   }
   updateClockBarItemUi();
-  syncClockBarWeatherUi();
-  updateWeatherPreview();
   updateNetworkPreview();
   updateTempPreview();
-  if (clearedClockBarSelection) {
-    renderPreview();
-    renderButtonSettings();
-  }
 }
 
 function syncIdleUi() {
@@ -782,6 +797,7 @@ function setFirmwareVersion(version) {
   if (isSpecificFirmwareVersion(state.firmwareVersion) && !isSpecificFirmwareVersion(version)) return;
   state.firmwareVersion = displayFirmwareVersion(version);
   renderFirmwareVersion();
+  syncFirmwareVersionSelect();
   renderFirmwareUpdateStatus();
   stopFirmwareInstallRefreshIfComplete();
 }
@@ -815,8 +831,11 @@ function publicFirmwareInstallAvailable() {
 }
 
 function firmwareInstallAvailable() {
+  var info = selectedFirmwareInfo();
   return state.firmwareInstallControlsSupported === true &&
-    (firmwareUpdateAvailable() || publicFirmwareInstallAvailable());
+    !!info &&
+    isSpecificFirmwareVersion(info.latest_version) &&
+    !selectedFirmwareMatchesInstalled();
 }
 
 function firmwareVersionsSame(a, b) {
@@ -828,18 +847,22 @@ function publicFirmwareManifestUrl() {
   return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/manifest.json";
 }
 
-function publicFirmwareAssetUrl(assetPath) {
+function publicFirmwareVersionsUrl() {
+  return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/versions.json";
+}
+
+function publicFirmwareAssetUrl(assetPath, baseUrl) {
   assetPath = String(assetPath || "").trim();
   if (!assetPath) return "";
   try {
-    return new URL(assetPath, publicFirmwareManifestUrl()).href;
+    return new URL(assetPath, baseUrl || publicFirmwareManifestUrl()).href;
   } catch (err) {
     if (/^https?:\/\//i.test(assetPath)) return assetPath;
     return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/" + assetPath.replace(/^\/+/, "");
   }
 }
 
-function firmwareInfoFromPublicManifest(data) {
+function firmwareInfoFromPublicManifest(data, baseUrl) {
   if (!data || typeof data !== "object") return null;
   var version = String(data.version || "").trim();
   if (!isSpecificFirmwareVersion(version)) return null;
@@ -853,13 +876,126 @@ function firmwareInfoFromPublicManifest(data) {
       return {
         latest_version: version,
         release_url: String(ota.release_url || "").trim(),
-        ota_url: publicFirmwareAssetUrl(otaPath),
+        ota_url: publicFirmwareAssetUrl(otaPath, baseUrl || publicFirmwareManifestUrl()),
         ota_filename: expectedOta,
         ota_md5: String(ota.md5 || "").trim(),
       };
     }
   }
   return null;
+}
+
+function firmwareInfoFromPublicVersionEntry(entry, baseUrl) {
+  if (!entry || typeof entry !== "object") return null;
+  var version = String(entry.version || entry.latest_version || "").trim();
+  if (!isSpecificFirmwareVersion(version)) return null;
+  var ota = entry.ota && typeof entry.ota === "object" ? entry.ota : entry;
+  var otaPath = String(ota.path || entry.ota_path || "").trim();
+  var expectedOta = DEVICE_ID + ".ota.bin";
+  if (!otaPath) return null;
+  var filename = otaPath.split("/").pop();
+  if (filename !== expectedOta) return null;
+  return {
+    latest_version: version,
+    release_url: String(entry.release_url || ota.release_url || "").trim(),
+    ota_url: publicFirmwareAssetUrl(otaPath, baseUrl || publicFirmwareVersionsUrl()),
+    ota_filename: expectedOta,
+    ota_md5: String(ota.md5 || entry.ota_md5 || "").trim(),
+  };
+}
+
+function firmwareInfosFromPublicVersions(data, baseUrl) {
+  if (!data || typeof data !== "object") return [];
+  var entries = Array.isArray(data.versions) ? data.versions : [];
+  var seen = {};
+  var infos = [];
+  for (var i = 0; i < entries.length; i++) {
+    var info = firmwareInfoFromPublicVersionEntry(entries[i], baseUrl || publicFirmwareVersionsUrl());
+    if (!info || seen[info.latest_version.toLowerCase()]) continue;
+    seen[info.latest_version.toLowerCase()] = true;
+    infos.push(info);
+  }
+  return infos;
+}
+
+function latestFirmwareInfoFromState() {
+  if (!isSpecificFirmwareVersion(state.firmwareLatestVersion)) return null;
+  return {
+    latest_version: state.firmwareLatestVersion,
+    release_url: state.firmwareReleaseUrl,
+    ota_url: state.firmwareOtaUrl,
+    ota_filename: state.firmwareOtaFilename || (DEVICE_ID + ".ota.bin"),
+    ota_md5: state.firmwareOtaMd5,
+  };
+}
+
+function findFirmwareVersionInfo(version) {
+  version = String(version || "").trim();
+  if (!version) return null;
+  for (var i = 0; i < state.firmwareVersionOptions.length; i++) {
+    var info = state.firmwareVersionOptions[i];
+    if (firmwareVersionsSame(info.latest_version, version)) return info;
+  }
+  var latest = latestFirmwareInfoFromState();
+  if (latest && firmwareVersionsSame(latest.latest_version, version)) return latest;
+  return null;
+}
+
+function selectedFirmwareInfo() {
+  return findFirmwareVersionInfo(state.firmwareSelectedVersion) ||
+    (state.firmwareVersionOptions.length ? state.firmwareVersionOptions[0] : null) ||
+    latestFirmwareInfoFromState();
+}
+
+function selectedFirmwareVersion() {
+  var info = selectedFirmwareInfo();
+  return info ? info.latest_version : "";
+}
+
+function selectedFirmwareIsLatest() {
+  var version = selectedFirmwareVersion();
+  return !version || !publicFirmwareReleaseKnown() ||
+    firmwareVersionsSame(version, state.firmwareLatestVersion);
+}
+
+function selectedFirmwareMatchesInstalled() {
+  var version = selectedFirmwareVersion();
+  return isSpecificFirmwareVersion(version) &&
+    isSpecificFirmwareVersion(state.firmwareVersion) &&
+    firmwareVersionsSame(state.firmwareVersion, version);
+}
+
+function firmwareVersionSelectorVisible() {
+  return state.firmwareVersionIndexLoaded && state.firmwareVersionOptions.length > 1;
+}
+
+function syncFirmwareVersionSelect() {
+  if (!els.fwVersionSelect) return;
+  var options = state.firmwareVersionOptions;
+  els.fwVersionSelect.innerHTML = "";
+  if (!options.length) {
+    if (els.fwVersionField) els.fwVersionField.style.display = "none";
+    return;
+  }
+  if (!findFirmwareVersionInfo(state.firmwareSelectedVersion)) {
+    state.firmwareSelectedVersion = options[0].latest_version;
+  }
+  for (var i = 0; i < options.length; i++) {
+    var info = options[i];
+    var option = document.createElement("option");
+    option.value = info.latest_version;
+    option.textContent = info.latest_version +
+      (i === 0 || firmwareVersionsSame(info.latest_version, state.firmwareLatestVersion) ? " (Latest)" : "");
+    if (firmwareVersionsSame(info.latest_version, state.firmwareVersion)) {
+      option.textContent += " (Installed)";
+    }
+    els.fwVersionSelect.appendChild(option);
+  }
+  els.fwVersionSelect.value = state.firmwareSelectedVersion;
+  if (els.fwVersionField) {
+    els.fwVersionField.style.display =
+      firmwareUpdateControlsVisible() && firmwareVersionSelectorVisible() ? "" : "none";
+  }
 }
 
 function setPublicFirmwareInfo(info) {
@@ -875,6 +1011,20 @@ function setPublicFirmwareInfo(info) {
       !isSpecificFirmwareVersion(state.firmwareVersion)) {
     setFirmwareVersion(latest);
   }
+  syncFirmwareVersionSelect();
+  renderFirmwareUpdateStatus();
+  return true;
+}
+
+function setPublicFirmwareVersions(infos) {
+  if (!Array.isArray(infos) || !infos.length) return false;
+  state.firmwareVersionOptions = infos;
+  state.firmwareVersionIndexLoaded = true;
+  if (!state.firmwareSelectedVersion || !findFirmwareVersionInfo(state.firmwareSelectedVersion)) {
+    state.firmwareSelectedVersion = infos[0].latest_version;
+  }
+  setPublicFirmwareInfo(infos[0]);
+  syncFirmwareVersionSelect();
   renderFirmwareUpdateStatus();
   return true;
 }
@@ -890,9 +1040,13 @@ function installedFirmwareMatchesPublicRelease() {
 }
 
 function publicFirmwareStatusHtml() {
-  var status = "Latest public version: " + escHtml(state.firmwareLatestVersion);
-  if (state.firmwareReleaseUrl) {
-    status += ' <a href="' + escAttr(state.firmwareReleaseUrl) + '" target="_blank" rel="noopener">release notes</a>';
+  var info = selectedFirmwareInfo() || latestFirmwareInfoFromState();
+  var isLatest = selectedFirmwareIsLatest();
+  var version = info && info.latest_version ? info.latest_version : state.firmwareLatestVersion;
+  var releaseUrl = info && info.release_url ? info.release_url : state.firmwareReleaseUrl;
+  var status = (isLatest ? "Latest public version: " : "Selected firmware version: ") + escHtml(version);
+  if (releaseUrl) {
+    status += ' <a href="' + escAttr(releaseUrl) + '" target="_blank" rel="noopener">release notes</a>';
   }
   return status;
 }
@@ -905,6 +1059,9 @@ function syncFirmwareUpdateUi() {
   var show = firmwareUpdateControlsVisible();
   if (els.fwActions) els.fwActions.style.display = show ? "" : "none";
   if (els.fwStatus) els.fwStatus.style.display = show ? "" : "none";
+  if (els.fwVersionField) {
+    els.fwVersionField.style.display = show && firmwareVersionSelectorVisible() ? "" : "none";
+  }
   if (els.setAutoUpdateRow) els.setAutoUpdateRow.style.display = show ? "" : "none";
   if (els.updateFreqWrap) {
     els.updateFreqWrap.style.display = show && state.autoUpdate ? "" : "none";
@@ -919,11 +1076,13 @@ function renderFirmwareUpdateStatus() {
   if (state.firmwareUpdateState === "INSTALLING") {
     status = state.firmwareInstallStatus || "Installing update\u2026";
     cls += " sp-update-installing";
-  } else if (firmwareUpdateAvailable() || publicFirmwareInstallAvailable()) {
+  } else if (firmwareInstallAvailable()) {
     status = publicFirmwareStatusHtml();
     cls += " sp-update-available";
   } else if (state.firmwareUpdateState === "NO UPDATE") {
-    if (publicFirmwareReleaseKnown() &&
+    if (selectedFirmwareMatchesInstalled()) {
+      inlineStatus = selectedFirmwareIsLatest() ? "Up to date" : "Installed";
+    } else if (publicFirmwareReleaseKnown() &&
         isSpecificFirmwareVersion(state.firmwareVersion) &&
         !installedFirmwareMatchesPublicRelease()) {
       status = publicFirmwareStatusHtml();
@@ -931,8 +1090,8 @@ function renderFirmwareUpdateStatus() {
       inlineStatus = "Up to date";
     }
   } else if (publicFirmwareReleaseKnown()) {
-    if (installedFirmwareMatchesPublicRelease()) {
-      inlineStatus = "Up to date";
+    if (selectedFirmwareMatchesInstalled()) {
+      inlineStatus = selectedFirmwareIsLatest() ? "Up to date" : "Installed";
     } else {
       status = publicFirmwareStatusHtml();
     }
@@ -951,13 +1110,19 @@ function renderFirmwareUpdateStatus() {
     if (state.firmwareUpdateState === "INSTALLING") {
       els.fwCheckBtn.disabled = true;
       els.fwCheckBtn.textContent = "Installing\u2026";
+    } else if (selectedFirmwareMatchesInstalled() && !selectedFirmwareIsLatest()) {
+      els.fwCheckBtn.disabled = true;
+      els.fwCheckBtn.textContent = "Installed";
     } else if (firmwareInstallAvailable()) {
       els.fwCheckBtn.disabled = false;
-      els.fwCheckBtn.textContent = "Install Update";
+      els.fwCheckBtn.textContent = selectedFirmwareIsLatest() ? "Install Update" : "Install Version";
     } else {
       els.fwCheckBtn.disabled = state.firmwareChecking;
       els.fwCheckBtn.textContent = state.firmwareChecking ? "Checking\u2026" : "Check for Update";
     }
+  }
+  if (els.fwVersionSelect) {
+    els.fwVersionSelect.disabled = state.firmwareUpdateState === "INSTALLING" || state.firmwareChecking;
   }
   syncFirmwareUpdateUi();
 }

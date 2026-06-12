@@ -19,7 +19,7 @@ EspControl is free, open-source firmware that turns supported **ESP32 touchscree
 - **Grid layout** — a fixed grid sized to each screen so you can place cards exactly where you want them
 - **Subpage cards** — group related controls into folders to keep the home screen tidy
 - **Flexible card sizes** — make cards Single, Tall, Wide, or Large to suit the control
-- **Current card types** — Switch, Lights, Action, Trigger, Sensor, Doors & Windows, Slider, Cover, Garage Door, Lock, Date & Time, Clock, World Clock, Weather, Media, Climate, and Internal Switches
+- **Current card types** — Switch, Lights, Action, Option Select, Webhook, Trigger, Sensor, Doors & Windows, Presence, Slider, Fans, Cover, Garage Door, Lock, Alarm, Date & Time, World Clock, Weather, Camera, Media, Climate, Internal Switches, Screen Lock, and Subpage
 - **Edit controls** — drag-and-drop ordering, bulk select, and copy-paste between pages from the built-in web UI
 - **Screensaver** — dims and sleeps after a set time, or wakes automatically from a presence sensor
 
@@ -46,3 +46,4 @@ If you find this project useful, consider buying me a coffee to support ongoing 
 
 - [Install](/getting-started/install) — what you need, how to flash, and first-time setup
 - [Setup](/features/setup) — how to configure cards, display, and screensaver from your browser
+- [Card Types](/card-types/) — choose the right card for each Home Assistant control, sensor, or panel action

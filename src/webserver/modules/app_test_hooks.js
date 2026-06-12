@@ -24,6 +24,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     createBackupConfig: createBackupConfig,
     normalizeBackupConfig: normalizeBackupConfig,
     planBackupImport: planBackupImport,
+    backupExportFileName: backupExportFileName,
     switchConfirmationEnabled: switchConfirmationEnabled,
     switchConfirmationMode: switchConfirmationMode,
     switchConfirmationMessage: switchConfirmationMessage,
@@ -80,6 +81,46 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     normalizeMediaOptions: normalizeMediaOptions,
     mediaVolumeMax: mediaVolumeMax,
     setMediaVolumeMax: setMediaVolumeMax,
+    imageRefreshIntervalValues: imageRefreshIntervalValues,
+    imageRefreshModeValues: imageRefreshModeValues,
+    imageModalModeValues: imageModalModeValues,
+    normalizeImageOptions: normalizeImageOptions,
+    imageLabelEnabled: imageLabelEnabled,
+    imageIconEnabled: imageIconEnabled,
+    imageModalMode: imageModalMode,
+    imageRefreshInterval: imageRefreshInterval,
+    imageRefreshMode: imageRefreshMode,
+    imageCardLimit: imageCardLimit,
+    imageCardCountForTest: function (snapshot, candidate) {
+      var oldGrid = state.grid;
+      var oldButtons = state.buttons;
+      var oldSubpages = state.subpages;
+      state.grid = (snapshot && snapshot.grid) || [];
+      state.buttons = (snapshot && snapshot.buttons) || [];
+      state.subpages = (snapshot && snapshot.subpages) || {};
+      try {
+        return imageCardCountWithCandidate(candidate);
+      } finally {
+        state.grid = oldGrid;
+        state.buttons = oldButtons;
+        state.subpages = oldSubpages;
+      }
+    },
+    imageCardCandidateAllowedForTest: function (snapshot, candidate) {
+      var oldGrid = state.grid;
+      var oldButtons = state.buttons;
+      var oldSubpages = state.subpages;
+      state.grid = (snapshot && snapshot.grid) || [];
+      state.buttons = (snapshot && snapshot.buttons) || [];
+      state.subpages = (snapshot && snapshot.subpages) || {};
+      try {
+        return imageCardCountWithCandidate(candidate) <= imageCardLimit();
+      } finally {
+        state.grid = oldGrid;
+        state.buttons = oldButtons;
+        state.subpages = oldSubpages;
+      }
+    },
     actionCardStateEntity: actionCardStateEntity,
     actionCardStateUnit: actionCardStateUnit,
     actionCardStatePrecision: actionCardStatePrecision,
@@ -125,6 +166,9 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       var keys = buttonTypePickerKeys(false, selectedTypeKey);
       CFG.infoOnly = oldInfoOnly;
       return keys;
+    },
+    buttonTypePickerOptionsFor: function (isSub, selectedTypeKey) {
+      return buttonTypePickerOptionList(!!isSub, selectedTypeKey == null ? null : selectedTypeKey);
     },
     buttonTypesMissingCardMetadata: function () {
       var missing = [];
@@ -197,6 +241,36 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.screensaverAction = oldScreensaverAction;
       return visible;
     },
+    clockBarStateAfterEvents: function (events) {
+      var oldClockBarOn = state.clockBarOn;
+      var oldSourceValues = state._clockBarStateValues;
+      state.clockBarOn = false;
+      state._clockBarStateValues = {};
+      (events || []).forEach(function (event) {
+        var keys = entityStateKeys(event || {});
+        var matchedKey = "";
+        for (var i = 0; i < keys.length; i++) {
+          if (SSE_ALIAS_GROUPS.clockBar.indexOf(keys[i]) !== -1) {
+            matchedKey = keys[i];
+            break;
+          }
+        }
+        applyClockBarStateValue(
+          event && event.state != null ? String(event.state) : "",
+          event || {},
+          matchedKey
+        );
+      });
+      var result = state.clockBarOn;
+      state.clockBarOn = oldClockBarOn;
+      state._clockBarStateValues = oldSourceValues;
+      return result;
+    },
+    removedLegacyStateEvent: function (event) {
+      var keys = entityStateKeys(event || {});
+      var id = keys[0] || event && event.id || "";
+      return isRemovedLegacyStateEvent(id, event || {});
+    },
     normalizeScreensaverDimmedBrightness: normalizeScreensaverDimmedBrightness,
     previewHtmlValue: previewHtmlValue,
     buttonTypePreviewFor: function (type, button, options) {
@@ -225,6 +299,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     displayFirmwareVersion: displayFirmwareVersion,
     firmwareVersionFromMetadata: firmwareVersionFromMetadata,
     firmwareInfoFromPublicManifest: firmwareInfoFromPublicManifest,
+    firmwareInfosFromPublicVersions: firmwareInfosFromPublicVersions,
     firmwareVersionLabelFor: function (version, pending) {
       var oldVersion = state.firmwareVersion;
       var oldPending = state.firmwareVersionRefreshPending;
@@ -239,6 +314,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     entityDetailPaths: entityDetailPaths,
     entityInitialDetail: entityInitialDetail,
     entityLookupNames: entityLookupNames,
+    coverArtHideExternalInputPostUrls: coverArtHideExternalInputPostUrls,
     firmwareUpdateControlsVisibleFor: function (transport, supported) {
       var oldTransport = state.networkTransport;
       var oldSupported = state.firmwareUpdateControlsSupported;
@@ -259,6 +335,9 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       var oldInstallSupported = state.firmwareInstallControlsSupported;
       var oldInstallTarget = state.firmwareInstallTargetVersion;
       var oldInstallPostPending = state.firmwareInstallPostPending;
+      var oldOptions = state.firmwareVersionOptions;
+      var oldSelected = state.firmwareSelectedVersion;
+      var oldIndexLoaded = state.firmwareVersionIndexLoaded;
       state.firmwareVersion = "";
       state.firmwareLatestVersion = "";
       state.firmwareUpdateState = "";
@@ -268,6 +347,9 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.firmwareInstallControlsSupported = false;
       state.firmwareInstallTargetVersion = "";
       state.firmwareInstallPostPending = false;
+      state.firmwareVersionOptions = [];
+      state.firmwareSelectedVersion = "";
+      state.firmwareVersionIndexLoaded = false;
       setFirmwareVersion(initialVersion);
       setFirmwareUpdateInfo(updateInfo || {});
       var result = {
@@ -285,6 +367,9 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.firmwareInstallControlsSupported = oldInstallSupported;
       state.firmwareInstallTargetVersion = oldInstallTarget;
       state.firmwareInstallPostPending = oldInstallPostPending;
+      state.firmwareVersionOptions = oldOptions;
+      state.firmwareSelectedVersion = oldSelected;
+      state.firmwareVersionIndexLoaded = oldIndexLoaded;
       return result;
     },
     firmwareStateAfterPublicManifest: function (initialVersion, manifest) {
@@ -294,12 +379,18 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       var oldReleaseUrl = state.firmwareReleaseUrl;
       var oldInstallSupported = state.firmwareInstallControlsSupported;
       var oldInstallPostPending = state.firmwareInstallPostPending;
+      var oldOptions = state.firmwareVersionOptions;
+      var oldSelected = state.firmwareSelectedVersion;
+      var oldIndexLoaded = state.firmwareVersionIndexLoaded;
       state.firmwareVersion = "";
       state.firmwareLatestVersion = "";
       state.firmwareUpdateState = "";
       state.firmwareReleaseUrl = "";
       state.firmwareInstallControlsSupported = true;
       state.firmwareInstallPostPending = false;
+      state.firmwareVersionOptions = [];
+      state.firmwareSelectedVersion = "";
+      state.firmwareVersionIndexLoaded = false;
       setFirmwareVersion(initialVersion);
       setPublicFirmwareInfo(firmwareInfoFromPublicManifest(manifest));
       var result = {
@@ -316,6 +407,56 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.firmwareReleaseUrl = oldReleaseUrl;
       state.firmwareInstallControlsSupported = oldInstallSupported;
       state.firmwareInstallPostPending = oldInstallPostPending;
+      state.firmwareVersionOptions = oldOptions;
+      state.firmwareSelectedVersion = oldSelected;
+      state.firmwareVersionIndexLoaded = oldIndexLoaded;
+      return result;
+    },
+    firmwareStateAfterVersionIndex: function (initialVersion, versionIndex, selectedVersion) {
+      var oldVersion = state.firmwareVersion;
+      var oldLatest = state.firmwareLatestVersion;
+      var oldUpdateState = state.firmwareUpdateState;
+      var oldReleaseUrl = state.firmwareReleaseUrl;
+      var oldOtaUrl = state.firmwareOtaUrl;
+      var oldOtaFilename = state.firmwareOtaFilename;
+      var oldOtaMd5 = state.firmwareOtaMd5;
+      var oldInstallSupported = state.firmwareInstallControlsSupported;
+      var oldOptions = state.firmwareVersionOptions;
+      var oldSelected = state.firmwareSelectedVersion;
+      var oldIndexLoaded = state.firmwareVersionIndexLoaded;
+      state.firmwareVersion = "";
+      state.firmwareLatestVersion = "";
+      state.firmwareUpdateState = "";
+      state.firmwareReleaseUrl = "";
+      state.firmwareOtaUrl = "";
+      state.firmwareOtaFilename = "";
+      state.firmwareOtaMd5 = "";
+      state.firmwareInstallControlsSupported = true;
+      state.firmwareVersionOptions = [];
+      state.firmwareSelectedVersion = "";
+      state.firmwareVersionIndexLoaded = false;
+      setFirmwareVersion(initialVersion);
+      setPublicFirmwareVersions(firmwareInfosFromPublicVersions(versionIndex));
+      if (selectedVersion) state.firmwareSelectedVersion = selectedVersion;
+      var selected = selectedFirmwareInfo();
+      var result = {
+        latest: state.firmwareLatestVersion,
+        selected: selected && selected.latest_version,
+        installAvailable: firmwareInstallAvailable(),
+        selectorVisible: firmwareVersionSelectorVisible(),
+        installedSelected: selectedFirmwareMatchesInstalled(),
+      };
+      state.firmwareVersion = oldVersion;
+      state.firmwareLatestVersion = oldLatest;
+      state.firmwareUpdateState = oldUpdateState;
+      state.firmwareReleaseUrl = oldReleaseUrl;
+      state.firmwareOtaUrl = oldOtaUrl;
+      state.firmwareOtaFilename = oldOtaFilename;
+      state.firmwareOtaMd5 = oldOtaMd5;
+      state.firmwareInstallControlsSupported = oldInstallSupported;
+      state.firmwareVersionOptions = oldOptions;
+      state.firmwareSelectedVersion = oldSelected;
+      state.firmwareVersionIndexLoaded = oldIndexLoaded;
       return result;
     },
     findDuplicatePlacementFor: function (grid, start, size, maxSlots) {

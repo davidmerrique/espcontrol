@@ -157,8 +157,9 @@ registerButtonType("light_temperature", {
   renderSettings: function (panel, b, slot, helpers) {
     renderLightControlTypeField(panel, b, helpers);
 
-    helpers.renderCardEntityField(panel, b, helpers, LIGHT_TEMPERATURE_CARD_METADATA);
-    helpers.renderCardTextField(panel, b, helpers, LIGHT_TEMPERATURE_CARD_METADATA.labelField);
+    helpers.renderBasicCardFields(panel, b, helpers, LIGHT_TEMPERATURE_CARD_METADATA, {
+      icon: false,
+    });
 
     if (lightTempSensorNeedsCleanup(b.sensor)) {
       b.sensor = "";
@@ -220,14 +221,14 @@ registerButtonType("light_temperature", {
   },
   renderPreview: function (b, helpers) {
     var label = b.label || b.entity || "Light Temp";
-    var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "lightbulb";
-    return {
-      iconHtml:
-        '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>' +
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: "Lightbulb",
+      iconExtraHtml:
         '<span class="sp-slider-preview"><span class="sp-slider-track">' +
           '<span class="sp-slider-fill"></span>' +
         '</span></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, LIGHT_TEMPERATURE_CARD_METADATA.preview.badge),
-    };
+      badge: LIGHT_TEMPERATURE_CARD_METADATA.preview.badge,
+    });
   },
 });

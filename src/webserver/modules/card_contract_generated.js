@@ -884,6 +884,22 @@ var CARD_CONTRACT_CARDS = {
       "options": ""
     }
   },
+  "screen_lock": {
+    "label": "Screen Lock",
+    "allowInSubpage": true,
+    "domains": [],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Lock",
+      "icon_on": "Lock Open",
+      "sensor": "",
+      "unit": "",
+      "type": "screen_lock",
+      "precision": "",
+      "options": ""
+    }
+  },
   "webhook": {
     "label": "Webhook",
     "allowInSubpage": true,
@@ -1134,6 +1150,47 @@ var CARD_CONTRACT_CARDS = {
       "options": ""
     }
   },
+  "image": {
+    "label": "Camera Card",
+    "allowInSubpage": true,
+    "domains": [
+      "camera",
+      "image"
+    ],
+    "options": [
+      {
+        "name": "image_label",
+        "label": "Show Label",
+        "kind": "flag"
+      },
+      {
+        "name": "image_icon",
+        "label": "Show Icon",
+        "kind": "flag"
+      },
+      {
+        "name": "image_modal_mode",
+        "label": "Expanded Image",
+        "kind": "choice",
+        "values": [
+          "fill",
+          "fit"
+        ],
+        "defaultValue": "fill"
+      }
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Auto",
+      "icon_on": "Auto",
+      "sensor": "",
+      "unit": "",
+      "type": "image",
+      "precision": "",
+      "options": ""
+    }
+  },
   "weather_forecast": {
     "label": "Weather Forecast",
     "allowInSubpage": true,
@@ -1209,6 +1266,7 @@ var CARD_CONTRACT_SUBPAGE_TYPE_CODES = {
   "media": "M",
   "climate": "H",
   "push": "P",
+  "screen_lock": "SL",
   "webhook": "WH",
   "internal": "I",
   "subpage": "G"
@@ -1241,6 +1299,7 @@ var CARD_CONTRACT_SUBPAGE_TYPES_BY_CODE = {
   "M": "media",
   "H": "climate",
   "P": "push",
+  "SL": "screen_lock",
   "WH": "webhook",
   "I": "internal",
   "G": "subpage"

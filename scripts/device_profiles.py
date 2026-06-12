@@ -196,6 +196,10 @@ def validate_display(slug: str, device: dict[str, Any], errors: list[str]) -> No
     for key in ("widthCompensationPercent", "volumeWidthCompensationPercent"):
         if key in display and not is_number(display[key]):
             errors.append(device_error(slug, f"firmware.display.{key} must be a number when set"))
+    if "imageCardDownloaders" in display:
+        value = display["imageCardDownloaders"]
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0 or value > 6:
+            errors.append(device_error(slug, "firmware.display.imageCardDownloaders must be an integer from 0 to 6 when set"))
 
     correction = display.get("colorCorrection")
     if correction is not None:
@@ -312,6 +316,14 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
                 errors.append(device_error(slug, "firmware.package.substitutions keys must be non-empty strings"))
             if not isinstance(value, str) or not value:
                 errors.append(device_error(slug, f"firmware.package.substitutions.{key} must be a non-empty string"))
+        card_gap = substitutions.get("main_page_card_gap")
+        if not isinstance(card_gap, str) or not re.fullmatch(r'"[1-9][0-9]*"', card_gap):
+            errors.append(
+                device_error(
+                    slug,
+                    'firmware.package.substitutions.main_page_card_gap must be a quoted positive pixel value, for example "\\"10\\""',
+                )
+            )
 
     if package.get("ethernetSelectable") or "backlightPwmFrequency" in package:
         frequencies = require_object(
@@ -505,16 +517,25 @@ def web_features(profile: dict[str, Any]) -> dict[str, Any]:
 def web_config(profile: dict[str, Any]) -> dict[str, Any]:
     layout = profile["layout"]
     features = web_features(profile)
+    display = profile["firmware"].get("display") or {}
+    image_card_limit = display.get("imageCardDownloaders", 4)
     cfg: dict[str, Any] = {
         "slots": profile["slots"],
         "cols": layout["cols"],
         "rows": layout["rows"],
+        "screenSize": profile["public"]["screenSize"],
         "largeSensorUnitOffsetPercent": profile["settings"]["largeSensorUnitOffsetPercent"],
+        "imageCardLimit": image_card_limit,
     }
     for key, value in profile["web"].items():
         cfg[key] = copy.deepcopy(value)
         if key == "dragAnimation" and features:
             cfg["features"] = copy.deepcopy(features)
+    if image_card_limit == 0:
+        disabled = list(cfg.get("disabledCardTypes") or [])
+        if "image" not in disabled:
+            disabled.append("image")
+        cfg["disabledCardTypes"] = disabled
     if features and "features" not in cfg:
         cfg["features"] = copy.deepcopy(features)
     return cfg
@@ -566,6 +587,8 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
             "green": correction.get("greenPercent", 100),
             "blue": correction.get("bluePercent", 100),
         }
+    if display.get("imageCardDownloaders", 4) != 4:
+        slot["image_card_downloaders"] = display["imageCardDownloaders"]
     if rotation.get("rotateWidthCompensation"):
         slot["rotate_width_compensation"] = True
     return slot

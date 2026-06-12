@@ -127,35 +127,42 @@ registerButtonType("lock", {
 
     helpers.renderCardEntityField(panel, b, helpers, LOCK_CARD_METADATA);
 
-    function iconField(label, inputSuffix, field, currentVal, defaultVal) {
-      return helpers.renderCardIconPicker(panel, b, helpers, {
-        pickerIdSuffix: inputSuffix + "-picker",
-        idSuffix: inputSuffix,
-        field: field,
-        value: currentVal,
-        fallback: defaultVal,
-        label: label,
-      });
-    }
-
     var lockedIconVal = b.icon && b.icon !== "Auto" ? b.icon : "Lock";
     var unlockedIconVal = b.icon_on && b.icon_on !== "Auto" ? b.icon_on : "Lock Open";
     if (lockCommandMode(mode)) {
-      panel.appendChild(iconField(
-        "Icon", "icon", "icon", b.icon && b.icon !== "Auto" ? b.icon : lockModeDefaultIcon(mode),
-        lockModeDefaultIcon(mode)));
+      helpers.renderCardIconPicker(panel, b, helpers, {
+        pickerIdSuffix: "icon-picker",
+        idSuffix: "icon",
+        field: "icon",
+        value: b.icon && b.icon !== "Auto" ? b.icon : lockModeDefaultIcon(mode),
+        fallback: lockModeDefaultIcon(mode),
+        label: "Icon",
+      });
     } else {
-      panel.appendChild(iconField("Locked Icon", "icon", "icon", lockedIconVal, "Lock"));
-      panel.appendChild(iconField("Unlocked Icon", "icon-on", "icon_on", unlockedIconVal, "Lock Open"));
+      helpers.renderCardIconPair(panel, b, helpers, {
+        pickerIdSuffix: "icon-picker",
+        idSuffix: "icon",
+        field: "icon",
+        value: lockedIconVal,
+        fallback: "Lock",
+        label: "Locked Icon",
+      }, {
+        pickerIdSuffix: "icon-on-picker",
+        idSuffix: "icon-on",
+        field: "icon_on",
+        value: unlockedIconVal,
+        fallback: "Lock Open",
+        label: "Unlocked Icon",
+      });
     }
   },
   renderPreview: function (b, helpers) {
     var mode = normalizeLockMode(b.sensor);
-    var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : iconSlug(lockModeDefaultIcon(mode));
     var label = b.label || (lockCommandMode(mode) ? lockModeDefaultLabel(mode) : b.entity || "Lock");
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, LOCK_CARD_METADATA.preview.badge),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: lockModeDefaultIcon(mode),
+      badge: LOCK_CARD_METADATA.preview.badge,
+    });
   },
 });

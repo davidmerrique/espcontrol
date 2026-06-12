@@ -47,7 +47,13 @@ struct GridConfig {
   std::string timezone;
   std::function<void()> pause_home_idle;
   std::function<void()> resume_home_idle;
+  esphome::artwork_image::ArtworkImage **image_card_images = nullptr;
+  esphome::artwork_image::ArtworkImage **image_card_modal_images = nullptr;
+  int image_card_image_count = 0;
+  std::function<std::string()> home_assistant_base_url;
 };
+
+#include "button_grid_image.h"
 
 inline void grid_log_memory(const char *stage) {
 #ifdef ESP_PLATFORM
@@ -129,13 +135,13 @@ inline void apply_large_sensor_number_style(const BtnSlot &s, const lv_font_t *l
 }
 
 inline bool large_number_square_card_layout(int row_span, int col_span) {
-  return row_span == 2 && col_span == 2;
+  return card_span_is_large(row_span, col_span);
 }
 
 inline bool card_large_date_time_layout(const ParsedCfg &p, int row_span, int col_span) {
   if (p.type == "clock") {
     return large_number_square_card_layout(row_span, col_span) ||
-           (row_span == 1 && col_span == 2);
+           card_span_is_wide(row_span, col_span);
   }
   return large_number_square_card_layout(row_span, col_span);
 }
@@ -147,7 +153,7 @@ inline bool card_large_numbers_active_for_layout(const ParsedCfg &p, int row_spa
 }
 
 inline bool wide_large_date_time_card_layout(int row_span, int col_span) {
-  return row_span == 1 && col_span == 2;
+  return card_span_is_wide(row_span, col_span);
 }
 
 inline void apply_wide_large_date_time_card_layout(const BtnSlot &s,
@@ -187,6 +193,11 @@ inline void reset_card_slot_dynamic_children(BtnSlot &s) {
   lv_obj_clear_state(s.btn, LV_STATE_DISABLED);
   lv_obj_set_style_opa(s.btn, LV_OPA_COVER, LV_PART_MAIN);
   if (s.sensor_container) lv_obj_set_user_data(s.sensor_container, nullptr);
+  if (s.text_lbl) {
+    lv_obj_set_style_bg_opa(s.text_lbl, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s.text_lbl, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(s.text_lbl, 0, LV_PART_MAIN);
+  }
   int32_t count = static_cast<int32_t>(lv_obj_get_child_cnt(s.btn));
   for (int32_t i = count - 1; i >= 0; i--) {
     lv_obj_t *child = lv_obj_get_child(s.btn, i);
@@ -199,7 +210,7 @@ inline bool info_only_hidden_card_type(const ParsedCfg &p) {
   if (p.type == "sensor" || p.type == "text_sensor" ||
       p.type == "door_window" || p.type == "presence" ||
       p.type == "calendar" || p.type == "clock" || p.type == "timezone" ||
-      p.type == "weather" || p.type == "weather_forecast") {
+      p.type == "weather" || p.type == "weather_forecast" || p.type == "image") {
     return false;
   }
   return true;
@@ -232,6 +243,17 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
   if (cfg.info_only && info_only_hidden_card_type(p)) {
     lv_obj_add_flag(s.btn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(s.btn, LV_OBJ_FLAG_CLICKABLE);
+    return;
+  }
+
+  screen_lock_register_controlled_button(s.btn);
+
+  if (p.type == "image") {
+    setup_image_card(s);
+    return;
+  }
+  if (p.type == "screen_lock") {
+    setup_screen_lock_card(s, p);
     return;
   }
 
@@ -581,7 +603,30 @@ inline void refresh_card_layout(BtnSlot &s, const ParsedCfg &p,
       cfg.subpage_chevron_y, cfg.subpage_chevron_text_width_percent);
   }
 
-  if (p.type == "media") {
+  if (p.type == "image") {
+    ImageCardCtx *ctx = s.btn
+      ? static_cast<ImageCardCtx *>(lv_obj_get_user_data(s.btn))
+      : nullptr;
+    if (ctx && ctx->active) {
+      image_card_refresh_tile_geometry(ctx);
+    } else {
+      lv_obj_t *widget = s.sensor_container
+        ? static_cast<lv_obj_t *>(lv_obj_get_user_data(s.sensor_container))
+        : nullptr;
+      if (widget) {
+        image_card_position_widget(s.btn, widget);
+        lv_obj_t *loading = image_card_loading_widget(widget);
+        image_card_position_widget(s.btn, loading);
+        image_card_refresh_loading_layout(loading);
+      }
+    }
+    if (s.text_lbl && !lv_obj_has_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN)) {
+      image_card_align_label_stack(s.text_lbl, s.btn);
+    }
+    if (s.icon_lbl && !lv_obj_has_flag(s.icon_lbl, LV_OBJ_FLAG_HIDDEN)) {
+      image_card_align_icon(s.icon_lbl, s.btn);
+    }
+  } else if (p.type == "media") {
     refresh_media_card_layout(s, p, cfg, row_span);
   } else if (brightness_slider_type(p.type) || p.type == "light_temperature" ||
              (p.type == "cover" && !cover_command_mode(p.sensor) && !cover_toggle_mode(p.sensor))) {
@@ -609,6 +654,7 @@ inline void grid_refresh_layout(
   OrderResult parsed, order;
   parse_order_string(order_str, NS, parsed);
   clear_spanned_cells(parsed, NS, COLS, order);
+  clock_bar_clear_responsive_grid_cards(main_page_obj);
 
   lv_obj_t *first_card = nullptr;
   if (parsed.positions[0] >= 1 && parsed.positions[0] <= NS) {
@@ -626,9 +672,7 @@ inline void grid_refresh_layout(
     int col = pos % COLS, row = pos / COLS;
     int row_span = order.row_span[idx - 1] > 0 ? order.row_span[idx - 1] : 1;
     int col_span = order.col_span[idx - 1] > 0 ? order.col_span[idx - 1] : 1;
-    lv_obj_set_grid_cell(s.btn,
-      LV_GRID_ALIGN_STRETCH, col, col_span,
-      LV_GRID_ALIGN_STRETCH, row, row_span);
+    set_grid_card_cell(s.btn, main_page_obj, col, row, col_span, row_span, COLS, ROWS);
   }
 
   if (main_page_obj) lv_obj_update_layout(main_page_obj);
@@ -661,6 +705,7 @@ inline void grid_phase1(
   for (int i = 0; i < NS; i++)
     lv_obj_add_flag(slots[i].btn, LV_OBJ_FLAG_HIDDEN);
   configure_grid_layout(main_page_obj, NS, COLS);
+  int ROWS = (NS + COLS - 1) / COLS;
   if (NS != cfg.num_slots) {
     ESP_LOGW("sensors", "Grid slot count %d exceeds max %d; ignoring extra slots",
       cfg.num_slots, MAX_GRID_SLOTS);
@@ -681,6 +726,7 @@ inline void grid_phase1(
   OrderResult parsed, order;
   parse_order_string(order_str, NS, parsed);
   clear_spanned_cells(parsed, NS, COLS, order);
+  clock_bar_clear_responsive_grid_cards(main_page_obj);
 
   bool has_on, has_off, has_sensor_color;
   uint32_t on_val = parse_hex_color(on_hex, has_on);
@@ -704,6 +750,7 @@ inline void grid_phase1(
   weather_forecast_cancel_pending_requests();
   reset_weather_forecast_cards();
   reset_climate_control_refs();
+  screen_lock_reset_registry();
 
   for (int pos = 0; pos < NS; pos++) {
     int idx = order.positions[pos];
@@ -714,9 +761,7 @@ inline void grid_phase1(
     int col = pos % COLS, row = pos / COLS;
     int row_span = order.row_span[idx - 1] > 0 ? order.row_span[idx - 1] : 1;
     int col_span = order.col_span[idx - 1] > 0 ? order.col_span[idx - 1] : 1;
-    lv_obj_set_grid_cell(s.btn,
-      LV_GRID_ALIGN_STRETCH, col, col_span,
-      LV_GRID_ALIGN_STRETCH, row, row_span);
+    set_grid_card_cell(s.btn, main_page_obj, col, row, col_span, row_span, COLS, ROWS);
 
     if (cfg.wrap_tall_labels && row_span > 1) {
       lv_label_set_long_mode(s.text_lbl, LV_LABEL_LONG_WRAP);
@@ -729,6 +774,7 @@ inline void grid_phase1(
     setup_card_visual(s, p, cfg, palette, row_span, col_span);
     refresh_card_layout(s, p, cfg, row_span);
   }
+  screen_lock_apply();
   ESP_LOGI("sensors", "Phase 1: done (%lu ms)", esphome::millis());
 }
 
@@ -788,6 +834,7 @@ inline void grid_phase2(
   reset_ha_control_availability_refs();
   clear_internal_relay_watchers();
   navigation_clear_subpages();
+  reset_image_card_pool(cfg);
 
   bool has_on, has_off, has_sensor_color;
   uint32_t on_val = parse_hex_color(on_hex, has_on);
@@ -825,9 +872,10 @@ inline void grid_phase2(
     ParsedCfg p = parse_cfg(scfg);
     int row_span = order.row_span[idx - 1] > 0 ? order.row_span[idx - 1] : 1;
     int col_span = order.col_span[idx - 1] > 0 ? order.col_span[idx - 1] : 1;
-    bool is_1x1_card = row_span == 1 && col_span == 1;
+    bool is_1x1_card = card_span_is_single(row_span, col_span);
     if (cfg.info_only && info_only_hidden_card_type(p)) continue;
     if (p.type == "push") continue;
+    if (bind_image_card(s, p, cfg)) continue;
     if (bind_basic_sensor_card(s, p, palette)) continue;
     if (bind_passive_card_sources(s, p)) continue;
     if (p.type == "garage") {
@@ -1272,12 +1320,16 @@ inline void grid_phase2(
     lv_obj_set_style_pad_row(sub_scr, mp_pad_row, LV_PART_MAIN);
     lv_obj_set_style_pad_column(sub_scr, mp_pad_col, LV_PART_MAIN);
     lv_obj_clear_flag(sub_scr, LV_OBJ_FLAG_SCROLLABLE);
+    clock_bar_clear_responsive_grid_cards(sub_scr);
 
     lv_obj_t *back_btn = create_grid_card_button(
       sub_scr, sp_radius, sp_pad, sp_btn_fnt, sp_txt_color);
     apply_button_colors(back_btn, false, DEFAULT_SLIDER_COLOR, has_off, off_val);
-    lv_obj_set_grid_cell(back_btn, LV_GRID_ALIGN_STRETCH, sp_ord.back_pos % COLS, sp_ord.back_col_span,
-      LV_GRID_ALIGN_STRETCH, sp_ord.back_pos / COLS, sp_ord.back_row_span);
+    set_grid_card_cell(
+      back_btn, sub_scr,
+      sp_ord.back_pos % COLS, sp_ord.back_pos / COLS,
+      sp_ord.back_col_span, sp_ord.back_row_span,
+      COLS, ROWS);
     BtnSlot back_slot = create_dynamic_card_slot(
       back_btn, sp_icon_fnt, display_sensor_font(display), sp_btn_fnt, sp_txt_color,
       cfg.subpage_chevron_font);
@@ -1289,6 +1341,7 @@ inline void grid_phase2(
     lv_obj_add_event_cb(back_btn, [](lv_event_t *e) {
       lv_scr_load_anim((lv_obj_t *)lv_event_get_user_data(e), LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
     }, LV_EVENT_CLICKED, main_page_obj);
+    screen_lock_register_controlled_button(back_btn);
 
     auto add_parent_indicator = [&](const std::string &entity_id) {
       if (!sp_indicator || entity_id.empty()) return;
@@ -1343,7 +1396,7 @@ inline void grid_phase2(
       lv_obj_t *sb_btn = create_grid_card_button(
         sub_scr, sp_radius, sp_pad, sp_btn_fnt, sp_txt_color);
       int cs = sp_ord.col_span[bn - 1] > 0 ? sp_ord.col_span[bn - 1] : 1;
-      lv_obj_set_grid_cell(sb_btn, LV_GRID_ALIGN_STRETCH, col, cs, LV_GRID_ALIGN_STRETCH, row, rs);
+      set_grid_card_cell(sb_btn, sub_scr, col, row, cs, rs, COLS, ROWS);
       BtnSlot sub_slot = create_dynamic_card_slot(
         sb_btn, sp_icon_fnt, display_sensor_font(display), sp_btn_fnt, sp_txt_color,
         cfg.subpage_chevron_font);
@@ -1351,6 +1404,15 @@ inline void grid_phase2(
       display_apply_slot_text_width(sub_slot, display);
       setup_card_visual(sub_slot, sb_cfg, cfg, palette, rs, cs);
 
+      if (sb_cfg.type == "screen_lock") {
+        lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
+          lv_obj_t *target = static_cast<lv_obj_t *>(lv_event_get_target(e));
+          if (target && lv_obj_has_state(target, LV_STATE_DISABLED)) return;
+          screen_lock_toggle();
+        }, LV_EVENT_CLICKED, nullptr);
+        continue;
+      }
+      if (bind_image_card(sub_slot, sb_cfg, cfg, true)) continue;
       if (bind_basic_sensor_card(sub_slot, sb_cfg, palette)) continue;
       if (bind_passive_card_sources(sub_slot, sb_cfg)) continue;
       if (sb_cfg.type == "cover" && cover_command_mode(sb_cfg.sensor)) {
@@ -1572,7 +1634,7 @@ inline void grid_phase2(
               display, lv_obj_get_style_text_font(sub_slot.text_lbl, LV_PART_MAIN)),
             display_icon_font(display),
             display_main_width_percent(display),
-            rs == 1 && cs == 1);
+            card_span_is_single(rs, cs));
           subscribe_todo_state(ctx);
           subscribe_todo_friendly_name(ctx);
           lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
@@ -1833,6 +1895,7 @@ inline void grid_phase2(
     lv_obj_set_user_data(slots[si].btn, (void *)sub_scr);
   }
   if (!ha_api_state_connected()) apply_registered_ha_control_availability(false);
+  screen_lock_apply();
   refresh_weather_forecast_cards();
   grid_log_memory("end");
   ESP_LOGI("sensors", "Phase 2: done (%lu ms)", esphome::millis());
@@ -1866,33 +1929,6 @@ inline void grid_phase2(
 }
 
 // ── Phase 3: Temperature + presence/media subscriptions ───────────────
-
-inline std::string clock_bar_temperature_trim(const std::string &value) {
-  size_t start = 0;
-  while (start < value.size() && std::isspace((unsigned char) value[start])) start++;
-  size_t end = value.size();
-  while (end > start && std::isspace((unsigned char) value[end - 1])) end--;
-  return value.substr(start, end - start);
-}
-
-inline std::vector<std::string> parse_clock_bar_temperature_entities(const std::string &value) {
-  std::vector<std::string> out;
-  std::string current;
-  for (char ch : value) {
-    if (ch == '|' || ch == ',' || ch == '\n') {
-      std::string entity = clock_bar_temperature_trim(current);
-      if (!entity.empty() && std::find(out.begin(), out.end(), entity) == out.end()) out.push_back(entity);
-      current.clear();
-      if (out.size() >= 6) return out;
-    } else {
-      current.push_back(ch);
-    }
-  }
-  std::string entity = clock_bar_temperature_trim(current);
-  if (!entity.empty() && std::find(out.begin(), out.end(), entity) == out.end()) out.push_back(entity);
-  if (out.size() > 6) out.resize(6);
-  return out;
-}
 
 inline uint32_t &clock_bar_temperature_subscription_generation() {
   static uint32_t generation = 0;
@@ -2019,10 +2055,10 @@ inline void grid_phase3(
           if (state == "on") {
             *presence_detected_ptr = true;
             lv_disp_trig_activity(NULL);
-            wake_callback();
+            if (wake_callback) wake_callback();
           } else if (state == "off") {
             *presence_detected_ptr = false;
-            sleep_callback();
+            if (sleep_callback) sleep_callback();
           }
         })
     );

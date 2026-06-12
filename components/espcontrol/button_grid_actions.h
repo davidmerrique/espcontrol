@@ -465,6 +465,8 @@ struct MediaVolumeCtx;
 inline void media_volume_open_modal(MediaVolumeCtx *ctx);
 struct ClimateControlCtx;
 inline void climate_control_open_modal(ClimateControlCtx *ctx);
+struct ImageCardCtx;
+inline void image_card_open_modal(ImageCardCtx *ctx);
 inline void switch_confirmation_open_modal(const ParsedCfg &p, lv_obj_t *btn_obj, bool turn_on);
 struct OptionSelectCtx;
 inline void option_select_open_modal(OptionSelectCtx *ctx);
@@ -493,7 +495,9 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
       p.type == "presence" ||
       p.type == "calendar" || p.type == "clock" || p.type == "timezone" ||
       p.type == "weather_forecast") return;
-  if (p.type == "push") {
+  if (p.type == "screen_lock") {
+    screen_lock_toggle();
+  } else if (p.type == "push") {
     std::string label = p.label;
     if (label.empty()) {
       char buf[16];
@@ -571,6 +575,9 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
   } else if (p.type == "climate") {
     ClimateControlCtx *ctx = (ClimateControlCtx *)lv_obj_get_user_data(btn_obj);
     if (ctx) climate_control_open_modal(ctx);
+  } else if (p.type == "image") {
+    ImageCardCtx *ctx = (ImageCardCtx *)lv_obj_get_user_data(btn_obj);
+    if (ctx) image_card_open_modal(ctx);
   } else if (p.type == "light_temperature") {
     // Tap does nothing; only dragging the slider sends commands.
   } else if (brightness_slider_type(p.type) || p.type == "cover") {

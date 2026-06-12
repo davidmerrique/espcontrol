@@ -76,6 +76,11 @@ constexpr const char *SENSOR_STATE_INPUT_2_OPTION = "state_input_2";
 constexpr const char *SENSOR_STATE_OUTPUT_2_OPTION = "state_output_2";
 constexpr const char *SENSOR_STATE_LOW_LABEL_OPTION = "state_low_label";
 constexpr const char *SENSOR_STATE_HIGH_LABEL_OPTION = "state_high_label";
+constexpr const char *IMAGE_LABEL_OPTION = "image_label";
+constexpr const char *IMAGE_ICON_OPTION = "image_icon";
+constexpr const char *IMAGE_MODAL_MODE_OPTION = "image_modal_mode";
+constexpr const char *IMAGE_REFRESH_OPTION = "image_refresh";
+constexpr const char *IMAGE_REFRESH_MODE_OPTION = "image_refresh_mode";
 
 #include "button_grid_contract_generated.h"
 #include "button_grid_card_runtime.h"
@@ -98,7 +103,119 @@ struct BtnSlot {
   lv_obj_t *subpage_lbl = nullptr;  // small chevron marker for subpage cards
 };
 
+struct ParsedCfg;
 inline void set_card_checked_state(lv_obj_t *btn, bool checked);
+
+struct ScreenLockCardRef {
+  lv_obj_t *btn = nullptr;
+  lv_obj_t *icon_lbl = nullptr;
+  lv_obj_t *text_lbl = nullptr;
+  const char *locked_icon = nullptr;
+  const char *unlocked_icon = nullptr;
+};
+
+inline bool &screen_lock_enabled() {
+  static bool locked = false;
+  return locked;
+}
+
+inline std::vector<lv_obj_t *> &screen_lock_controlled_buttons() {
+  static std::vector<lv_obj_t *> buttons;
+  return buttons;
+}
+
+inline std::vector<ScreenLockCardRef> &screen_lock_card_refs() {
+  static std::vector<ScreenLockCardRef> refs;
+  return refs;
+}
+
+inline std::vector<lv_obj_t *> &screen_lock_clickable_objects() {
+  static std::vector<lv_obj_t *> objects;
+  return objects;
+}
+
+inline void screen_lock_reset_registry() {
+  screen_lock_controlled_buttons().clear();
+  screen_lock_card_refs().clear();
+  screen_lock_clickable_objects().clear();
+}
+
+inline bool screen_lock_button_is_lock_card(lv_obj_t *btn) {
+  for (const auto &ref : screen_lock_card_refs()) {
+    if (ref.btn == btn) return true;
+  }
+  return false;
+}
+
+inline void screen_lock_register_controlled_button(lv_obj_t *btn) {
+  if (!btn) return;
+  auto &buttons = screen_lock_controlled_buttons();
+  if (std::find(buttons.begin(), buttons.end(), btn) == buttons.end()) {
+    buttons.push_back(btn);
+  }
+}
+
+inline void screen_lock_register_card(const BtnSlot &s, const ParsedCfg &p);
+
+inline void screen_lock_clear_clickable_tree(lv_obj_t *obj) {
+  if (!obj) return;
+  auto &clickable = screen_lock_clickable_objects();
+  if (lv_obj_has_flag(obj, LV_OBJ_FLAG_CLICKABLE)) {
+    lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    if (std::find(clickable.begin(), clickable.end(), obj) == clickable.end()) {
+      clickable.push_back(obj);
+    }
+  }
+  int32_t child_count = static_cast<int32_t>(lv_obj_get_child_cnt(obj));
+  for (int32_t i = 0; i < child_count; i++) {
+    screen_lock_clear_clickable_tree(lv_obj_get_child(obj, i));
+  }
+}
+
+inline void screen_lock_apply() {
+  bool locked = screen_lock_enabled();
+  if (screen_lock_card_refs().empty()) {
+    locked = false;
+    screen_lock_enabled() = false;
+  }
+
+  auto &clickable = screen_lock_clickable_objects();
+  for (lv_obj_t *btn : screen_lock_controlled_buttons()) {
+    if (!btn || screen_lock_button_is_lock_card(btn)) continue;
+    if (locked) {
+      screen_lock_clear_clickable_tree(btn);
+    }
+  }
+  if (!locked) {
+    for (lv_obj_t *obj : clickable) {
+      if (obj) lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+    }
+    clickable.clear();
+  }
+
+  for (const auto &ref : screen_lock_card_refs()) {
+    if (!ref.btn) continue;
+    set_card_checked_state(ref.btn, locked);
+    lv_obj_add_flag(ref.btn, LV_OBJ_FLAG_CLICKABLE);
+    if (ref.icon_lbl) {
+      const char *icon = locked ? ref.locked_icon : ref.unlocked_icon;
+      lv_label_set_text(ref.icon_lbl, icon ? icon : "");
+    }
+    if (ref.text_lbl) {
+      lv_label_set_text(ref.text_lbl,
+        locked ? espcontrol_i18n("Screen Locked") : espcontrol_i18n("Screen Unlocked"));
+    }
+  }
+}
+
+inline void screen_lock_set_enabled(bool locked) {
+  screen_lock_enabled() = locked;
+  screen_lock_apply();
+}
+
+inline void screen_lock_toggle() {
+  screen_lock_set_enabled(!screen_lock_enabled());
+}
 
 // Extract the Nth semicolon-delimited field from a config string
 inline std::string cfg_field(const std::string &cfg, int idx) {
@@ -266,6 +383,61 @@ inline std::string media_card_options_normalized(const std::string &options,
   }
   append_large_numbers_option(out, options);
   return out;
+}
+
+inline std::string normalize_image_refresh_interval(const std::string &value) {
+  return value == "10" || value == "30" || value == "60" || value == "300"
+    ? value
+    : "off";
+}
+
+inline std::string normalize_image_refresh_mode(const std::string &value) {
+  return value == "timer" ? "timer" : "changes_timer";
+}
+
+inline std::string normalize_image_modal_mode(const std::string &value) {
+  return value == "fit" ? "fit" : "fill";
+}
+
+inline std::string image_card_options_normalized(const std::string &options) {
+  std::string out;
+  if (cfg_option_token_present(options, IMAGE_LABEL_OPTION)) {
+    out = IMAGE_LABEL_OPTION;
+  }
+  if (cfg_option_token_present(options, IMAGE_ICON_OPTION)) {
+    if (!out.empty()) out += ",";
+    out += IMAGE_ICON_OPTION;
+  }
+  std::string modal_mode = normalize_image_modal_mode(
+    cfg_option_value(options, IMAGE_MODAL_MODE_OPTION));
+  if (modal_mode != "fill") {
+    if (!out.empty()) out += ",";
+    out += std::string(IMAGE_MODAL_MODE_OPTION) + "=" + modal_mode;
+  }
+  return out;
+}
+
+inline uint32_t image_card_refresh_interval_ms(const ParsedCfg &p) {
+  (void) p;
+  return 0;
+}
+
+inline bool image_card_timer_only_refresh(const ParsedCfg &p) {
+  (void) p;
+  return false;
+}
+
+inline bool image_card_label_enabled(const ParsedCfg &p) {
+  return cfg_option_token_present(p.options, IMAGE_LABEL_OPTION);
+}
+
+inline bool image_card_icon_enabled(const ParsedCfg &p) {
+  return cfg_option_token_present(p.options, IMAGE_ICON_OPTION);
+}
+
+inline bool image_card_modal_fit_enabled(const ParsedCfg &p) {
+  return normalize_image_modal_mode(
+    cfg_option_value(p.options, IMAGE_MODAL_MODE_OPTION)) == "fit";
 }
 
 inline std::string sensor_card_options_normalized(const std::string &options,
@@ -670,6 +842,27 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     if (p.icon.empty()) p.icon = "Auto";
     p.options = webhook_card_options_normalized(p.options);
   }
+  if (p.type == "image") {
+    p.icon_on = "Auto";
+    p.sensor.clear();
+    p.unit.clear();
+    p.precision.clear();
+    p.options = image_card_options_normalized(p.options);
+    p.icon = image_card_icon_enabled(p)
+      ? (p.icon.empty() || p.icon == "Auto" ? "Camera" : p.icon)
+      : "Auto";
+    if (!image_card_label_enabled(p)) p.label.clear();
+  }
+  if (p.type == "screen_lock") {
+    p.entity.clear();
+    p.label.clear();
+    p.sensor.clear();
+    p.unit.clear();
+    p.precision.clear();
+    p.options.clear();
+    p.icon = "Lock";
+    p.icon_on = "Lock Open";
+  }
   if (p.type == "todo") {
     p.sensor.clear();
     p.unit.clear();
@@ -723,7 +916,7 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     if (p.icon_on.empty() || p.icon_on == "Auto") p.icon_on = "Motion Sensor";
     p.options = presence_card_options_normalized(p.options);
   }
-  if (!p.type.empty() && p.type != "action" && p.type != "alarm" && p.type != "alarm_action" && p.type != "climate" && p.type != "garage" && p.type != "webhook" && p.type != "todo" && p.type != "sensor" && p.type != "door_window" && p.type != "presence" && p.type != "media" && p.type != "subpage" && !fan_card_type(p.type) && !card_large_numbers_supported(p)) {
+  if (!p.type.empty() && p.type != "action" && p.type != "alarm" && p.type != "alarm_action" && p.type != "climate" && p.type != "garage" && p.type != "webhook" && p.type != "screen_lock" && p.type != "todo" && p.type != "sensor" && p.type != "door_window" && p.type != "presence" && p.type != "media" && p.type != "subpage" && p.type != "image" && !fan_card_type(p.type) && !card_large_numbers_supported(p)) {
     p.options.clear();
   }
   if (p.type == "sensor") {
@@ -1548,27 +1741,25 @@ inline bool parse_weather_forecast_payload(const std::string &payload,
 
 inline std::string weather_forecast_response_template(const std::string &entity_id) {
   return std::string("{% set entity = '") + entity_id + "' %}"
-    "{% set response_data = response if response is defined and response is not none else none %}"
-    "{% set entity_response = response_data if response_data is not none and 'forecast' in response_data else (response_data[entity] if response_data is not none and entity in response_data else none) %}"
-    "{% set forecasts = entity_response['forecast'] if entity_response is not none and 'forecast' in entity_response else [] %}"
-    "{% set today_date = now().date() %}"
-    "{% set tomorrow_date = (now() + timedelta(days=1)).date() %}"
-    "{% set ns = namespace(today=none, tomorrow=none) %}"
-    "{% for item in forecasts %}"
-    "{% set item_dt = as_datetime(item['datetime']) if 'datetime' in item else none %}"
-    "{% set item_date = as_local(item_dt).date() if item_dt is not none else (as_datetime(item['date']).date() if 'date' in item else none) %}"
-    "{% if item_date == today_date and ns.today is none %}{% set ns.today = item %}{% endif %}"
-    "{% if item_date == tomorrow_date and ns.tomorrow is none %}{% set ns.tomorrow = item %}{% endif %}"
+    "{% set response_data = response if response is defined and response is not none else {} %}"
+    "{% set entity_response = response_data if 'forecast' in response_data else (response_data[entity] if entity in response_data else {}) %}"
+    "{% set forecasts = entity_response['forecast'] if 'forecast' in entity_response else [] %}"
+    "{% set today_date = now().date() %}{% set tomorrow_date = (now() + timedelta(days=1)).date() %}"
+    "{% set ns = namespace(today=none, tomorrow=none) %}{% for item in forecasts %}"
+    "{% set item_dt = as_datetime(item['datetime']) if 'datetime' in item else none %}{% set item_date = as_local(item_dt).date() if item_dt is not none else (as_datetime(item['date']).date() if 'date' in item else none) %}"
+    "{% if item_date == today_date and ns.today is none %}{% set ns.today = item %}{% elif item_date == tomorrow_date and ns.tomorrow is none %}{% set ns.tomorrow = item %}{% endif %}"
     "{% endfor %}"
     "{% set today = ns.today if ns.today is not none else (forecasts[0] if forecasts|length > 0 else none) %}"
     "{% set tomorrow = ns.tomorrow if ns.tomorrow is not none else (forecasts[1] if forecasts|length > 1 else none) %}"
-    "{% set today_high = today['temperature'] if today is not none and 'temperature' in today else (today['native_temperature'] if today is not none and 'native_temperature' in today else (today['temperature_high'] if today is not none and 'temperature_high' in today else (today['native_temperature_high'] if today is not none and 'native_temperature_high' in today else (today['high_temperature'] if today is not none and 'high_temperature' in today else (today['max_temperature'] if today is not none and 'max_temperature' in today else (today['temperature_max'] if today is not none and 'temperature_max' in today else (today['temp_high'] if today is not none and 'temp_high' in today else (today['max_temp'] if today is not none and 'max_temp' in today else (today['high'] if today is not none and 'high' in today else ''))))))))) %}"
-    "{% set today_low = today['templow'] if today is not none and 'templow' in today else (today['native_templow'] if today is not none and 'native_templow' in today else (today['temperature_low'] if today is not none and 'temperature_low' in today else (today['native_temperature_low'] if today is not none and 'native_temperature_low' in today else (today['low_temperature'] if today is not none and 'low_temperature' in today else (today['min_temperature'] if today is not none and 'min_temperature' in today else (today['temperature_min'] if today is not none and 'temperature_min' in today else (today['temp_low'] if today is not none and 'temp_low' in today else (today['min_temp'] if today is not none and 'min_temp' in today else (today['low'] if today is not none and 'low' in today else ''))))))))) %}"
-    "{% set tomorrow_high = tomorrow['temperature'] if tomorrow is not none and 'temperature' in tomorrow else (tomorrow['native_temperature'] if tomorrow is not none and 'native_temperature' in tomorrow else (tomorrow['temperature_high'] if tomorrow is not none and 'temperature_high' in tomorrow else (tomorrow['native_temperature_high'] if tomorrow is not none and 'native_temperature_high' in tomorrow else (tomorrow['high_temperature'] if tomorrow is not none and 'high_temperature' in tomorrow else (tomorrow['max_temperature'] if tomorrow is not none and 'max_temperature' in tomorrow else (tomorrow['temperature_max'] if tomorrow is not none and 'temperature_max' in tomorrow else (tomorrow['temp_high'] if tomorrow is not none and 'temp_high' in tomorrow else (tomorrow['max_temp'] if tomorrow is not none and 'max_temp' in tomorrow else (tomorrow['high'] if tomorrow is not none and 'high' in tomorrow else ''))))))))) %}"
-    "{% set tomorrow_low = tomorrow['templow'] if tomorrow is not none and 'templow' in tomorrow else (tomorrow['native_templow'] if tomorrow is not none and 'native_templow' in tomorrow else (tomorrow['temperature_low'] if tomorrow is not none and 'temperature_low' in tomorrow else (tomorrow['native_temperature_low'] if tomorrow is not none and 'native_temperature_low' in tomorrow else (tomorrow['low_temperature'] if tomorrow is not none and 'low_temperature' in tomorrow else (tomorrow['min_temperature'] if tomorrow is not none and 'min_temperature' in tomorrow else (tomorrow['temperature_min'] if tomorrow is not none and 'temperature_min' in tomorrow else (tomorrow['temp_low'] if tomorrow is not none and 'temp_low' in tomorrow else (tomorrow['min_temp'] if tomorrow is not none and 'min_temp' in tomorrow else (tomorrow['low'] if tomorrow is not none and 'low' in tomorrow else ''))))))))) %}"
-    "{% set item_unit = today['temperature_unit'] if today is not none and 'temperature_unit' in today else (today['native_temperature_unit'] if today is not none and 'native_temperature_unit' in today else (today['unit_of_measurement'] if today is not none and 'unit_of_measurement' in today else (today['native_unit_of_measurement'] if today is not none and 'native_unit_of_measurement' in today else (today['unit'] if today is not none and 'unit' in today else (tomorrow['temperature_unit'] if tomorrow is not none and 'temperature_unit' in tomorrow else (tomorrow['native_temperature_unit'] if tomorrow is not none and 'native_temperature_unit' in tomorrow else (tomorrow['unit_of_measurement'] if tomorrow is not none and 'unit_of_measurement' in tomorrow else (tomorrow['native_unit_of_measurement'] if tomorrow is not none and 'native_unit_of_measurement' in tomorrow else (tomorrow['unit'] if tomorrow is not none and 'unit' in tomorrow else ''))))))))) %}"
-    "{{ today_high }}|{{ today_low }}|{{ tomorrow_high }}|{{ tomorrow_low }}|"
-    "{{ entity_response['temperature_unit'] if entity_response is not none and 'temperature_unit' in entity_response else (entity_response['native_temperature_unit'] if entity_response is not none and 'native_temperature_unit' in entity_response else (entity_response['unit_of_measurement'] if entity_response is not none and 'unit_of_measurement' in entity_response else (entity_response['native_unit_of_measurement'] if entity_response is not none and 'native_unit_of_measurement' in entity_response else (entity_response['unit'] if entity_response is not none and 'unit' in entity_response else (item_unit or state_attr(entity, 'temperature_unit') or state_attr(entity, 'native_temperature_unit') or state_attr(entity, 'unit_of_measurement') or ''))))) }}";
+    "{% set high_keys = ['temperature','native_temperature','temperature_high','native_temperature_high','high_temperature','max_temperature','temperature_max','temp_high','max_temp','high'] %}"
+    "{% set low_keys = ['templow','native_templow','temperature_low','native_temperature_low','low_temperature','min_temperature','temperature_min','temp_low','min_temp','low'] %}"
+    "{% set unit_keys = ['temperature_unit','native_temperature_unit','unit_of_measurement','native_unit_of_measurement','unit'] %}"
+    "{% set out = namespace(today_high='', today_low='', tomorrow_high='', tomorrow_low='', unit='') %}"
+    "{% for key in high_keys %}{% if out.today_high == '' and today is not none and key in today %}{% set out.today_high = today[key] %}{% endif %}{% if out.tomorrow_high == '' and tomorrow is not none and key in tomorrow %}{% set out.tomorrow_high = tomorrow[key] %}{% endif %}{% endfor %}"
+    "{% for key in low_keys %}{% if out.today_low == '' and today is not none and key in today %}{% set out.today_low = today[key] %}{% endif %}{% if out.tomorrow_low == '' and tomorrow is not none and key in tomorrow %}{% set out.tomorrow_low = tomorrow[key] %}{% endif %}{% endfor %}"
+    "{% for key in unit_keys %}{% if out.unit == '' and key in entity_response %}{% set out.unit = entity_response[key] %}{% endif %}{% if out.unit == '' and today is not none and key in today %}{% set out.unit = today[key] %}{% endif %}{% if out.unit == '' and tomorrow is not none and key in tomorrow %}{% set out.unit = tomorrow[key] %}{% endif %}{% endfor %}"
+    "{{ out.today_high }}|{{ out.today_low }}|{{ out.tomorrow_high }}|{{ out.tomorrow_low }}|"
+    "{{ out.unit or state_attr(entity, 'temperature_unit') or state_attr(entity, 'native_temperature_unit') or state_attr(entity, 'unit_of_measurement') or '' }}";
 }
 
 inline uint32_t next_weather_forecast_call_id() {
@@ -1825,6 +2016,18 @@ inline void request_weather_forecast_entity(const std::string &entity_id,
     apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
+#ifdef ESP_PLATFORM
+  size_t internal_free = heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+  size_t internal_largest = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+  if (internal_free < HA_ACTION_INTERNAL_FREE_MIN_BYTES ||
+      internal_largest < HA_ACTION_INTERNAL_LARGEST_MIN_BYTES) {
+    ESP_LOGW("weather_forecast",
+             "Deferring forecast request for %s: internal heap free=%u largest=%u",
+             entity_id.c_str(), (unsigned) internal_free, (unsigned) internal_largest);
+    weather_forecast_schedule_retry(entity_id, day, "low internal heap");
+    return;
+  }
+#endif
 
   esphome::api::HomeassistantActionRequest req;
   uint32_t call_id = next_weather_forecast_call_id();

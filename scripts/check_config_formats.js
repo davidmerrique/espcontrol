@@ -80,6 +80,7 @@ function subpageTypeFromCode(code) {
     H: "climate",
     WH: "webhook",
     P: "push",
+    SL: "screen_lock",
     I: "internal",
     G: "subpage",
   }[code || ""] || (code || "");
@@ -270,6 +271,7 @@ assertButtonTypeSpecBacked("clock", "clock card");
 assertButtonTypeSpecBacked("timezone", "timezone card");
 assertButtonTypeSpecBacked("weather", "weather card");
 assertButtonTypeSpecBacked("push", "push card");
+assertButtonTypeSpecBacked("screen_lock", "screen lock card");
 assertButtonTypeSpecBacked("webhook", "webhook card");
 assertButtonTypeSpecBacked("internal", "internal relay card");
 assertButtonTypeSpecBacked("garage", "garage card");
@@ -780,6 +782,34 @@ assertButtonRoundTrip(hooks, "internal relay push button", {
   type: "internal",
   precision: "",
 }, false);
+
+const screenLockCard = {
+  entity: "",
+  label: "",
+  icon: "Lock",
+  icon_on: "Lock Open",
+  sensor: "",
+  unit: "",
+  type: "screen_lock",
+  precision: "",
+  options: "",
+};
+assertButtonRoundTrip(hooks, "screen lock local card", screenLockCard, false);
+assert.deepStrictEqual(
+  buttonShape(hooks.parseButtonConfig(hooks.serializeButtonConfig({
+    entity: "switch.should_not_save",
+    label: "Screen Lock",
+    icon: "Auto",
+    icon_on: "Auto",
+    sensor: "sensor.should_not_save",
+    unit: "%",
+    type: "screen_lock",
+    precision: "2",
+    options: "large_numbers",
+  }))),
+  buttonShape(screenLockCard),
+  "screen lock card strips non-local config fields"
+);
 
 assertButtonRoundTrip(hooks, "webhook post json", {
   entity: "https://maker.ifttt.com/trigger/door/json/with/key/test",
@@ -1570,6 +1600,136 @@ assertButtonMigration(hooks, "fan card clears ignored fields", "fan.bedroom;Bedr
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", false, false), false, "fan picker hidden without experimental flag");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", true, false), true, "fan picker visible with experimental flag");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", true, true), true, "fan picker visible in subpages with experimental flag");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("image", false, false), true, "image picker visible without experimental flag");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("image", true, false), true, "image picker visible with experimental flag");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("image", true, true), true, "image picker visible in subpages with experimental flag");
+assert.deepStrictEqual(Array.from(hooks.imageModalModeValues()), ["fill", "fit"], "image modal mode values are contract-backed");
+assert.deepStrictEqual(Array.from(hooks.cardContractDomains("image")), ["camera", "image"], "image cards accept camera and image entities");
+assert.strictEqual(hooks.normalizeImageOptions("image_refresh=30,image_refresh_mode=timer,unknown=1"), "", "legacy image refresh options are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_label", "image label option is preserved while legacy refresh values are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=fit,image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_modal_mode=fit", "image modal fit option is preserved while legacy refresh values are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=fill,image_refresh=30"), "", "image modal fill and legacy refresh options are omitted");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=bad,image_refresh=30"), "", "invalid image modal mode and legacy refresh options are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=5,image_refresh_mode=bad"), "image_label", "image label option survives invalid legacy refresh values");
+const imageCardForLimit = {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+};
+const switchCardForImageLimit = {
+  entity: "switch.kitchen",
+  label: "Kitchen",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "",
+  precision: "",
+  options: "",
+};
+const imageLimitSnapshot = {
+  grid: [1, 2, 3, 0],
+  buttons: [imageCardForLimit, imageCardForLimit, switchCardForImageLimit, imageCardForLimit],
+  subpages: {
+    4: {
+      grid: [1, 2, 0],
+      buttons: [imageCardForLimit, imageCardForLimit, imageCardForLimit],
+    },
+  },
+};
+assert.strictEqual(hooks.imageCardLimit(), 4, "image card editor limit matches firmware downloader slots");
+assert.strictEqual(hooks.imageCardCountForTest(imageLimitSnapshot), 4, "image card count spans main page and subpages");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on the main page is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: true,
+  homeSlot: 4,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on a subpage is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 2,
+  button: switchCardForImageLimit,
+}), true, "replacing an existing image card frees a firmware slot");
+assertButtonRoundTrip(hooks, "image card default options", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+}, false);
+assert.deepStrictEqual(buttonShape(hooks.parseButtonConfig(
+  "~camera.front_door,,Auto,Auto,,,image,,image_refresh=30%2Cimage_refresh_mode=timer"
+)), buttonShape({
+  entity: "camera.front_door",
+  type: "image",
+}), "image card legacy refresh options are cleaned up by web parser");
+assertButtonRoundTrip(hooks, "image card label option", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label",
+}, false);
+assert.deepStrictEqual(buttonShape(hooks.parseButtonConfig(
+  "~camera.front_door,Front%20Door,Auto,Auto,,,image,,image_label%2Cimage_refresh=30%2Cimage_refresh_mode=timer"
+)), buttonShape({
+  entity: "camera.front_door",
+  label: "Front Door",
+  type: "image",
+  options: "image_label",
+}), "image card label survives legacy refresh cleanup");
+assertButtonRoundTrip(hooks, "image card icon option", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Camera",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_icon",
+}, false);
+assertButtonRoundTrip(hooks, "image card label and icon options", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Camera",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label,image_icon",
+}, false);
+assertButtonMigration(hooks, "image card clears label without overlay option", "camera.front_door;Front Door;Auto;Auto;;;image;;", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+});
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, false), false, "fan subtype hidden from top-level picker");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, true), false, "fan switch subtype hidden from subpage picker");
 assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_oscillate", true, true), false, "fan oscillation subtype hidden from subpage picker");

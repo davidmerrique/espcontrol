@@ -15,6 +15,8 @@
 - "\U000F092E"  # mdi-wifi-strength-off-outline (Network status)
 - "\U000F0200"  # mdi-ethernet (Setup screens)
 - "\U000F07D0"  # mdi-home-assistant (Setup screens)
+- "\U000F02E9"  # mdi-image (Image card loading state)
+- "\U000F02ED"  # mdi-image-broken (Image card unavailable state)
 - "\U000F0004"  # mdi-account
 - "\U000F001B"  # mdi-air-conditioner
 - "\U000F0D43"  # mdi-air-filter
@@ -176,6 +178,7 @@
 - "\U000F1435"  # mdi-motion-sensor-off
 - "\U000F07DE"  # mdi-movie-roll
 - "\U000F075A"  # mdi-music
+- "\U000F07E1"  # mdi-nintendo-switch
 - "\U000F1054"  # mdi-outdoor-lamp
 - "\U000F04DE"  # mdi-stove
 - "\U000F03D6"  # mdi-package-variant
@@ -186,6 +189,7 @@
 - "\U000F03E4"  # mdi-pause
 - "\U000F040A"  # mdi-play
 - "\U000F040E"  # mdi-play-pause
+- "\U000F0414"  # mdi-sony-playstation
 - "\U000F0606"  # mdi-pool
 - "\U000F0425"  # mdi-power
 - "\U000F06A5"  # mdi-power-plug
@@ -195,6 +199,13 @@
 - "\U000F042E"  # mdi-projector
 - "\U000F1A23"  # mdi-projector-off
 - "\U000F044C"  # mdi-recycle
+- "\U000F030D"  # mdi-keyboard-backspace
+- "\U000F0047"  # mdi-arrow-down-bold-circle
+- "\U000F07D2"  # mdi-home-circle
+- "\U000F004F"  # mdi-arrow-left-bold-circle
+- "\U000F05E0"  # mdi-check-circle
+- "\U000F0056"  # mdi-arrow-right-bold-circle
+- "\U000F005F"  # mdi-arrow-up-bold-circle
 - "\U000F070D"  # mdi-robot-vacuum
 - "\U000F1A6B"  # mdi-roller-shade
 - "\U000F1A6C"  # mdi-roller-shade-closed

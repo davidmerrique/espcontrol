@@ -22,10 +22,14 @@ var DATE_TIME_CARD_METADATA = {
     },
     idSuffix: "large-date-time-numbers",
     supportedCardSize: function (b, helpers) {
-      var cardSize = (helpers && helpers.cardSize) || 1;
-      return dateTimeCardMode(b) === "clock" ? cardSize === 3 || cardSize === 4 : cardSize === 4;
+      var cardSize = (helpers && helpers.cardSize) || CARD_SIZE_SINGLE;
+      return dateTimeCardMode(b) === "clock"
+        ? cardSize === CARD_SIZE_WIDE || cardSize === CARD_SIZE_LARGE
+        : cardSize === CARD_SIZE_LARGE;
     },
-    hideLabelCardSizes: [3],
+    hideLabel: function (_b, helpers) {
+      return ((helpers && helpers.cardSize) || CARD_SIZE_SINGLE) === CARD_SIZE_WIDE;
+    },
   },
   preview: {
     dateBadge: "calendar-month",

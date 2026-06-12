@@ -63,23 +63,16 @@ registerButtonType("presence", {
     if (!b.icon || b.icon === "Auto") b.icon = "Motion Sensor Off";
     if (!b.icon_on || b.icon_on === "Auto") b.icon_on = "Motion Sensor";
 
-    helpers.renderCardEntityField(panel, b, helpers, PRESENCE_CARD_METADATA);
-    helpers.renderCardTextField(panel, b, helpers, PRESENCE_CARD_METADATA.labelField);
-    helpers.renderCardIconPicker(panel, b, helpers, PRESENCE_CARD_METADATA.iconOff);
-    helpers.renderCardIconPicker(panel, b, helpers, PRESENCE_CARD_METADATA.iconOn);
-    helpers.renderCardOptionToggle(panel, b, helpers, Object.assign({}, PRESENCE_CARD_METADATA.activeColor, {
-      onChange: function (button, cardHelpers, checked) {
-        setPresenceActiveColorEnabled(button, checked);
-        cardHelpers.saveField("options", button.options);
-      },
-    }));
+    helpers.renderBasicCardFields(panel, b, helpers, PRESENCE_CARD_METADATA);
+    helpers.renderCardActiveColorToggle(panel, b, helpers,
+      PRESENCE_CARD_METADATA.activeColor, setPresenceActiveColorEnabled);
   },
   renderPreview: function (b, helpers) {
-    var icon = b.icon && b.icon !== "Auto" ? b.icon : "Motion Sensor Off";
     var label = b.label || b.sensor || "Presence";
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconSlug(icon) + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, "motion-sensor"),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: "Motion Sensor Off",
+      badge: "motion-sensor",
+    });
   },
 });

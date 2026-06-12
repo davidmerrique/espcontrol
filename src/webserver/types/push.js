@@ -39,14 +39,14 @@ registerButtonType("push", {
     b.icon = pushDefaultIcon();
   },
   renderSettings: function (panel, b, slot, helpers) {
-    helpers.renderCardIconPicker(panel, b, helpers, PUSH_CARD_METADATA.icon);
+    helpers.renderBasicCardFields(panel, b, helpers, PUSH_CARD_METADATA);
   },
   renderPreview: function (b, helpers) {
     var label = b.label || "Trigger";
-    var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : iconSlug(pushDefaultIcon());
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, PUSH_CARD_METADATA.preview.badge),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: pushDefaultIcon(),
+      badge: PUSH_CARD_METADATA.preview.badge,
+    });
   },
 });
