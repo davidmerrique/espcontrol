@@ -178,7 +178,7 @@ inline const char *espcontrol_i18n_cs(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Kontrola aktualizací";
   if (std::strcmp(text, "Latest installed") == 0) return "Nejnovější verze nainstalována";
   if (std::strcmp(text, "Update available") == 0) return "Aktualizace k dispozici";
-  if (std::strcmp(text, "Update firmware") == 0) return "Aktualizovat firmware";
+  if (std::strcmp(text, "Install") == 0) return "Aktualizovat firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Žádné uložené WiFi připojení\nPřeinstalujte přes USB pro nové nastavení";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Otevřete 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Otevřete prohlížeč a\nnastavte displej";
@@ -358,7 +358,7 @@ inline const char *espcontrol_i18n_da(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Søger efter opdateringer";
   if (std::strcmp(text, "Latest installed") == 0) return "Seneste version installeret";
   if (std::strcmp(text, "Update available") == 0) return "Opdatering tilgængelig";
-  if (std::strcmp(text, "Update firmware") == 0) return "Opdater firmware";
+  if (std::strcmp(text, "Install") == 0) return "Opdater firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Ingen gemt WiFi-forbindelse\nGeninstaller via USB for at konfigurere igen";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Åbn 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Åbn din browser og\nkonfigurer din skærm";
@@ -534,7 +534,7 @@ inline const char *espcontrol_i18n_de(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Suche nach Updates";
   if (std::strcmp(text, "Latest installed") == 0) return "Neueste Version installiert";
   if (std::strcmp(text, "Update available") == 0) return "Update verfügbar";
-  if (std::strcmp(text, "Update firmware") == 0) return "Firmware aktualisieren";
+  if (std::strcmp(text, "Install") == 0) return "Firmware aktualisieren";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Keine gespeicherte WiFi-Verbindung\nPer USB neu installieren, um neu zu konfigurieren";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "192.168.4.1 öffnen";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Öffnen Sie Ihren Browser und\nkonfigurieren Sie Ihr Display";
@@ -716,7 +716,7 @@ inline const char *espcontrol_i18n_es(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Buscando actualizaciones";
   if (std::strcmp(text, "Latest installed") == 0) return "Última versión instalada";
   if (std::strcmp(text, "Update available") == 0) return "Actualización disponible";
-  if (std::strcmp(text, "Update firmware") == 0) return "Actualizar firmware";
+  if (std::strcmp(text, "Install") == 0) return "Actualizar firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "No hay conexión WiFi guardada\nReinstala por USB para reconfigurar";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Abre 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Abre tu navegador y\nconfigura la pantalla";
@@ -907,7 +907,7 @@ inline const char *espcontrol_i18n_fi(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Tarkistetaan päivityksiä";
   if (std::strcmp(text, "Latest installed") == 0) return "Uusin versio asennettu";
   if (std::strcmp(text, "Update available") == 0) return "Päivitys saatavilla";
-  if (std::strcmp(text, "Update firmware") == 0) return "Päivitä laiteohjelmisto";
+  if (std::strcmp(text, "Install") == 0) return "Päivitä laiteohjelmisto";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Tallennettua WiFi-yhteyttä ei ole\nAsenna uudelleen USB:n kautta määritystä varten";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Avaa 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Avaa selain ja\nmääritä näyttö";
@@ -1083,7 +1083,7 @@ inline const char *espcontrol_i18n_fr(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Recherche de mises à jour";
   if (std::strcmp(text, "Latest installed") == 0) return "Dernière version installée";
   if (std::strcmp(text, "Update available") == 0) return "Mise à jour disponible";
-  if (std::strcmp(text, "Update firmware") == 0) return "Mettre à jour le firmware";
+  if (std::strcmp(text, "Install") == 0) return "Mettre à jour le firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Aucune connexion WiFi enregistrée\nRéinstallez par USB pour reconfigurer";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Ouvrez 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Ouvrez votre navigateur et\nconfigurez votre écran";
@@ -1274,7 +1274,7 @@ inline const char *espcontrol_i18n_hu(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Frissítések keresése";
   if (std::strcmp(text, "Latest installed") == 0) return "Legújabb verzió telepítve";
   if (std::strcmp(text, "Update available") == 0) return "Frissítés elérhető";
-  if (std::strcmp(text, "Update firmware") == 0) return "Firmware frissítése";
+  if (std::strcmp(text, "Install") == 0) return "Firmware frissítése";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Nincs mentett WiFi-kapcsolat\nTelepítse újra USB-n a beállításhoz";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Nyissa meg: 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Nyissa meg a böngészőt, és\nállítsa be a kijelzőt";
@@ -1459,7 +1459,7 @@ inline const char *espcontrol_i18n_it(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Controllo aggiornamenti";
   if (std::strcmp(text, "Latest installed") == 0) return "Ultima versione installata";
   if (std::strcmp(text, "Update available") == 0) return "Aggiornamento disponibile";
-  if (std::strcmp(text, "Update firmware") == 0) return "Aggiorna firmware";
+  if (std::strcmp(text, "Install") == 0) return "Aggiorna firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Nessuna connessione WiFi salvata\nReinstalla via USB per riconfigurare";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Apri 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Apri il browser e\nconfigura il display";
@@ -1640,7 +1640,7 @@ inline const char *espcontrol_i18n_nb(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Ser etter oppdateringer";
   if (std::strcmp(text, "Latest installed") == 0) return "Nyeste versjon installert";
   if (std::strcmp(text, "Update available") == 0) return "Oppdatering tilgjengelig";
-  if (std::strcmp(text, "Update firmware") == 0) return "Oppdater firmware";
+  if (std::strcmp(text, "Install") == 0) return "Oppdater firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Ingen lagret WiFi-tilkobling\nInstaller på nytt via USB for å konfigurere";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Åpne 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Åpne nettleseren og\nkonfigurer skjermen";
@@ -1822,7 +1822,7 @@ inline const char *espcontrol_i18n_nl(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Controleren op updates";
   if (std::strcmp(text, "Latest installed") == 0) return "Nieuwste versie geïnstalleerd";
   if (std::strcmp(text, "Update available") == 0) return "Update beschikbaar";
-  if (std::strcmp(text, "Update firmware") == 0) return "Firmware bijwerken";
+  if (std::strcmp(text, "Install") == 0) return "Firmware bijwerken";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Geen opgeslagen WiFi-verbinding\nInstalleer opnieuw via USB om opnieuw te configureren";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Open uw browser en\nconfigureer uw display";
   if (std::strcmp(text, "Preparing the screen\nDo not power off") == 0) return "Scherm voorbereiden\nSchakel de stroom niet uit";
@@ -2001,7 +2001,7 @@ inline const char *espcontrol_i18n_pl(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Sprawdzanie aktualizacji";
   if (std::strcmp(text, "Latest installed") == 0) return "Najnowsza wersja zainstalowana";
   if (std::strcmp(text, "Update available") == 0) return "Aktualizacja dostępna";
-  if (std::strcmp(text, "Update firmware") == 0) return "Aktualizuj firmware";
+  if (std::strcmp(text, "Install") == 0) return "Aktualizuj firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Brak zapisanej sieci WiFi\nZainstaluj ponownie przez USB, aby skonfigurować";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Otwórz 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Otwórz przeglądarkę i\nskonfiguruj wyświetlacz";
@@ -2183,7 +2183,7 @@ inline const char *espcontrol_i18n_pt_br(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Verificando atualizações";
   if (std::strcmp(text, "Latest installed") == 0) return "Versão mais recente instalada";
   if (std::strcmp(text, "Update available") == 0) return "Atualização disponível";
-  if (std::strcmp(text, "Update firmware") == 0) return "Atualizar firmware";
+  if (std::strcmp(text, "Install") == 0) return "Atualizar firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Nenhuma conexão WiFi salva\nReinstale por USB para reconfigurar";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Abra 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Abra o navegador e\nconfigure a tela";
@@ -2365,7 +2365,7 @@ inline const char *espcontrol_i18n_pt(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "A procurar atualizações";
   if (std::strcmp(text, "Latest installed") == 0) return "Versão mais recente instalada";
   if (std::strcmp(text, "Update available") == 0) return "Atualização disponível";
-  if (std::strcmp(text, "Update firmware") == 0) return "Atualizar firmware";
+  if (std::strcmp(text, "Install") == 0) return "Atualizar firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Nenhuma ligação WiFi guardada\nReinstale por USB para reconfigurar";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Abra 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Abra o navegador e\nconfigure o ecrã";
@@ -2556,7 +2556,7 @@ inline const char *espcontrol_i18n_ro(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Se verifică actualizările";
   if (std::strcmp(text, "Latest installed") == 0) return "Cea mai recentă versiune instalată";
   if (std::strcmp(text, "Update available") == 0) return "Actualizare disponibilă";
-  if (std::strcmp(text, "Update firmware") == 0) return "Actualizează firmware-ul";
+  if (std::strcmp(text, "Install") == 0) return "Actualizează firmware-ul";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Nu există o conexiune WiFi salvată\nReinstalați prin USB pentru reconfigurare";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Deschideți 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Deschideți browserul și\nconfigurați afișajul";
@@ -2739,7 +2739,7 @@ inline const char *espcontrol_i18n_sk(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Kontrola aktualizácií";
   if (std::strcmp(text, "Latest installed") == 0) return "Najnovšia verzia nainštalovaná";
   if (std::strcmp(text, "Update available") == 0) return "Aktualizácia dostupná";
-  if (std::strcmp(text, "Update firmware") == 0) return "Aktualizovať firmvér";
+  if (std::strcmp(text, "Install") == 0) return "Aktualizovať firmvér";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Žiadne uložené WiFi pripojenie\nPreinštalujte cez USB na nové nastavenie";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Otvorte 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Otvorte prehliadač a\nnakonfigurujte displej";
@@ -2926,7 +2926,7 @@ inline const char *espcontrol_i18n_sl(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Preverjanje posodobitev";
   if (std::strcmp(text, "Latest installed") == 0) return "Najnovejša različica nameščena";
   if (std::strcmp(text, "Update available") == 0) return "Posodobitev je na voljo";
-  if (std::strcmp(text, "Update firmware") == 0) return "Posodobi firmware";
+  if (std::strcmp(text, "Install") == 0) return "Posodobi firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Ni shranjene povezave WiFi\nZnova namestite prek USB za konfiguracijo";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Odprite 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Odprite brskalnik in\nkonfigurirajte zaslon";
@@ -3105,7 +3105,7 @@ inline const char *espcontrol_i18n_sv(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Söker efter uppdateringar";
   if (std::strcmp(text, "Latest installed") == 0) return "Senaste versionen installerad";
   if (std::strcmp(text, "Update available") == 0) return "Uppdatering tillgänglig";
-  if (std::strcmp(text, "Update firmware") == 0) return "Uppdatera firmware";
+  if (std::strcmp(text, "Install") == 0) return "Uppdatera firmware";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Ingen sparad WiFi-anslutning\nInstallera om via USB för att konfigurera";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Öppna 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Öppna webbläsaren och\nkonfigurera skärmen";
@@ -3296,7 +3296,7 @@ inline const char *espcontrol_i18n_tr(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Güncellemeler kontrol ediliyor";
   if (std::strcmp(text, "Latest installed") == 0) return "En son sürüm yüklü";
   if (std::strcmp(text, "Update available") == 0) return "Güncelleme mevcut";
-  if (std::strcmp(text, "Update firmware") == 0) return "Firmware'i güncelle";
+  if (std::strcmp(text, "Install") == 0) return "Firmware'i güncelle";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Kayıtlı WiFi bağlantısı yok\nYeniden yapılandırmak için USB ile yeniden yükleyin";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "192.168.4.1 adresini açın";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Tarayıcınızı açın ve\nekranınızı yapılandırın";
@@ -3489,7 +3489,7 @@ inline const char *espcontrol_i18n_uk(const char *text) {
   if (std::strcmp(text, "Checking for updates") == 0) return "Перевірка оновлень";
   if (std::strcmp(text, "Latest installed") == 0) return "Останню версію встановлено";
   if (std::strcmp(text, "Update available") == 0) return "Доступне оновлення";
-  if (std::strcmp(text, "Update firmware") == 0) return "Оновити прошивку";
+  if (std::strcmp(text, "Install") == 0) return "Оновити прошивку";
   if (std::strcmp(text, "No saved WiFi connection\nReinstall by USB to reconfigure") == 0) return "Немає збереженого підключення WiFi\nПеревстановіть через USB для налаштування";
   if (std::strcmp(text, "Open 192.168.4.1") == 0) return "Відкрийте 192.168.4.1";
   if (std::strcmp(text, "Open your browser and\nconfigure your display") == 0) return "Відкрийте браузер і\nналаштуйте дисплей";
