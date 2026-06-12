@@ -472,6 +472,7 @@ script:
   - id: screen_schedule_sleep
     mode: restart
     then:
+      - lambda: 'backlight_close_modals_for_display_takeover();'
       - script.stop: screensaver_idle_check
       - script.stop: home_screen_idle_check
       - script.stop: screen_schedule_wake_timeout_check
@@ -585,6 +586,7 @@ script:
   - id: screen_schedule_show_clock
     mode: restart
     then:
+      - lambda: 'backlight_close_modals_for_display_takeover();'
       - script.stop: screensaver_idle_check
       - script.stop: home_screen_idle_check
       - script.stop: screen_schedule_wake_timeout_check

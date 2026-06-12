@@ -394,6 +394,7 @@ script:
   - id: backlight_schedule_display_off
     mode: restart
     then:
+      - lambda: 'backlight_close_modals_for_display_takeover();'
       - if:
           condition:
             lambda: 'return !id(home_screen_idle_suspended) || id(screen_schedule_asleep);'
@@ -421,6 +422,7 @@ script:
   - id: screen_schedule_manual_sleep
     mode: restart
     then:
+      - lambda: 'backlight_close_modals_for_display_takeover();'
       - script.stop: screensaver_idle_check
       - globals.set:
           id: display_asleep

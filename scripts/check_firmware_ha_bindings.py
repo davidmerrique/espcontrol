@@ -678,10 +678,29 @@ def firmware_image_card_quality_errors(firmware_dir: Path, root: Path) -> list[s
         errors.append(f"{rel}: release modal image-card buffers when the modal closes")
     if 'image_card_set_loading_state(loading, "Too many")' not in text:
         errors.append(f"{rel}: show a visible image-card limit message when downloaders run out")
-    if "image_card_modal_refresh_supported" not in text or "control_modal_current_is_jc4880p443_size" not in text:
-        errors.append(f"{rel}: avoid extra modal image downloads on the 4.3-inch P4 screen")
+    modal_refresh = re.search(
+        r"inline\s+bool\s+image_card_modal_refresh_supported\s*\(\s*\)\s*\{\s*return\s+true\s*;",
+        text,
+        re.S,
+    )
+    if not modal_refresh:
+        errors.append(f"{rel}: keep modal-quality image refresh enabled on the 4.3-inch P4 screen")
+    if (
+        "image_card_tile_prefetches_modal_quality" not in text
+        or "!control_modal_current_is_jc4880p443_size()" not in text
+    ):
+        errors.append(f"{rel}: keep 4.3-inch P4 tile downloads sized to the tile before modal open")
     if "Closing image modal" not in text:
         errors.append(f"{rel}: log image-card modal close events")
+    if "image_card_abort_modal_open" not in text or "modal shell setup failed" not in text:
+        errors.append(f"{rel}: clean up partially-created image card modals")
+    if "IMAGE_CARD_MODAL_LOADING_MAX_W" not in text or "LV_ALIGN_TOP_RIGHT" not in text:
+        errors.append(f"{rel}: keep image-card modal loading indicator compact")
+    if (
+        "image_card_show_modal_image(ctx, ctx->image)" not in text
+        or "image_card_queue_modal_source_request(ctx)" not in text
+    ):
+        errors.append(f"{rel}: show the cached image-card tile while modal-quality image loads")
     if "lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN)" not in text:
         errors.append(f"{rel}: clip image card modal content to rounded panel corners")
     if "image_card_apply_corner_clip" not in text:
@@ -2395,8 +2414,12 @@ def run_self_test() -> int:
             "check free memory before image-card downloads",
             "include PSRAM in image-card memory checks",
             "show a visible image-card limit message when downloaders run out",
-            "avoid extra modal image downloads on the 4.3-inch P4 screen",
+            "keep modal-quality image refresh enabled on the 4.3-inch P4 screen",
+            "keep 4.3-inch P4 tile downloads sized to the tile before modal open",
             "log image-card modal close events",
+            "clean up partially-created image card modals",
+            "keep image-card modal loading indicator compact",
+            "show the cached image-card tile while modal-quality image loads",
             "clip image card modal content to rounded panel corners",
             "preserve image card rounded corners while pressed",
             "apply image card corner clipping to the pressed state",
@@ -2409,6 +2432,7 @@ def run_self_test() -> int:
         "constexpr int IMAGE_CARD_MAX_CONTEXTS = 6;\n"
         "constexpr int IMAGE_CARD_MODAL_MAX_TARGET_SIDE_PX = 800;\n"
         "constexpr size_t IMAGE_CARD_MEMORY_HEADROOM_BYTES = 96 * 1024;\n"
+        "constexpr lv_coord_t IMAGE_CARD_MODAL_LOADING_MAX_W = 220;\n"
         "inline lv_style_selector_t image_card_pressed_selector() { return LV_STATE_PRESSED; }\n"
         "inline void image_card_apply_corner_clip(lv_obj_t *obj, lv_coord_t radius) {}\n"
         "inline bool image_card_memory_available(ImageCardCtx *ctx, const char *stage,\n"
@@ -2417,10 +2441,17 @@ def run_self_test() -> int:
         "  return external_largest > 0;\n"
         "}\n"
         "inline bool image_card_modal_refresh_supported() {\n"
-        "  return !control_modal_current_is_jc4880p443_size();\n"
+        "  return true;\n"
+        "}\n"
+        "inline bool image_card_tile_prefetches_modal_quality() {\n"
+        "  return image_card_modal_refresh_supported() &&\n"
+        "         !control_modal_current_is_jc4880p443_size();\n"
         "}\n"
         "inline void image_card_limit_target_size(lv_coord_t source_width, lv_coord_t source_height,\n"
         "                                         int *target_width, int *target_height) {}\n"
+        "inline void image_card_layout_modal_loading(ImageCardCtx *ctx) {\n"
+        "  lv_obj_align(ui.loading_widget, LV_ALIGN_TOP_RIGHT, -margin, margin);\n"
+        "}\n"
         "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
         "  ctx->image->set_target_size(width, height);\n"
         "  image_card_tile_request_size(width, height, &request_width, &request_height);\n"
@@ -2440,8 +2471,14 @@ def run_self_test() -> int:
         "inline void image_card_request_modal_source_url(ImageCardCtx *ctx) {\n"
         "  ctx->modal_image->request_update_url(ctx->modal_url, max_source_dim);\n"
         "}\n"
+        "inline void image_card_abort_modal_open(ImageCardCtx *ctx, const char *reason) {\n"
+        "  ESP_LOGW(\"image_card\", \"modal shell setup failed\");\n"
+        "}\n"
         "inline void image_card_open_modal(ImageCardCtx *ctx) {\n"
+        "  ESP_LOGW(\"image_card\", \"modal shell setup failed\");\n"
         "  lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN);\n"
+        "  image_card_show_modal_image(ctx, ctx->image);\n"
+        "  image_card_queue_modal_source_request(ctx);\n"
         "  image_card_clear_widget_source(ui.image_widget);\n"
         "  image_card_set_widget_source(ui.image_widget, ctx->modal_image);\n"
         "  if (image_card_modal_active_for(ctx)) {\n"

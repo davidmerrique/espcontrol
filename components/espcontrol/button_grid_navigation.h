@@ -54,6 +54,19 @@ inline void navigation_hide_modals() {
   network_status_hide_modal();
 }
 
+inline void navigation_close_modals_for_display_takeover() {
+  control_modal_close_nested_menu();
+  control_modal_force_close_active();
+  image_card_hide_modal();
+  media_volume_hide_modal();
+  climate_control_hide_modal();
+  option_select_hide_modal();
+  switch_confirmation_hide_modal();
+  alarm_pin_hide_modal();
+  alarm_control_hide_modal();
+  network_status_hide_modal();
+}
+
 inline bool navigation_return_home(lv_obj_t *main_page_obj) {
   navigation_hide_modals();
   if (main_page_obj == nullptr) {

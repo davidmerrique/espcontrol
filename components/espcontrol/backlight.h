@@ -25,6 +25,22 @@
 #include <esp_system.h>
 #endif
 
+using BacklightDisplayTakeoverCallback = void (*)();
+
+inline BacklightDisplayTakeoverCallback &backlight_display_takeover_callback() {
+  static BacklightDisplayTakeoverCallback callback = nullptr;
+  return callback;
+}
+
+inline void set_backlight_display_takeover_callback(BacklightDisplayTakeoverCallback callback) {
+  backlight_display_takeover_callback() = callback;
+}
+
+inline void backlight_close_modals_for_display_takeover() {
+  BacklightDisplayTakeoverCallback callback = backlight_display_takeover_callback();
+  if (callback) callback();
+}
+
 // ── Sunrise/sunset recalculation ─────────────────────────────────────
 
 struct SunCalcResult {

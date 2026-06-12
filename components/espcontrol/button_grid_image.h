@@ -23,6 +23,9 @@ constexpr int IMAGE_CARD_MODAL_MAX_TARGET_SIDE_PX = 800;
 constexpr size_t IMAGE_CARD_MEMORY_HEADROOM_BYTES = 96 * 1024;
 constexpr lv_coord_t IMAGE_CARD_JC4880P443_MODAL_BACK_BUTTON_REF_PX = 58;
 constexpr const char *IMAGE_CARD_LOADING_ICON = "\U000F02E9";
+constexpr lv_coord_t IMAGE_CARD_MODAL_LOADING_MIN_W = 132;
+constexpr lv_coord_t IMAGE_CARD_MODAL_LOADING_MAX_W = 220;
+constexpr lv_coord_t IMAGE_CARD_MODAL_LOADING_H = 48;
 
 struct ImageCardCtx {
   lv_obj_t *widget = nullptr;
@@ -349,16 +352,28 @@ inline void image_card_layout_modal_loading(ImageCardCtx *ctx) {
   lv_coord_t width = lv_obj_get_width(ui.panel);
   lv_coord_t height = lv_obj_get_height(ui.panel);
   if (width <= 0 || height <= 0) return;
-  lv_obj_set_pos(ui.loading_widget, 0, 0);
-  lv_obj_set_size(ui.loading_widget, width, height);
-  lv_obj_set_style_radius(
-    ui.loading_widget, lv_obj_get_style_radius(ui.panel, LV_PART_MAIN), LV_PART_MAIN);
+  lv_coord_t margin = width < 260 ? 8 : 12;
+  lv_coord_t available_w = width - margin * 2;
+  if (available_w <= 0) return;
+  lv_coord_t indicator_w = width / 2;
+  if (indicator_w < IMAGE_CARD_MODAL_LOADING_MIN_W) indicator_w = IMAGE_CARD_MODAL_LOADING_MIN_W;
+  if (indicator_w > IMAGE_CARD_MODAL_LOADING_MAX_W) indicator_w = IMAGE_CARD_MODAL_LOADING_MAX_W;
+  if (indicator_w > available_w) indicator_w = available_w;
+  lv_coord_t indicator_h = IMAGE_CARD_MODAL_LOADING_H;
+  if (height < 180) indicator_h = 40;
+  lv_obj_set_size(ui.loading_widget, indicator_w, indicator_h);
+  lv_obj_align(ui.loading_widget, LV_ALIGN_TOP_RIGHT, -margin, margin);
+  lv_obj_set_style_radius(ui.loading_widget, indicator_h / 2, LV_PART_MAIN);
   lv_obj_set_style_clip_corner(ui.loading_widget, true, LV_PART_MAIN);
   if (lv_obj_get_child_cnt(ui.loading_widget) < 2) return;
   lv_obj_t *icon = lv_obj_get_child(ui.loading_widget, 0);
   lv_obj_t *label = lv_obj_get_child(ui.loading_widget, 1);
-  lv_obj_align(icon, LV_ALIGN_CENTER, 0, -18);
-  lv_obj_align_to(label, icon, LV_ALIGN_OUT_BOTTOM_MID, 0, 8);
+  lv_coord_t inner_pad = 14;
+  lv_coord_t label_x = 44;
+  lv_obj_align(icon, LV_ALIGN_LEFT_MID, inner_pad, 0);
+  lv_obj_set_width(label, indicator_w - label_x - inner_pad);
+  lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+  lv_obj_align(label, LV_ALIGN_LEFT_MID, label_x, 0);
 }
 
 inline void image_card_show_modal_loading(ImageCardCtx *ctx, const char *text) {
@@ -373,7 +388,7 @@ inline void image_card_show_modal_loading(ImageCardCtx *ctx, const char *text) {
   }
   lv_obj_clear_flag(ui.loading_widget, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(ui.loading_widget);
-  lv_obj_move_foreground(ui.back_btn);
+  if (ui.back_btn) lv_obj_move_foreground(ui.back_btn);
   lv_obj_invalidate(ui.loading_widget);
 }
 
@@ -381,7 +396,7 @@ inline void image_card_hide_modal_loading(ImageCardCtx *ctx) {
   ImageCardModalUi &ui = image_card_modal_ui();
   if (!ctx || ui.active != ctx || !ui.loading_widget) return;
   lv_obj_add_flag(ui.loading_widget, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_move_foreground(ui.back_btn);
+  if (ui.back_btn) lv_obj_move_foreground(ui.back_btn);
 }
 
 inline bool image_card_startup_retry_active(ImageCardCtx *ctx,
@@ -480,11 +495,11 @@ inline void image_card_apply_modal_downloaded(ImageCardCtx *ctx) {
   if (!image_card_modal_active_for(ctx)) return;
   if (ctx->modal_image->get_url() != ctx->modal_url) return;
   ImageCardModalUi &ui = image_card_modal_ui();
-  image_card_apply_modal_geometry(ctx, ctx->modal_image);
+  if (!image_card_apply_modal_geometry(ctx, ctx->modal_image)) return;
   image_card_set_widget_source(ui.image_widget, ctx->modal_image);
   lv_obj_move_background(ui.image_widget);
   image_card_hide_modal_loading(ctx);
-  lv_obj_move_foreground(ui.back_btn);
+  if (ui.back_btn) lv_obj_move_foreground(ui.back_btn);
   if (ui.panel) lv_obj_invalidate(ui.panel);
   notify_dashboard_content_changed();
 }
@@ -495,7 +510,7 @@ inline void image_card_handle_modal_download_error(ImageCardCtx *ctx) {
   if (image_card_modal_active_for(ctx)) {
     ImageCardModalUi &ui = image_card_modal_ui();
     image_card_hide_modal_loading(ctx);
-    lv_obj_move_foreground(ui.back_btn);
+    if (ui.back_btn) lv_obj_move_foreground(ui.back_btn);
   }
 }
 
@@ -693,13 +708,13 @@ inline void image_card_show_modal_image(ImageCardCtx *ctx,
                                         esphome::artwork_image::ArtworkImage *image) {
   ImageCardModalUi &ui = image_card_modal_ui();
   if (!ctx || !image_card_modal_active_for(ctx) || !image) return;
-  image_card_apply_modal_geometry(ctx, image);
+  if (!image_card_apply_modal_geometry(ctx, image)) return;
   image_card_set_widget_source(ui.image_widget, image);
   lv_obj_move_background(ui.image_widget);
   if (ui.loading_widget && !lv_obj_has_flag(ui.loading_widget, LV_OBJ_FLAG_HIDDEN)) {
     lv_obj_move_foreground(ui.loading_widget);
   }
-  lv_obj_move_foreground(ui.back_btn);
+  if (ui.back_btn) lv_obj_move_foreground(ui.back_btn);
   if (ui.panel) lv_obj_invalidate(ui.panel);
 }
 
@@ -1340,6 +1355,19 @@ inline void image_card_schedule_modal_cleanup(ImageCardCtx *ctx) {
   if (!ctx->modal_cleanup_timer) image_card_finish_modal_cleanup(ctx);
 }
 
+inline void image_card_abort_modal_open(ImageCardCtx *ctx, const char *reason) {
+  ESP_LOGW("image_card", "Unable to open image modal for %s: %s",
+           ctx ? ctx->entity_id.c_str() : "(unknown)",
+           reason ? reason : "modal setup failed");
+  ImageCardModalUi &ui = image_card_modal_ui();
+  image_card_cancel_modal_request_timer();
+  image_card_clear_widget_source(ui.image_widget);
+  control_modal_delete_overlay(ControlModalKind::IMAGE_CARD, ui.overlay);
+  ui = ImageCardModalUi();
+  if (ctx && ctx->resume_home_idle) ctx->resume_home_idle();
+  image_card_schedule_modal_cleanup(ctx);
+}
+
 inline void image_card_hide_modal() {
   ImageCardModalUi &ui = image_card_modal_ui();
   ImageCardCtx *ctx = ui.active;
@@ -1370,14 +1398,19 @@ inline void image_card_open_modal(ImageCardCtx *ctx) {
   ControlModalShell shell = control_modal_open_shell(
     ControlModalKind::IMAGE_CARD, ctx->btn, ctx->width_compensation_percent,
     ctx->icon_font, "\U000F0141", false, image_card_hide_modal);
+  if (!shell.overlay || !shell.panel || !shell.close_btn) {
+    ESP_LOGW("image_card", "Unable to open image modal for %s: modal shell setup failed",
+             ctx->entity_id.c_str());
+    return;
+  }
   control_modal_block_close_for(IMAGE_CARD_MODAL_CLOSE_GUARD_MS);
-  if (ctx->pause_home_idle) ctx->pause_home_idle();
 
   ImageCardModalUi &ui = image_card_modal_ui();
   ui.active = ctx;
   ui.overlay = shell.overlay;
   ui.panel = shell.panel;
   ui.back_btn = shell.close_btn;
+  if (ctx->pause_home_idle) ctx->pause_home_idle();
   image_card_style_modal_back_button(ui.back_btn, shell.layout);
 
   lv_obj_set_style_bg_color(ui.panel, lv_color_hex(DARK_OVERLAY), LV_PART_MAIN);
@@ -1389,6 +1422,10 @@ inline void image_card_open_modal(ImageCardCtx *ctx) {
 #else
   ui.image_widget = lv_img_create(ui.panel);
 #endif
+  if (!ui.image_widget) {
+    image_card_abort_modal_open(ctx, "image widget setup failed");
+    return;
+  }
   lv_obj_clear_flag(ui.image_widget, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_clear_flag(ui.image_widget, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_pad_all(ui.image_widget, 0, LV_PART_MAIN);
@@ -1396,9 +1433,14 @@ inline void image_card_open_modal(ImageCardCtx *ctx) {
   lv_obj_set_style_bg_opa(ui.image_widget, LV_OPA_TRANSP, LV_PART_MAIN);
 
   ui.loading_widget = lv_obj_create(ui.panel);
-  lv_obj_set_style_bg_color(ui.loading_widget, lv_color_hex(DARK_OVERLAY), LV_PART_MAIN);
+  if (!ui.loading_widget) {
+    image_card_abort_modal_open(ctx, "loading widget setup failed");
+    return;
+  }
+  lv_obj_set_style_bg_color(ui.loading_widget, lv_color_hex(DARK_BACKGROUND_SECONDARY), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(ui.loading_widget, LV_OPA_70, LV_PART_MAIN);
-  lv_obj_set_style_border_width(ui.loading_widget, 0, LV_PART_MAIN);
+  lv_obj_set_style_border_color(ui.loading_widget, lv_color_hex(DARK_BORDER), LV_PART_MAIN);
+  lv_obj_set_style_border_width(ui.loading_widget, 1, LV_PART_MAIN);
   lv_obj_set_style_shadow_width(ui.loading_widget, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_all(ui.loading_widget, 0, LV_PART_MAIN);
   lv_obj_clear_flag(ui.loading_widget, LV_OBJ_FLAG_CLICKABLE);
@@ -1406,16 +1448,25 @@ inline void image_card_open_modal(ImageCardCtx *ctx) {
   lv_obj_add_flag(ui.loading_widget, LV_OBJ_FLAG_HIDDEN);
 
   lv_obj_t *loading_icon = lv_label_create(ui.loading_widget);
+  if (!loading_icon) {
+    image_card_abort_modal_open(ctx, "loading icon setup failed");
+    return;
+  }
   if (ctx->icon_font) lv_obj_set_style_text_font(loading_icon, ctx->icon_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(loading_icon, lv_color_hex(DARK_TEXT_PRIMARY), LV_PART_MAIN);
   lv_obj_set_style_text_opa(loading_icon, LV_OPA_COVER, LV_PART_MAIN);
   lv_label_set_text(loading_icon, IMAGE_CARD_LOADING_ICON);
 
   lv_obj_t *loading_label = lv_label_create(ui.loading_widget);
+  if (!loading_label) {
+    image_card_abort_modal_open(ctx, "loading label setup failed");
+    return;
+  }
   if (ctx->label_font) lv_obj_set_style_text_font(loading_label, ctx->label_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(loading_label, lv_color_hex(DARK_TEXT_PRIMARY), LV_PART_MAIN);
   lv_obj_set_style_text_opa(loading_label, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_text_align(loading_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_style_text_align(loading_label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+  lv_label_set_long_mode(loading_label, LV_LABEL_LONG_DOT);
   lv_label_set_text(loading_label, espcontrol_i18n("Loading"));
 
   image_card_show_modal_image(ctx, ctx->image);
