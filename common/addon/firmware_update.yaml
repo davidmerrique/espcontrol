@@ -20,6 +20,12 @@ esphome:
         - text_sensor.template.publish:
             id: firmware_version_sensor
             state: "${firmware_version}"
+    - priority: 190
+      then:
+        - lambda: |-
+            network_status_set_update_callback([]() {
+              id(firmware_update_from_screen).execute();
+            });
     - priority: -50
       then:
         - if:
@@ -144,6 +150,27 @@ script:
       - delay: 8s
       - script.execute: navigate_after_api
 
+  - id: firmware_update_from_screen
+    mode: single
+    then:
+      - lambda: 'id(manual_check_only) = true;'
+      - component.update: firmware_update
+      - wait_until:
+          condition:
+            update.is_available: firmware_update
+          timeout: 30s
+      - if:
+          condition:
+            update.is_available: firmware_update
+          then:
+            - script.execute: show_update_starting
+            - script.wait: show_update_starting
+            - script.execute: show_update_writing
+            - script.wait: show_update_writing
+            - update.perform: firmware_update
+      - delay: 15s
+      - lambda: 'id(manual_check_only) = false;'
+
 update:
   - platform: http_request
     id: firmware_update
@@ -231,20 +258,4 @@ button:
     web_server:
       sorting_group_id: sg_firmware
     on_press:
-      - lambda: 'id(manual_check_only) = true;'
-      - component.update: firmware_update
-      - wait_until:
-          condition:
-            update.is_available: firmware_update
-          timeout: 30s
-      - if:
-          condition:
-            update.is_available: firmware_update
-          then:
-            - script.execute: show_update_starting
-            - script.wait: show_update_starting
-            - script.execute: show_update_writing
-            - script.wait: show_update_writing
-            - update.perform: firmware_update
-      - delay: 15s
-      - lambda: 'id(manual_check_only) = false;'
+      - script.execute: firmware_update_from_screen

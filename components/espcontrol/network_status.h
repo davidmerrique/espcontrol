@@ -17,6 +17,9 @@ constexpr const char *NETWORK_ICON_WIFI_3 = "\U000F0925";
 constexpr const char *NETWORK_ICON_WIFI_4 = "\U000F0928";
 constexpr const char *NETWORK_ICON_WIFI_OFF_OUTLINE = "\U000F092E";
 constexpr const char *NETWORK_ICON_ETHERNET = "\U000F0200";
+constexpr const char *NETWORK_ICON_UPDATE = "\U000F06B0";
+
+using NetworkStatusUpdateCallback = void (*)();
 
 struct NetworkStatusModalUi {
   lv_obj_t *overlay = nullptr;
@@ -26,11 +29,22 @@ struct NetworkStatusModalUi {
   lv_obj_t *device_name_lbl = nullptr;
   lv_obj_t *ip_lbl = nullptr;
   lv_obj_t *firmware_lbl = nullptr;
+  lv_obj_t *update_btn = nullptr;
+  NetworkStatusUpdateCallback update_callback = nullptr;
 };
 
 inline NetworkStatusModalUi &network_status_modal_ui() {
   static NetworkStatusModalUi ui;
   return ui;
+}
+
+inline NetworkStatusUpdateCallback &network_status_update_callback_ref() {
+  static NetworkStatusUpdateCallback callback = nullptr;
+  return callback;
+}
+
+inline void network_status_set_update_callback(NetworkStatusUpdateCallback callback) {
+  network_status_update_callback_ref() = callback;
 }
 
 inline const char *network_status_wifi_icon(float pct) {
@@ -110,6 +124,8 @@ inline void network_status_hide_modal() {
   ui.device_name_lbl = nullptr;
   ui.ip_lbl = nullptr;
   ui.firmware_lbl = nullptr;
+  ui.update_btn = nullptr;
+  ui.update_callback = nullptr;
   control_modal_clear_active(ControlModalKind::NETWORK_STATUS);
 }
 
@@ -175,6 +191,22 @@ inline void network_status_open_modal(const std::string &device_name,
     text_font,
     content_w,
     DARK_TEXT_MUTED);
+
+  ui.update_callback = network_status_update_callback_ref();
+  if (ui.update_callback) {
+    lv_coord_t update_size = control_modal_scaled_px(54, layout.short_side);
+    if (update_size < 40) update_size = 40;
+    if (update_size > 64) update_size = 64;
+    ui.update_btn = control_modal_create_round_button(
+      ui.content, update_size, NETWORK_ICON_UPDATE, icon_font,
+      DEFAULT_SLIDER_COLOR, DARK_BACKGROUND_SECONDARY);
+    if (ui.update_btn) {
+      lv_obj_add_event_cb(ui.update_btn, [](lv_event_t *) {
+        NetworkStatusModalUi &ui = network_status_modal_ui();
+        if (ui.update_callback) ui.update_callback();
+      }, LV_EVENT_CLICKED, nullptr);
+    }
+  }
   lv_obj_update_layout(ui.content);
   lv_obj_align(ui.content, LV_ALIGN_CENTER, 0, 0);
 
