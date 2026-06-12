@@ -359,7 +359,7 @@ var CSS =
   "min-height:36px;margin-bottom:14px}" +
   ".sp-toggle-row:last-child{margin-bottom:0}" +
   ".sp-cond-field+.sp-toggle-row{margin-top:16px}" +
-  ".sp-toggle-row span{font-size:.875rem}" +
+  ".sp-toggle-label{font-size:.875rem;cursor:pointer}" +
   ".sp-toggle{position:relative;width:44px;height:24px;flex-shrink:0}" +
   ".sp-toggle input{opacity:0;width:0;height:0;position:absolute}" +
   ".sp-toggle-track{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;" +
@@ -528,7 +528,7 @@ var CSS =
   ".card-header{min-height:56px;box-sizing:border-box}" +
   ".sp-field{margin-bottom:22px}" +
   ".sp-toggle-row{gap:16px}" +
-  ".sp-toggle-row span{min-width:0;line-height:1.35}" +
+  ".sp-toggle-label{min-width:0;line-height:1.35}" +
   ".sp-range-row{gap:10px}" +
   ".sp-action-btn{padding:10px 14px}" +
   ".sp-btn-row{flex-wrap:wrap}" +

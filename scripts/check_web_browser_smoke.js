@@ -849,13 +849,24 @@ async function assertClockBarEditorSmoke(page, posts, label) {
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.waitForSelector(".sp-settings-overlay.sp-visible");
   await page.locator("#sp-clockbar-temperature-entity").fill("sensor.porch_temperature");
-  await page.locator("#sp-clockbar-temperature-degree-symbol").evaluate((el) => { el.checked = false; });
+  const degreeSymbolLabel = page.locator('label[for="sp-clockbar-temperature-degree-symbol"]');
+  assert.strictEqual(await degreeSymbolLabel.count(), 1, `${label}: degree-symbol label is clickable`);
+  await degreeSymbolLabel.click();
+  assert.strictEqual(
+    await page.locator("#sp-clockbar-temperature-degree-symbol").isChecked(),
+    false,
+    `${label}: clicking the degree-symbol label toggles the control`
+  );
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await waitForAnyPost(posts, [
     { domain: "text", name: "Clock Bar: Temperature Entities", action: "set", value: "sensor.porch_temperature" },
     { domain: "text", name: "clock_bar__temperature_entities", action: "set", value: "sensor.porch_temperature" },
   ], `${label}: saving temperature posts entity`, before);
   await waitForPost(posts, { domain: "switch", name: "screen__temperature_degree_symbol", action: "turn_off" }, `${label}: saving temperature posts degree symbol`, before);
+  assert(
+    !(await page.locator('[data-clockbar-item="temperature"] .sp-temp').textContent()).includes("\u00B0"),
+    `${label}: saving temperature removes the degree symbol from the preview`
+  );
   await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
   await page.getByRole("button", { name: "Hide", exact: true }).click();
   await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_off" }, `${label}: hiding temperature posts visibility switch`, before);
