@@ -104,8 +104,8 @@ def verify_versions_index(base_url: str, slug: str, latest_version: str) -> None
     entries = data.get("versions")
     if not isinstance(entries, list) or not entries:
         raise PublicFirmwareError(f"{url} must contain a non-empty versions list")
-    if len(entries) > 3:
-        raise PublicFirmwareError(f"{url} must contain at most latest plus two previous versions")
+    if len(entries) > 5:
+        raise PublicFirmwareError(f"{url} must contain at most latest plus four previous versions")
 
     seen: set[str] = set()
     for idx, entry in enumerate(entries):
