@@ -656,6 +656,23 @@ function buildSettingsPage(parent) {
     });
     els.setCoverArtMediaPlayer = coverArtEntityInp;
 
+    var coverArtConditionsField = document.createElement("div");
+    coverArtConditionsField.className = "sp-field";
+    coverArtConditionsField.appendChild(fieldLabel("Only Show When", "sp-set-ss-cover-art-conditions"));
+    var coverArtConditionsInp = document.createElement("input");
+    coverArtConditionsInp.className = "sp-input";
+    coverArtConditionsInp.id = "sp-set-ss-cover-art-conditions";
+    coverArtConditionsInp.type = "text";
+    coverArtConditionsInp.maxLength = 240;
+    coverArtConditionsInp.placeholder = "app_id=com.apple.TVMusic; media_content_type=music";
+    coverArtConditionsInp.value = state.coverArtAttributeConditions || "";
+    coverArtConditionsField.appendChild(coverArtConditionsInp);
+    coverArtOptions.appendChild(coverArtConditionsField);
+    bindTextPost(coverArtConditionsInp, entityName("screen_saver_cover_art_conditions"), {
+      onBlur: function (value) { state.coverArtAttributeConditions = value; },
+    });
+    els.setCoverArtConditions = coverArtConditionsInp;
+
     var coverArtDelayField = document.createElement("div");
     coverArtDelayField.className = "sp-field";
     coverArtDelayField.appendChild(fieldLabel("Show After", "sp-set-ss-cover-art-delay"));
@@ -1130,6 +1147,7 @@ function syncCoverArtScreensaverUi() {
   if (els.setCoverArtHideExternalInputToggle) {
     els.setCoverArtHideExternalInputToggle.checked = !!state.coverArtHideExternalInputOn;
   }
+  syncInput(els.setCoverArtConditions, state.coverArtAttributeConditions || "");
 }
 
 function syncOptionalClockBrightness(field, previousField, display) {
