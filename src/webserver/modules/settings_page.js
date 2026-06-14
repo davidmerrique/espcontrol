@@ -26,6 +26,21 @@ function coverArtTrackOverlayDurationSupported() {
   return !!(CFG && CFG.coverArtSquareOverlay);
 }
 
+function infoPanel(id, text) {
+  var panel = document.createElement("div");
+  panel.className = "sp-info-panel";
+  panel.id = id;
+  panel.setAttribute("role", "note");
+  var icon = document.createElement("span");
+  icon.className = "mdi mdi-information-outline";
+  icon.setAttribute("aria-hidden", "true");
+  var message = document.createElement("span");
+  message.textContent = text;
+  panel.appendChild(icon);
+  panel.appendChild(message);
+  return panel;
+}
+
 function buildSettingsPage(parent) {
   var page = document.createElement("div");
   page.id = "sp-settings";
@@ -153,6 +168,10 @@ function buildSettingsPage(parent) {
   var backlightCard = makeCollapsibleCard("Backlight", blBody, true);
 
   var scheduleBody = document.createElement("div");
+  scheduleBody.appendChild(infoPanel(
+    "sp-night-schedule-info",
+    "Time-based Night Schedule overrides screensaver presence wake and Media Cover Art while it is active. Use Sensor mode when you want presence to control the night schedule."
+  ));
   scheduleBody.appendChild(fieldLabel("Mode"));
   var scheduleSegment = document.createElement("div");
   scheduleSegment.className = "sp-segment sp-screensaver-mode";
@@ -587,23 +606,13 @@ function buildSettingsPage(parent) {
   els.setClockBrightnessNightVal = timerClockControls.clockBrightnessNightVal;
   els.setClockBrightnessField = timerClockControls.brightnessField;
 
-  function addMediaPlayerSleepPreventionToggle(parent, inputId) {
-    var mediaPlayerToggle = toggleRow(
-      "Allow Media Cover Art to override screensaver settings",
-      inputId,
-      state.mediaPlayerSleepPreventionOn);
-    parent.appendChild(mediaPlayerToggle.row);
-    mediaPlayerToggle.input.addEventListener("change", function () {
-      state.mediaPlayerSleepPreventionOn = this.checked;
-      syncMediaPlayerSleepPreventionUi();
-      postSwitch(entityName("screen_saver_media_player_sleep_prevention"), state.mediaPlayerSleepPreventionOn);
-    });
-    return mediaPlayerToggle.input;
-  }
-  els.setMediaPlayerSleepPreventionToggle = addMediaPlayerSleepPreventionToggle(timerPanel, "sp-set-ss-media-player-enable");
-
   var coverArtBody = document.createElement("div");
   if (!isEpaperPreview()) {
+    coverArtBody.appendChild(infoPanel(
+      "sp-cover-art-info",
+      "Media Cover Art overrides existing screensaver settings while the selected media player is playing."
+    ));
+
     var coverArtToggle = toggleRow(
       "Show Cover Art",
       "sp-set-ss-cover-art-enable",
@@ -611,12 +620,31 @@ function buildSettingsPage(parent) {
     coverArtBody.appendChild(coverArtToggle.row);
     coverArtToggle.input.addEventListener("change", function () {
       state.coverArtScreensaverOn = this.checked;
+      if (!state.coverArtScreensaverOn && state.mediaPlayerSleepPreventionOn) {
+        state.mediaPlayerSleepPreventionOn = false;
+        syncMediaPlayerSleepPreventionUi();
+        postSwitch(entityName("screen_saver_media_player_sleep_prevention"), false);
+      }
       syncCoverArtScreensaverUi();
       postSwitch(entityName("screen_saver_cover_art"), state.coverArtScreensaverOn);
     });
     els.setCoverArtToggle = coverArtToggle.input;
 
+    var sleepPreventionToggle = toggleRow(
+      "Keep Screen Awake During Playback",
+      "sp-set-ss-media-sleep-prevention",
+      state.mediaPlayerSleepPreventionOn);
+    coverArtBody.appendChild(sleepPreventionToggle.row);
+    sleepPreventionToggle.input.addEventListener("change", function () {
+      state.mediaPlayerSleepPreventionOn = this.checked;
+      syncMediaPlayerSleepPreventionUi();
+      syncCoverArtScreensaverUi();
+      postSwitch(entityName("screen_saver_media_player_sleep_prevention"), state.mediaPlayerSleepPreventionOn);
+    });
+    els.setMediaPlayerSleepPreventionToggle = sleepPreventionToggle.input;
+
     var coverArtOptions = condField();
+    var coverArtOnlyOptions = condField();
 
     var coverArtEntityField = document.createElement("div");
     coverArtEntityField.className = "sp-field";
@@ -632,6 +660,23 @@ function buildSettingsPage(parent) {
       onBlur: function (value) { state.coverArtMediaPlayerEntity = value; },
     });
     els.setCoverArtMediaPlayer = coverArtEntityInp;
+
+    var coverArtConditionsField = document.createElement("div");
+    coverArtConditionsField.className = "sp-field";
+    coverArtConditionsField.appendChild(fieldLabel("Only Show When", "sp-set-ss-cover-art-conditions"));
+    var coverArtConditionsInp = document.createElement("input");
+    coverArtConditionsInp.className = "sp-input";
+    coverArtConditionsInp.id = "sp-set-ss-cover-art-conditions";
+    coverArtConditionsInp.type = "text";
+    coverArtConditionsInp.maxLength = 240;
+    coverArtConditionsInp.placeholder = "app_id=com.apple.TVMusic; media_content_type=music";
+    coverArtConditionsInp.value = state.coverArtAttributeConditions || "";
+    coverArtConditionsField.appendChild(coverArtConditionsInp);
+    coverArtOptions.appendChild(coverArtConditionsField);
+    bindTextPost(coverArtConditionsInp, entityName("screen_saver_cover_art_conditions"), {
+      onBlur: function (value) { state.coverArtAttributeConditions = value; },
+    });
+    els.setCoverArtConditions = coverArtConditionsInp;
 
     var coverArtDelayField = document.createElement("div");
     coverArtDelayField.className = "sp-field";
@@ -657,7 +702,7 @@ function buildSettingsPage(parent) {
       postNumber(entityName("screen_saver_cover_art_delay"), state.coverArtDelay);
     });
     coverArtDelayField.appendChild(coverArtDelaySelect);
-    coverArtOptions.appendChild(coverArtDelayField);
+    coverArtOnlyOptions.appendChild(coverArtDelayField);
     els.setCoverArtDelay = coverArtDelaySelect;
 
     if (coverArtTrackOverlayDurationSupported()) {
@@ -688,7 +733,7 @@ function buildSettingsPage(parent) {
         postNumber(entityName("screen_saver_track_overlay_duration"), state.coverArtTrackOverlayDuration);
       });
       trackOverlayField.appendChild(trackOverlaySelect);
-      coverArtOptions.appendChild(trackOverlayField);
+      coverArtOnlyOptions.appendChild(trackOverlayField);
       els.setCoverArtTrackOverlayDuration = trackOverlaySelect;
     }
 
@@ -703,6 +748,8 @@ function buildSettingsPage(parent) {
     });
     els.setCoverArtHideExternalInputToggle = coverArtHideExternalInputToggle.input;
 
+    els.setCoverArtOnlyOptions = coverArtOnlyOptions;
+    coverArtOptions.appendChild(coverArtOnlyOptions);
 
     els.setCoverArtOptions = coverArtOptions;
     coverArtBody.appendChild(coverArtOptions);
@@ -724,7 +771,6 @@ function buildSettingsPage(parent) {
   sensorPanel.appendChild(sensorClockControls.clockField);
   sensorPanel.appendChild(sensorClockControls.dimBrightnessField);
   sensorPanel.appendChild(sensorClockControls.brightnessField);
-  els.setSensorMediaPlayerSleepPreventionToggle = addMediaPlayerSleepPreventionToggle(sensorPanel, "sp-set-sensor-media-player-enable");
   ssBody.appendChild(sensorPanel);
   els.setPresence = presInp;
   els.setSensorClockSelect = sensorClockControls.clockSelect;
@@ -1078,7 +1124,12 @@ function syncCoverArtScreensaverUi() {
     els.setCoverArtToggle.checked = !!state.coverArtScreensaverOn;
   }
   if (els.setCoverArtOptions) {
-    els.setCoverArtOptions.classList.toggle("sp-visible", !!state.coverArtScreensaverOn);
+    els.setCoverArtOptions.classList.toggle(
+      "sp-visible",
+      !!state.coverArtScreensaverOn || !!state.mediaPlayerSleepPreventionOn);
+  }
+  if (els.setCoverArtOnlyOptions) {
+    els.setCoverArtOnlyOptions.classList.toggle("sp-visible", !!state.coverArtScreensaverOn);
   }
   if (els.setCoverArtBadge) {
     els.setCoverArtBadge.className = "sp-card-badge" + (state.coverArtScreensaverOn ? "" : " sp-hidden");
@@ -1101,6 +1152,7 @@ function syncCoverArtScreensaverUi() {
   if (els.setCoverArtHideExternalInputToggle) {
     els.setCoverArtHideExternalInputToggle.checked = !!state.coverArtHideExternalInputOn;
   }
+  syncInput(els.setCoverArtConditions, state.coverArtAttributeConditions || "");
 }
 
 function syncOptionalClockBrightness(field, previousField, display) {

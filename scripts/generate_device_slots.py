@@ -11,7 +11,6 @@ from pathlib import Path
 from product_schema import slot_devices
 
 ROOT = Path(__file__).resolve().parents[1]
-PANEL_DEVICE_SETTINGS_RESET_VERSION = 20260611
 
 
 PACKAGE_HEADER = """# =============================================================================
@@ -512,9 +511,8 @@ def cfg_lines(device: dict) -> list[str]:
         )
     lines.append("            cfg.temperature_unit = id(temperature_unit_select).current_option();")
     lines.append("            cfg.timezone = id(timezone_select).current_option();")
-    lines.append("            cfg.pause_home_idle = []() {")
-    lines.append("              id(home_screen_idle_suspended) = true;")
-    lines.append("              id(home_screen_idle_check).stop();")
+    lines.append("            cfg.suspend_display_takeover = []() {")
+    lines.append("              id(display_takeover_suspended) = true;")
     lines.append("              id(screensaver_idle_check).stop();")
     lines.append("              id(screensaver_sleep_timer).stop();")
     lines.append("              id(screensaver_sleep_sensor).stop();")
@@ -532,8 +530,14 @@ def cfg_lines(device: dict) -> list[str]:
     lines.append("              lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);")
     lines.append("              id(backlight_apply_brightness).execute();")
     lines.append("            };")
-    lines.append("            cfg.resume_home_idle = []() {")
-    lines.append("              id(home_screen_idle_suspended) = false;")
+    lines.append("            cfg.resume_display_takeover = []() {")
+    lines.append("              id(display_takeover_suspended) = false;")
+    lines.append("              if (id(screensaver_sensor_sleep_pending) &&")
+    lines.append("                  id(screensaver_mode).state == \"sensor\" &&")
+    lines.append("                  !id(presence_detected)) {")
+    lines.append("                id(screensaver_sleep_sensor).execute();")
+    lines.append("                return;")
+    lines.append("              }")
     lines.append("              id(home_screen_idle_check).execute();")
     lines.append("              id(screensaver_idle_check).execute();")
     lines.append("            };")
@@ -549,6 +553,8 @@ def cfg_lines(device: dict) -> list[str]:
         lines.append("            cfg.image_card_images = image_card_downloaders;")
         lines.append("            cfg.image_card_modal_images = image_card_modal_downloaders;")
         lines.append(f"            cfg.image_card_image_count = {image_card_count};")
+    if device.get("image_card_diagnostics"):
+        lines.append("            cfg.image_card_diagnostics = true;")
     lines.append("            cfg.home_assistant_base_url = []() {")
     lines.append("              std::string base = id(cover_art_home_assistant_base_url);")
     lines.append("              while (!base.empty() && base.back() == '/') base.pop_back();")
@@ -676,9 +682,7 @@ def phase2_block(device: dict) -> str:
 
 
 def script_block(device: dict) -> str:
-    after_refresh = []
-    if device["slug"] in {"esp32-p4-86", "guition-esp32-s3-4848s040"}:
-        after_refresh.append("      - script.execute: clock_bar_apply")
+    after_refresh = ["      - script.execute: clock_bar_apply"]
     return "\n".join(
         [
             "script:",
@@ -691,24 +695,8 @@ def script_block(device: dict) -> str:
             "            id(main_page)->obj);",
             *after_refresh,
             "",
-            reset_existing_panel_settings_script(device),
-            "",
         ]
     )
-
-
-def reset_existing_panel_settings_script(device: dict) -> str:
-    lines = [
-        "  - id: reset_existing_panel_settings_once",
-        "    then:",
-        "      - lambda: |-",
-        f"          const int reset_version = {PANEL_DEVICE_SETTINGS_RESET_VERSION};",
-        "          if (id(panel_device_settings_reset_version) >= reset_version) return;",
-        '          ESP_LOGI("config", "Preserving stored panel settings across firmware update");',
-        "          id(panel_device_settings_reset_version) = reset_version;",
-        "          global_preferences->sync();",
-    ]
-    return "\n".join(lines)
 
 
 def replace_phase(text: str, phase: int, block: str, call: str, slug: str) -> str:

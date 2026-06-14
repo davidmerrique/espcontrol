@@ -331,6 +331,7 @@ const ICON_GROUPS = {
   'Pill Multiple': 'Health',
 
   'Account': 'General',
+  'Bird': 'General',
   'Broom': 'General',
   'Cat': 'General',
   'Check': 'General',

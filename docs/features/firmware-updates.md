@@ -15,7 +15,7 @@ These are configured from the **Settings** tab in the [Setup](/features/setup) u
 - **Version** — the firmware version currently running on your panel (read-only).
 - **Auto Update** — turn this on to let the panel install new versions automatically. When off, you'll need to trigger updates manually.
 - **Update Frequency** — how often the panel checks for updates: **Hourly**, **Daily**, **Weekly**, or **Monthly**.
-- **Install Version** — choose the latest stable firmware or one of the previous stable versions when more than one version is available.
+- **Install Version** — choose the latest stable firmware or one of up to four previous stable versions when more than one version is available.
 - **Check for Update** — press this button to check for a new version right now, regardless of the automatic schedule.
 
 ## What Happens During an Update
@@ -29,7 +29,7 @@ The update usually takes a minute or two. The display may show an update or load
 
 ## Installing an Older Version
 
-When older stable firmware is available, the **Install Version** selector lets you choose the version to install. This is intended for rolling back to a recent stable version if you need to test or recover from a problem.
+When older stable firmware is available, the **Install Version** selector lets you choose the version to install. This is intended for rolling back to one of the four most recent previous stable versions if you need to test or recover from a problem.
 
 ## Compatibility Notes
 

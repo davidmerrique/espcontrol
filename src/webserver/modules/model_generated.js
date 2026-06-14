@@ -975,6 +975,7 @@ var EspControlModel = (() => {
     const hasNtpServer2 = objectValue(settings, "ntp_server_2") !== void 0;
     const hasNtpServer3 = objectValue(settings, "ntp_server_3") !== void 0;
     const hasDeveloperExperimentalFeatures = objectValue(settings, "developer_experimental_features") !== void 0;
+    const hasOutdoorTempEnable = objectValue(settings, "outdoor_temp_enable") !== void 0;
     const clockFormat = current.clockFormatOptions.indexOf(String(settings.clock_format || "")) !== -1 ? String(settings.clock_format) : current.clockFormat;
     const screensaverAction = normalizeScreensaverAction(
       objectValue(settings, "screensaver_action") != null ? settings.screensaver_action : settings.clock_screensaver ? "clock" : "off"
@@ -999,14 +1000,14 @@ var EspControlModel = (() => {
     );
     return {
       indoorTempEnable: false,
-      outdoorTempEnable: clockBarTemperatureEntities.length > 0,
+      outdoorTempEnable: hasOutdoorTempEnable ? !!settings.outdoor_temp_enable : clockBarTemperatureEntities.length > 0,
       indoorTempEntity: "",
       outdoorTempEntity: clockBarTemperatureEntities[0] || "",
       clockBarTemperatureEntities,
       clockBar: objectValue(settings, "clock_bar") != null ? !!settings.clock_bar : false,
       clockBarLayout: CLOCK_BAR_FIXED_LAYOUT,
-      clockBarTime: true,
-      networkStatusIcon: true,
+      clockBarTime: objectValue(settings, "clock_bar_time") != null ? !!settings.clock_bar_time : true,
+      networkStatusIcon: objectValue(settings, "network_status_icon") != null ? !!settings.network_status_icon : true,
       temperatureDegreeSymbol: objectValue(settings, "temperature_degree_symbol") != null ? !!settings.temperature_degree_symbol : true,
       subpageChevron: objectValue(settings, "subpage_chevron") != null ? !!settings.subpage_chevron : true,
       timezone: String(settings.timezone || current.timezone),
@@ -1027,6 +1028,7 @@ var EspControlModel = (() => {
       mediaPlayerSleepPreventionEntity: String(settings.media_player_sleep_prevention_entity || ""),
       coverArtScreensaver: !!settings.cover_art_screensaver,
       coverArtMediaPlayerEntity: String(settings.cover_art_media_player_entity || settings.media_player_sleep_prevention_entity || ""),
+      coverArtAttributeConditions: String(settings.cover_art_attribute_conditions || settings.cover_art_conditions || ""),
       coverArtDelay: objectValue(settings, "cover_art_delay") != null ? settings.cover_art_delay : 10,
       coverArtTrackOverlayDuration: objectValue(settings, "cover_art_track_overlay_duration") != null ? settings.cover_art_track_overlay_duration : 5,
       coverArtHideExternalInput: objectValue(settings, "cover_art_hide_external_input") != null ? !!settings.cover_art_hide_external_input : true,

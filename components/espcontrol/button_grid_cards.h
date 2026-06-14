@@ -454,7 +454,7 @@ inline void clear_push_button_transition(lv_obj_t *btn);
 inline void setup_garage_card(BtnSlot &s, const ParsedCfg &p) {
   if (garage_command_mode(p.sensor)) {
     lv_label_set_text(s.icon_lbl, garage_command_icon(p));
-    lv_label_set_text(s.text_lbl, garage_card_label(p));
+    lv_label_set_text(s.text_lbl, garage_card_show_status(p) ? "--" : garage_card_label(p));
     apply_push_button_transition(s.btn);
     return;
   }

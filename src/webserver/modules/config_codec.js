@@ -942,14 +942,12 @@ function normalizeGarageLabelDisplayMode(value) {
 function normalizeGarageOptions(options, mode) {
   var labelMode = normalizeGarageLabelDisplayMode(
     configOptionValue(options, GARAGE_LABEL_DISPLAY_OPTION));
-  if (garageCommandMode(mode)) return "";
   return labelMode === "status"
     ? setConfigOptionValue("", GARAGE_LABEL_DISPLAY_OPTION, labelMode)
     : "";
 }
 
 function garageLabelDisplayMode(b) {
-  if (garageCommandMode(b && b.sensor)) return "label";
   return normalizeGarageLabelDisplayMode(
     configOptionValue(b && b.options, GARAGE_LABEL_DISPLAY_OPTION));
 }

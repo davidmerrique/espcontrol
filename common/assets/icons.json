@@ -290,6 +290,11 @@
       "mdi": "bell"
     },
     {
+      "name": "Bird",
+      "codepoint": "F15C6",
+      "mdi": "bird"
+    },
+    {
       "name": "Blinds",
       "codepoint": "F00AC",
       "mdi": "blinds"

@@ -11,6 +11,7 @@ var SSE_ALIAS_GROUPS = {
   screensaverTimeout: ["number-screensaver_timeout", "number-screen_saver__timeout", "number-screen_saver_timeout"],
   coverArt: ["switch-screen_saver__cover_art", "switch-screen_saver_cover_art", "switch-screensaver_cover_art"],
   coverArtEntity: ["text-screen_saver__cover_art_entity", "text-screen_saver_cover_art_entity", "text-cover_art_media_player_entity"],
+  coverArtConditions: ["text-screen_saver__cover_art_conditions", "text-screen_saver_cover_art_conditions", "text-cover_art_attribute_conditions"],
   coverArtDelay: ["number-screen_saver__cover_art_delay", "number-screen_saver_cover_art_delay", "number-cover_art_delay"],
   trackOverlayDuration: ["number-screen_saver__track_overlay_duration", "number-screen_saver_track_overlay_duration", "number-track_overlay_duration", "number-screen_saver__show_track_overlay"],
   coverArtHideExternalInput: ["switch-screen_saver__hide_cover_art_on_external_input", "switch-screen_saver_hide_cover_art_on_external_input", "switch-hide_cover_art_on_external_input", "switch-cover_art_hide_external_input", "switch-screen_saver__hide_for_external_sources"],
@@ -91,13 +92,12 @@ function connectEvents() {
 
   var sseHandlers = {
     "text-button_order": function (val) {
-      orderReceived = !!(val && val.trim());
-      state.sizes = {};
-      state.grid = parseOrder(val);
-      state.selectedSlots = state.selectedSlots.filter(function (s) {
-        return state.grid.indexOf(s) !== -1;
-      });
-      scheduleRender();
+      if (gridPreviewBlockedByRotationStartup()) {
+        orderReceived = !!(val && val.trim());
+        state.pendingButtonOrderRaw = val;
+        return;
+      }
+      applyButtonOrderValue(val);
     },
     "select-screen__theme": function (val, d) {
       syncThemeFromDevice(d.value || val, d.option);
@@ -118,14 +118,18 @@ function connectEvents() {
       renderPreview();
     },
     "switch-indoor_temp_enable": function (val, d) {
+      state._clockBarTemperatureVisibilityReceived = true;
       state._indoorOn = d.value === true || val === "ON";
       syncTemperatureUi();
       updateTempPreview();
+      updateClockBarItemUi();
     },
     "switch-outdoor_temp_enable": function (val, d) {
+      state._clockBarTemperatureVisibilityReceived = true;
       state._outdoorOn = d.value === true || val === "ON";
       syncTemperatureUi();
       updateTempPreview();
+      updateClockBarItemUi();
     },
     "switch-screen__clock_bar": function (val, d, key) {
       if (applyClockBarStateValue(val, d, key)) syncClockBarUi();
@@ -137,11 +141,11 @@ function connectEvents() {
       applyClockBarTemperatureEntities(normalizeClockBarTemperatureEntities(val), false);
     },
     "switch-screen__clock_bar_time": function (val, d) {
-      state.clockBarTimeOn = true;
+      state.clockBarTimeOn = d.value === true || val === "ON";
       syncClockBarUi();
     },
     "switch-screen__network_status_icon": function (val, d) {
-      state.networkStatusOn = true;
+      state.networkStatusOn = d.value === true || val === "ON";
       syncClockBarUi();
     },
     "switch-screen__temperature_degree_symbol": function (val, d) {
@@ -156,12 +160,20 @@ function connectEvents() {
     "text-indoor_temp_entity": function (val) {
       state.indoorEntity = val;
       syncInput(els.setIndoorEntity, val);
-      if (!state._clockBarTemperatureEntitiesReceived) syncTemperatureUi();
+      if (!state._clockBarTemperatureEntitiesReceived) {
+        syncTemperatureUi();
+        updateTempPreview();
+        updateClockBarItemUi();
+      }
     },
     "text-outdoor_temp_entity": function (val) {
       state.outdoorEntity = val;
       syncInput(els.setOutdoorEntity, val);
-      if (!state._clockBarTemperatureEntitiesReceived) syncTemperatureUi();
+      if (!state._clockBarTemperatureEntitiesReceived) {
+        syncTemperatureUi();
+        updateTempPreview();
+        updateClockBarItemUi();
+      }
     },
     "select-screen__temperature_unit": function (val, d) {
       state.temperatureUnit = normalizeTemperatureUnit(d.value || val);
@@ -240,6 +252,10 @@ function connectEvents() {
     "text-screen_saver__cover_art_entity": function (val) {
       state.coverArtMediaPlayerEntity = val;
       syncInput(els.setCoverArtMediaPlayer, val);
+    },
+    "text-screen_saver__cover_art_conditions": function (val) {
+      state.coverArtAttributeConditions = val;
+      syncInput(els.setCoverArtConditions, val);
     },
     "number-screen_saver__cover_art_delay": function (val) {
       state.coverArtDelay = parseFloat(val) || 0;
@@ -391,6 +407,7 @@ function connectEvents() {
       }
       syncScreenRotationSelect();
       syncPreviewOrientation();
+      resolveInitialScreenRotationCheck();
       renderPreview();
     },
     "text_sensor-screen__sunrise": function (val) {
@@ -456,6 +473,7 @@ function connectEvents() {
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.screensaverTimeout, sseHandlers["number-screensaver_timeout"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArt, sseHandlers["switch-screen_saver__cover_art"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtEntity, sseHandlers["text-screen_saver__cover_art_entity"]);
+  addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtConditions, sseHandlers["text-screen_saver__cover_art_conditions"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtDelay, sseHandlers["number-screen_saver__cover_art_delay"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.trackOverlayDuration, sseHandlers["number-screen_saver__track_overlay_duration"]);
   addSseAliases(sseHandlers, SSE_ALIAS_GROUPS.coverArtHideExternalInput, sseHandlers["switch-screen_saver__hide_cover_art_on_external_input"]);

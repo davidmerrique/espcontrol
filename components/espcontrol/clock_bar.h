@@ -275,15 +275,17 @@ inline ClockBarVisibility clock_bar_resolve_visibility(
     bool display_off_screensaver_active,
     bool dimmed_screensaver_active) {
   ClockBarVisibility result;
-  result.reserve_space = enabled &&
+  // Full-screen screensavers hide the clock bar, but the grid should keep the
+  // same top padding so waking does not briefly resize the cards.
+  result.reserve_space = enabled && !screen_schedule_asleep;
+  result.visible = result.reserve_space &&
       !clock_bar_blocked_by_overlay(
           display_asleep,
           screen_schedule_asleep,
           clock_screensaver_active,
           cover_art_screensaver_active,
           display_off_screensaver_active,
-          dimmed_screensaver_active);
-  result.visible = result.reserve_space &&
+          dimmed_screensaver_active) &&
       clock_bar_active_on_button_grid_page(main_page_obj);
   return result;
 }
@@ -474,7 +476,7 @@ inline void refresh_clock_bar_temperature_label_values(
     return;
   }
 
-  if (!show_on_screen) {
+  if (!show_on_screen || !outdoor_enabled) {
     for (lv_obj_t *label : labels) clock_bar_set_widget_hidden(label, true);
     return;
   }
@@ -652,6 +654,18 @@ inline int clock_bar_visual_gap_px(int gap) {
   return gap;
 }
 
+inline lv_coord_t clock_bar_current_screen_width(lv_coord_t fallback) {
+  lv_disp_t *disp = lv_disp_get_default();
+  lv_coord_t width = disp ? lv_disp_get_hor_res(disp) : 0;
+  return width > 0 ? width : fallback;
+}
+
+inline lv_coord_t clock_bar_current_screen_height(lv_coord_t fallback) {
+  lv_disp_t *disp = lv_disp_get_default();
+  lv_coord_t height = disp ? lv_disp_get_ver_res(disp) : 0;
+  return height > 0 ? height : fallback;
+}
+
 inline int clock_bar_icon_fallback_width(int item_gap) {
   int width = item_gap / 2;
   if (width < 38) width = 38;
@@ -694,6 +708,14 @@ inline void clock_bar_add_layout_box(ClockBarLayoutBox *boxes,
   box.order = layout.order[item];
   box.width = clock_bar_measure_item_width(obj, item, item_gap);
   box.y = y;
+}
+
+inline void clock_bar_align_box_text(const ClockBarLayoutBox &box) {
+  if (!box.obj || box.item == CLOCK_BAR_ITEM_NETWORK) return;
+  lv_text_align_t align = LV_TEXT_ALIGN_CENTER;
+  if (box.section == CLOCK_BAR_SECTION_LEFT) align = LV_TEXT_ALIGN_LEFT;
+  else if (box.section == CLOCK_BAR_SECTION_RIGHT) align = LV_TEXT_ALIGN_RIGHT;
+  lv_obj_set_style_text_align(box.obj, align, LV_PART_MAIN);
 }
 
 inline ClockBarLayoutBox *clock_bar_box_at_order(ClockBarLayoutBox *boxes,
@@ -760,6 +782,7 @@ inline void align_clock_bar_layout_section(ClockBarLayoutBox *boxes,
   for (int order = 0; placed < expected && order < CLOCK_BAR_ITEM_COUNT; order++) {
     ClockBarLayoutBox *box = clock_bar_box_at_order(boxes, box_count, section, order);
     if (!box || !box->obj) continue;
+    clock_bar_align_box_text(*box);
     lv_obj_align(box->obj, LV_ALIGN_TOP_LEFT, x, box->y);
     lv_obj_move_background(box->obj);
     x += box->width + visual_gap;
@@ -782,6 +805,7 @@ inline size_t clock_bar_visible_temperature_count(bool indoor_enabled,
                                                   bool outdoor_enabled) {
   if (clock_bar_temperature_has_items()) {
     size_t count = clock_bar_temperature_values().size();
+    if (!outdoor_enabled) return 0;
     return count > CLOCK_BAR_VISIBLE_TEMPERATURE_SLOT_COUNT
                ? CLOCK_BAR_VISIBLE_TEMPERATURE_SLOT_COUNT
                : count;

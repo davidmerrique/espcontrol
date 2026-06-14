@@ -55,7 +55,13 @@ using lv_coord_t = int;
 using lv_style_selector_t = int;
 using lv_color_t = int;
 using lv_grid_align_t = int;
+using lv_text_align_t = int;
+static lv_disp_t lv_test_default_disp;
+static bool lv_test_disp_available = false;
+static int lv_test_hor_res = 480;
+static int lv_test_ver_res = 480;
 static int lv_obj_move_background_calls = 0;
+static lv_obj_t *lv_active_screen = nullptr;
 inline const char *espcontrol_i18n(const char *text) { return text ? text : ""; }
 inline std::string espcontrol_i18n(const std::string &text) { return text; }
 constexpr int LV_PART_MAIN = 0;
@@ -65,7 +71,9 @@ constexpr int LV_STATE_DEFAULT = 0;
 constexpr int LV_STATE_DISABLED = 4;
 constexpr int LV_LABEL_LONG_WRAP = 0;
 constexpr int LV_LABEL_LONG_CLIP = 1;
+constexpr int LV_TEXT_ALIGN_LEFT = 0;
 constexpr int LV_TEXT_ALIGN_CENTER = 1;
+constexpr int LV_TEXT_ALIGN_RIGHT = 2;
 constexpr int LV_ALIGN_TOP_LEFT = 0;
 constexpr int LV_ALIGN_TOP_MID = 1;
 constexpr int LV_ALIGN_TOP_RIGHT = 2;
@@ -80,7 +88,7 @@ constexpr int LV_OBJ_FLAG_HIDDEN = 2;
 constexpr int LV_GRAD_DIR_HOR = 1;
 inline int lv_color_hex(uint32_t value) { return static_cast<int>(value); }
 inline int lv_pct(int value) { return value; }
-inline lv_obj_t *lv_scr_act() { return nullptr; }
+inline lv_obj_t *lv_scr_act() { return lv_active_screen; }
 inline void lv_obj_set_style_transform_scale_x(lv_obj_t *, int, int) {}
 inline void lv_obj_set_style_transform_scale_y(lv_obj_t *, int, int) {}
 inline void lv_obj_set_style_bg_color(lv_obj_t *, int, lv_style_selector_t) {}
@@ -108,9 +116,9 @@ inline int lv_obj_get_style_pad_bottom(lv_obj_t *, int) { return 0; }
 inline int lv_obj_get_style_pad_column(lv_obj_t *, int) { return 0; }
 inline int lv_obj_get_style_pad_row(lv_obj_t *, int) { return 0; }
 inline lv_obj_t *lv_obj_get_parent(lv_obj_t *) { return nullptr; }
-inline lv_disp_t *lv_disp_get_default() { return nullptr; }
-inline int lv_disp_get_hor_res(lv_disp_t *) { return 480; }
-inline int lv_disp_get_ver_res(lv_disp_t *) { return 480; }
+inline lv_disp_t *lv_disp_get_default() { return lv_test_disp_available ? &lv_test_default_disp : nullptr; }
+inline int lv_disp_get_hor_res(lv_disp_t *) { return lv_test_hor_res; }
+inline int lv_disp_get_ver_res(lv_disp_t *) { return lv_test_ver_res; }
 inline void lv_label_set_long_mode(lv_obj_t *, int) {}
 inline void lv_obj_set_size(lv_obj_t *, int, int) {}
 inline void lv_obj_set_width(lv_obj_t *, int) {}
@@ -155,6 +163,37 @@ int main() {
   assert(clock_bar_grid_track_span_size(1024, 5, 5, 10, 5, 0, 2) == 400);
   assert(clock_bar_grid_track_span_size(1024, 5, 5, 10, 5, 3, 2) == 399);
   assert(clock_bar_grid_track_span_size(600, 42, 5, 10, 3, 0, 2) == 366);
+  lv_test_disp_available = false;
+  assert(clock_bar_current_screen_width(1024) == 1024);
+  assert(clock_bar_current_screen_height(600) == 600);
+  lv_test_hor_res = 800;
+  lv_test_ver_res = 1280;
+  lv_test_disp_available = true;
+  assert(clock_bar_current_screen_width(1024) == 800);
+  assert(clock_bar_current_screen_height(600) == 1280);
+  lv_test_disp_available = false;
+
+  lv_obj_t main_page;
+  lv_active_screen = &main_page;
+  auto awake_clock_bar = clock_bar_resolve_visibility(
+    true, &main_page, false, false, false, false, false, false);
+  assert(awake_clock_bar.reserve_space);
+  assert(awake_clock_bar.visible);
+
+  auto clock_screensaver_clock_bar = clock_bar_resolve_visibility(
+    true, &main_page, false, false, true, false, false, false);
+  assert(clock_screensaver_clock_bar.reserve_space);
+  assert(!clock_screensaver_clock_bar.visible);
+
+  auto dismissing_screensaver_clock_bar = clock_bar_resolve_visibility(
+    true, &main_page, true, false, false, false, false, false);
+  assert(dismissing_screensaver_clock_bar.reserve_space);
+  assert(!dismissing_screensaver_clock_bar.visible);
+
+  auto screen_schedule_clock_bar = clock_bar_resolve_visibility(
+    true, &main_page, true, true, true, false, false, false);
+  assert(!screen_schedule_clock_bar.reserve_space);
+  assert(!screen_schedule_clock_bar.visible);
 
   auto fallback_clock_bar = parse_clock_bar_layout("bad|unknown:time");
   assert(fallback_clock_bar.section[CLOCK_BAR_ITEM_TEMPERATURE] == CLOCK_BAR_SECTION_LEFT);

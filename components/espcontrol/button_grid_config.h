@@ -620,7 +620,7 @@ inline std::string normalize_garage_label_display(const std::string &value) {
 
 inline std::string garage_card_options_normalized(const std::string &options,
                                                   const std::string &sensor) {
-  if (sensor == "open" || sensor == "close") return "";
+  (void)sensor;
   return normalize_garage_label_display(cfg_option_value(options, "label_display")) == "status"
     ? "label_display=status"
     : "";
@@ -2191,8 +2191,7 @@ inline const char *garage_card_label(const ParsedCfg &p) {
 }
 
 inline bool garage_card_show_status(const ParsedCfg &p) {
-  return !garage_command_mode(p.sensor) &&
-    normalize_garage_label_display(cfg_option_value(p.options, "label_display")) == "status";
+  return normalize_garage_label_display(cfg_option_value(p.options, "label_display")) == "status";
 }
 
 inline bool alarm_card_show_status_icon(const ParsedCfg &p) {

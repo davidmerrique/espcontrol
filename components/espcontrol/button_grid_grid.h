@@ -45,11 +45,12 @@ struct GridConfig {
   int subpage_chevron_text_width_percent = 94;
   std::string temperature_unit;
   std::string timezone;
-  std::function<void()> pause_home_idle;
-  std::function<void()> resume_home_idle;
+  std::function<void()> suspend_display_takeover;
+  std::function<void()> resume_display_takeover;
   esphome::artwork_image::ArtworkImage **image_card_images = nullptr;
   esphome::artwork_image::ArtworkImage **image_card_modal_images = nullptr;
   int image_card_image_count = 0;
+  bool image_card_diagnostics = false;
   std::function<std::string()> home_assistant_base_url;
 };
 
@@ -493,7 +494,7 @@ inline bool bind_passive_card_sources(BtnSlot &s, const ParsedCfg &p) {
 }
 
 inline bool bind_garage_status_card(BtnSlot &s, const ParsedCfg &p) {
-  if (p.type != "garage" || p.entity.empty() || garage_command_mode(p.sensor)) {
+  if (p.type != "garage" || p.entity.empty()) {
     return false;
   }
   bool show_status = garage_card_show_status(p);
@@ -885,7 +886,7 @@ inline void grid_phase2(
           subscribe_control_availability(s.btn, s.btn, p.entity);
         }
       }
-      if (!garage_command_mode(p.sensor))
+      if (!garage_command_mode(p.sensor) || garage_card_show_status(p))
         bind_garage_status_card(s, p);
       continue;
     }
@@ -1114,7 +1115,7 @@ inline void grid_phase2(
             display_icon_font(display),
             display_volume_width_percent(display),
             s.sensor_lbl, s.unit_lbl,
-            cfg.pause_home_idle, cfg.resume_home_idle);
+            cfg.suspend_display_takeover, cfg.resume_display_takeover);
           subscribe_media_volume_state(ctx);
           if (p.label.empty()) subscribe_friendly_name(s.text_lbl, p.entity);
         } else if (mode == "now_playing") {
@@ -1448,6 +1449,10 @@ inline void grid_phase2(
         if (!sb_cfg.entity.empty()) {
           if (garage_command_mode(sb_cfg.sensor)) {
             subscribe_control_availability(sub_slot.btn, sub_slot.btn, sb_cfg.entity);
+            if (garage_card_show_status(sb_cfg)) {
+              bind_garage_status_card(sub_slot, sb_cfg);
+              add_parent_indicator(sb_cfg.entity);
+            }
             ParsedCfg *ctx = new ParsedCfg(sb_cfg);
             lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
               ParsedCfg *c = (ParsedCfg *)lv_event_get_user_data(e);
@@ -1697,7 +1702,7 @@ inline void grid_phase2(
               display_icon_font(display),
               display_volume_width_percent(display),
               sub_slot.sensor_lbl, sub_slot.unit_lbl,
-              cfg.pause_home_idle, cfg.resume_home_idle);
+              cfg.suspend_display_takeover, cfg.resume_display_takeover);
             subscribe_media_volume_state(ctx);
             if (sb_cfg.label.empty()) subscribe_friendly_name(sub_slot.text_lbl, sb_cfg.entity);
             lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
@@ -1941,7 +1946,8 @@ inline bool configure_clock_bar_temperature_entities(
     lv_obj_t **temperature_labels,
     size_t temperature_label_count,
     lv_obj_t *main_page_obj,
-    std::function<bool()> clock_bar_visible_callback = nullptr) {
+    std::function<bool()> clock_bar_visible_callback = nullptr,
+    std::function<bool()> clock_bar_temperature_visible_callback = nullptr) {
   set_clock_bar_temperature_labels(temperature_labels, temperature_label_count);
 
   std::vector<std::string> clock_bar_entities =
@@ -1957,13 +1963,18 @@ inline bool configure_clock_bar_temperature_entities(
   refresh_clock_bar_temperature_label_values(
       main_page_obj,
       clock_bar_visible_callback ? clock_bar_visible_callback() : true,
-      false, false, NAN, NAN);
+      false,
+      clock_bar_temperature_visible_callback
+          ? clock_bar_temperature_visible_callback()
+          : true,
+      NAN, NAN);
 
   for (size_t i = 0; i < clock_bar_entities.size(); i++) {
     ha_subscribe_state(
       clock_bar_entities[i],
       std::function<void(esphome::StringRef)>(
-        [i, generation, main_page_obj, clock_bar_visible_callback](esphome::StringRef state) {
+        [i, generation, main_page_obj, clock_bar_visible_callback,
+         clock_bar_temperature_visible_callback](esphome::StringRef state) {
           if (generation != clock_bar_temperature_subscription_generation()) return;
           float val = 0.0f;
           if (parse_float_ref(state, val)) {
@@ -1972,7 +1983,11 @@ inline bool configure_clock_bar_temperature_entities(
             refresh_clock_bar_temperature_label_values(
                 main_page_obj,
                 clock_bar_visible_callback ? clock_bar_visible_callback() : true,
-                false, false, NAN, NAN);
+                false,
+                clock_bar_temperature_visible_callback
+                    ? clock_bar_temperature_visible_callback()
+                    : true,
+                NAN, NAN);
           }
         })
     );
@@ -1995,14 +2010,15 @@ inline void grid_phase3(
     bool *media_player_playing_ptr,
     std::function<bool()> clock_bar_visible_callback,
     std::function<void()> wake_callback,
-    std::function<void()> sleep_callback) {
+    std::function<void()> sleep_callback,
+    std::function<bool()> clock_bar_temperature_visible_callback = nullptr) {
   ESP_LOGI("sensors", "Phase 3: temp/presence/media subscriptions start (%lu ms)", esphome::millis());
   bool has_clock_bar_entities = configure_clock_bar_temperature_entities(
       temperature_entities, temperature_labels, temperature_label_count,
-      main_page_obj, clock_bar_visible_callback);
+      main_page_obj, clock_bar_visible_callback,
+      clock_bar_temperature_visible_callback);
   if (has_clock_bar_entities) {
     indoor_on = false;
-    outdoor_on = false;
   }
 
   refresh_clock_bar_temperature_label_values(

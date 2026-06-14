@@ -53,6 +53,7 @@ static const IconEntry ICON_ENTRIES[] = {
     {"Bed King",                   "\U000F0FD2"},
     {"Bed Queen",                  "\U000F0FD0"},
     {"Bell",                       "\U000F009A"},
+    {"Bird",                       "\U000F15C6"},
     {"Blinds",                     "\U000F00AC"},
     {"Blinds Horizontal",          "\U000F1A2B"},
     {"Blinds Horizontal Closed",   "\U000F1A2C"},

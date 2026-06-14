@@ -186,6 +186,21 @@ function seededEvents() {
   return events;
 }
 
+function rotationStartupBaseEvents(includeRotation = true) {
+  const events = [
+    { id: "text-button_on_color", state: "0073FF" },
+    { id: "text-button_off_color", state: "CECECE" },
+    { id: "text-sensor_card_color", state: "DEDEDE" },
+  ];
+  if (includeRotation) {
+    events.push({ id: "select-screen__rotation", state: "90", value: "90", option: ["0", "90", "180", "270"] });
+  }
+  BUTTON_FIXTURES.forEach((state, index) => {
+    events.push({ id: `text-button_${index + 1}_config`, state });
+  });
+  return events;
+}
+
 function assertNoLayoutBreaks(result, label, options = {}) {
   const minVisibleCards = options.minVisibleCards || BUTTON_FIXTURES.length;
   assert(result.appVisible, `${label}: #sp-app should be visible`);
@@ -267,6 +282,114 @@ async function measureCoreLayout(page) {
   });
 }
 
+async function measureRotationStartupLayout(page) {
+  return page.evaluate(() => {
+    var screen = document.querySelector(".sp-screen");
+    var main = document.querySelector(".sp-main");
+    var screenRect = screen ? screen.getBoundingClientRect() : null;
+    var style = main ? getComputedStyle(main) : null;
+    return {
+      loading: !!main && main.classList.contains("sp-grid-loading"),
+      busy: main ? main.getAttribute("aria-busy") : null,
+      gridHidden: !!style && style.visibility === "hidden",
+      visibleCards: document.querySelectorAll(".sp-main > .sp-btn").length,
+      screenWidth: screenRect ? screenRect.width : 0,
+      screenHeight: screenRect ? screenRect.height : 0,
+      gridTemplateColumns: style ? style.gridTemplateColumns : "",
+      gridTemplateRows: style ? style.gridTemplateRows : "",
+    };
+  });
+}
+
+function gridTrackCount(value) {
+  value = String(value || "").trim();
+  if (!value) return 0;
+  return value.split(/\s+/).length;
+}
+
+function assertPortraitGridLayout(result, label) {
+  assert(!result.loading, `${label}: grid should no longer be waiting for startup rotation`);
+  assert.strictEqual(result.busy, null, `${label}: grid should not remain aria-busy`);
+  assert.strictEqual(result.gridHidden, false, `${label}: grid should be visible after startup rotation is known`);
+  assert(result.visibleCards >= BUTTON_FIXTURES.length, `${label}: saved cards should render`);
+  assert(result.screenHeight > result.screenWidth, `${label}: preview should end in portrait orientation`);
+  assert.strictEqual(gridTrackCount(result.gridTemplateColumns), 3, `${label}: portrait grid should use 3 columns`);
+  assert.strictEqual(gridTrackCount(result.gridTemplateRows), 5, `${label}: portrait grid should use 5 rows`);
+}
+
+async function assertRotationStartupOrdering(browser) {
+  const slug = "guition-esp32-p4-jc1060p470";
+  const context = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+  await installRoutes(context, slug);
+  const page = await context.newPage();
+  await installFakeEventSource(page);
+  try {
+    await page.goto(`http://espcontrol.test/${slug}?events=1`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("#sp-app");
+    await page.waitForFunction(() => window.__eventSources && window.__eventSources.length > 0);
+
+    await page.evaluate((events) => window.__seedEspState(events), [
+      { id: "text-button_order", state: "1,2,3w,4,5" },
+    ].concat(rotationStartupBaseEvents(false)));
+    let layout = await measureRotationStartupLayout(page);
+    assert(layout.loading, "button_order before rotation: grid should stay in startup loading state");
+    assert.strictEqual(layout.busy, "true", "button_order before rotation: grid should be marked busy");
+    assert(layout.gridHidden, "button_order before rotation: grid should be hidden until rotation arrives");
+    assert.strictEqual(layout.visibleCards, 0, "button_order before rotation: cards should not render in the default layout first");
+
+    await page.evaluate(() => window.__seedEspState([
+      { id: "select-screen__rotation", state: "90", value: "90", option: ["0", "90", "180", "270"] },
+    ]));
+    await page.waitForSelector(".sp-main > .sp-btn");
+    layout = await measureRotationStartupLayout(page);
+    assertPortraitGridLayout(layout, "button_order before rotation");
+  } finally {
+    await context.close();
+  }
+
+  const reverseContext = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+  await installRoutes(reverseContext, slug);
+  const reversePage = await reverseContext.newPage();
+  await installFakeEventSource(reversePage);
+  try {
+    await reversePage.goto(`http://espcontrol.test/${slug}?events=1`, { waitUntil: "domcontentloaded" });
+    await reversePage.waitForSelector("#sp-app");
+    await reversePage.waitForFunction(() => window.__eventSources && window.__eventSources.length > 0);
+    await reversePage.evaluate((events) => window.__seedEspState(events), rotationStartupBaseEvents(true).concat([
+      { id: "text-button_order", state: "1,2,3w,4,5" },
+    ]));
+    await reversePage.waitForSelector(".sp-main > .sp-btn");
+    assertPortraitGridLayout(await measureRotationStartupLayout(reversePage), "rotation before button_order");
+  } finally {
+    await reverseContext.close();
+  }
+
+  const fallbackContext = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+  await installRoutes(fallbackContext, slug);
+  const fallbackPage = await fallbackContext.newPage();
+  await installFakeEventSource(fallbackPage);
+  try {
+    await fallbackPage.goto(`http://espcontrol.test/${slug}?events=1`, { waitUntil: "domcontentloaded" });
+    await fallbackPage.waitForSelector("#sp-app");
+    await fallbackPage.waitForFunction(() => window.__eventSources && window.__eventSources.length > 0);
+    await fallbackPage.evaluate((events) => window.__seedEspState(events), [
+      { id: "text-button_order", state: "1,2,3w,4,5" },
+    ].concat(rotationStartupBaseEvents(false)));
+    let layout = await measureRotationStartupLayout(fallbackPage);
+    assert(layout.loading, "rotation fallback: grid should wait briefly when rotation support exists but no value has arrived");
+    await fallbackPage.waitForFunction(() => {
+      var main = document.querySelector(".sp-main");
+      return main && !main.classList.contains("sp-grid-loading") && document.querySelectorAll(".sp-main > .sp-btn").length >= 4;
+    }, null, { timeout: 3000 });
+    layout = await measureRotationStartupLayout(fallbackPage);
+    assert(!layout.loading, "rotation fallback: grid should appear after fallback timeout");
+    assert.strictEqual(layout.gridHidden, false, "rotation fallback: grid should be visible after fallback timeout");
+    assert(layout.visibleCards >= BUTTON_FIXTURES.length, "rotation fallback: saved cards should render after fallback timeout");
+  } finally {
+    await fallbackContext.close();
+  }
+}
+
 async function assertSettingsPage(page, label, options = {}) {
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.waitForSelector("#sp-settings.sp-page.active");
@@ -281,12 +404,31 @@ async function assertSettingsPage(page, label, options = {}) {
   assert(appearanceVisible, `${label}: settings content should render`);
   assert.strictEqual(themeVisible, !!options.isEpaper, `${label}: theme selector visibility should match display type`);
   assert.strictEqual(onColorVisible, !options.isEpaper, `${label}: color controls visibility should match display type`);
+  const nightScheduleCard = page.locator("#sp-settings .card").filter({
+    has: page.locator(".card-header h3", { hasText: /^Night Schedule$/ }),
+  }).first();
+  assert(await nightScheduleCard.isVisible(), `${label}: night schedule settings card should render`);
+  await nightScheduleCard.locator(".card-header").click();
+  const nightScheduleInfo = page.locator("#sp-night-schedule-info");
+  assert(await nightScheduleInfo.isVisible(), `${label}: night schedule override info panel should render`);
+  assert.strictEqual(
+    await nightScheduleInfo.innerText(),
+    "Time-based Night Schedule overrides screensaver presence wake and Media Cover Art while it is active. Use Sensor mode when you want presence to control the night schedule.",
+    `${label}: night schedule override info panel text should match`
+  );
   if (!options.isEpaper) {
     const coverArtCard = page.locator("#sp-settings .card").filter({
       has: page.locator(".card-header h3", { hasText: /^Media Cover Art$/ }),
     }).first();
     assert(await coverArtCard.isVisible(), `${label}: media cover art settings card should render`);
     await coverArtCard.locator(".card-header").click();
+    const coverArtInfo = page.locator("#sp-cover-art-info");
+    assert(await coverArtInfo.isVisible(), `${label}: media cover art override info panel should render`);
+    assert.strictEqual(
+      await coverArtInfo.innerText(),
+      "Media Cover Art overrides existing screensaver settings while the selected media player is playing.",
+      `${label}: media cover art override info panel text should match`
+    );
     await coverArtCard.locator("#sp-set-ss-cover-art-enable + .sp-toggle-track").click();
     assert.strictEqual(
       await page.locator("#sp-set-ss-track-overlay").count(),
@@ -304,8 +446,8 @@ async function assertSettingsPage(page, label, options = {}) {
   );
   assert.strictEqual(
     await page.locator("#sp-set-sensor-media-player-enable").count(),
-    1,
-    `${label}: sensor cover art override should render`
+    0,
+    `${label}: sensor cover art override should not render`
   );
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   assert(!overflow, `${label}: settings page has horizontal overflow`);
@@ -781,6 +923,15 @@ async function assertClockBarEditorSmoke(page, posts, label) {
   await page.getByRole("tab", { name: "Screen" }).click();
   await page.waitForSelector("#sp-screen.sp-page.active");
 
+  async function openClockBarContextMenu(item, expectedAction) {
+    await page.locator(`[data-clockbar-item="${item}"]`).click({ button: "right", force: true });
+    await page.locator(".sp-ctx-menu").waitFor({ state: "visible" });
+    assert(
+      await page.locator(".sp-ctx-menu").getByText(expectedAction, { exact: true }).isVisible(),
+      `${label}: right click menu for ${item} shows ${expectedAction}`
+    );
+  }
+
   const fixedItems = [
     { selector: '[data-clockbar-item="temperature"]', section: "left" },
     { selector: '[data-clockbar-item="time"]', section: "middle" },
@@ -806,9 +957,116 @@ async function assertClockBarEditorSmoke(page, posts, label) {
     "middle",
     `${label}: clock bar time remains in the fixed middle section`
   );
-  assert.strictEqual(await page.locator(".sp-selection-bar.sp-visible").count(), 0, `${label}: clicking clock bar does not select an item`);
-  assert.strictEqual(await page.locator(".sp-settings-overlay.sp-visible").count(), 0, `${label}: clicking clock bar does not open settings`);
-  assert.strictEqual(posts.length, before, `${label}: clock bar click/hover does not post customization changes`);
+  assert.strictEqual(await page.locator(".sp-selection-bar.sp-visible").count(), 1, `${label}: clicking clock bar selects an item`);
+  assert((await page.locator(".sp-selection-bar").textContent()).includes("Clock selected"), `${label}: clock selection is labelled`);
+  assert.strictEqual(await page.getByRole("button", { name: "Edit", exact: true }).isDisabled(), true, `${label}: clock edit button is disabled`);
+  assert.strictEqual(await page.getByRole("button", { name: "Clock bar actions", exact: true }).count(), 0, `${label}: clock selection does not expose redundant actions menu button`);
+  const selectedClockItem = page.locator('[data-clockbar-item="time"]');
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(250);
+  const selectedClockStyle = await selectedClockItem.evaluate((el) => {
+    var style = getComputedStyle(el);
+    return { borderColor: style.borderTopColor, backgroundColor: style.backgroundColor };
+  });
+  await selectedClockItem.hover();
+  await page.waitForTimeout(250);
+  const hoveredSelectedClockStyle = await selectedClockItem.evaluate((el) => {
+    var style = getComputedStyle(el);
+    return { borderColor: style.borderTopColor, backgroundColor: style.backgroundColor };
+  });
+  assert.notStrictEqual(
+    selectedClockStyle.borderColor,
+    "rgba(0, 0, 0, 0)",
+    `${label}: selected clock bar item has a visible border`
+  );
+  assert.deepStrictEqual(
+    hoveredSelectedClockStyle,
+    selectedClockStyle,
+    `${label}: selected clock bar item keeps its selected styling while hovered`
+  );
+  await openClockBarContextMenu("time", "Hide Clock");
+  await page.locator(".sp-ctx-menu").getByText("Hide Clock", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "screen__clock_bar_time", action: "turn_off" }, `${label}: hiding clock posts clock switch`, before);
+  assert((await page.locator('[data-clockbar-item="time"]').getAttribute("class")).includes("sp-clockbar-hidden"), `${label}: hidden clock is greyed in preview`);
+  await openClockBarContextMenu("time", "Show Clock");
+  await page.locator(".sp-ctx-menu").getByText("Show Clock", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "screen__clock_bar_time", action: "turn_on" }, `${label}: showing clock posts clock switch`, before);
+
+  await openClockBarContextMenu("network", "Hide Connectivity");
+  assert((await page.locator(".sp-selection-bar").textContent()).includes("Connectivity selected"), `${label}: connectivity selection is labelled`);
+  assert.strictEqual(await page.getByRole("button", { name: "Edit", exact: true }).isDisabled(), true, `${label}: connectivity edit button is disabled`);
+  await page.locator(".sp-ctx-menu").getByText("Hide Connectivity", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "screen__network_status_icon", action: "turn_off" }, `${label}: hiding connectivity posts network switch`, before);
+  assert((await page.locator('[data-clockbar-item="network"]').getAttribute("class")).includes("sp-clockbar-hidden"), `${label}: hidden connectivity is greyed in preview`);
+  const hiddenNetworkPreview = await page.locator('[data-clockbar-item="network"] .sp-network-preview').evaluate((el) => {
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return {
+      className: el.className,
+      opacity: style.opacity,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+  assert(hiddenNetworkPreview.className.includes("sp-visible"), `${label}: hidden connectivity keeps the preview icon visible`);
+  assert.strictEqual(hiddenNetworkPreview.opacity, "1", `${label}: hidden connectivity icon is not faded out by its own style`);
+  assert(hiddenNetworkPreview.width > 0 && hiddenNetworkPreview.height > 0, `${label}: hidden connectivity icon remains measurable`);
+  await openClockBarContextMenu("network", "Show Connectivity");
+  await page.locator(".sp-ctx-menu").getByText("Show Connectivity", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "screen__network_status_icon", action: "turn_on" }, `${label}: showing connectivity posts network switch`, before);
+
+  await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
+  assert((await page.locator(".sp-selection-bar").textContent()).includes("Temperature selected"), `${label}: temperature selection is labelled`);
+  assert.strictEqual(await page.getByRole("button", { name: "Edit", exact: true }).isDisabled(), false, `${label}: temperature edit button is enabled`);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.waitForSelector(".sp-settings-overlay.sp-visible");
+  await page.locator("#sp-clockbar-temperature-entity").fill("sensor.porch_temperature");
+  const degreeSymbolLabel = page.locator('label[for="sp-clockbar-temperature-degree-symbol"]');
+  assert.strictEqual(await degreeSymbolLabel.count(), 1, `${label}: degree-symbol label is clickable`);
+  await degreeSymbolLabel.click();
+  assert.strictEqual(
+    await page.locator("#sp-clockbar-temperature-degree-symbol").isChecked(),
+    false,
+    `${label}: clicking the degree-symbol label toggles the control`
+  );
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await waitForAnyPost(posts, [
+    { domain: "text", name: "Clock Bar: Temperature Entities", action: "set", value: "sensor.porch_temperature" },
+    { domain: "text", name: "clock_bar__temperature_entities", action: "set", value: "sensor.porch_temperature" },
+  ], `${label}: saving temperature posts entity`, before);
+  await waitForPost(posts, { domain: "switch", name: "screen__temperature_degree_symbol", action: "turn_off" }, `${label}: saving temperature posts degree symbol`, before);
+  assert(
+    !(await page.locator('[data-clockbar-item="temperature"] .sp-temp').textContent()).includes("\u00B0"),
+    `${label}: saving temperature removes the degree symbol from the preview`
+  );
+  await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.waitForSelector(".sp-settings-overlay.sp-visible");
+  const modalHideButton = page.locator(".sp-settings-modal .sp-hide-btn");
+  assert.strictEqual(await modalHideButton.count(), 1, `${label}: temperature modal shows one hide button`);
+  assert.strictEqual((await modalHideButton.innerText()).trim(), "Hide", `${label}: temperature modal hide button is labelled`);
+  const hideIconClass = await modalHideButton.locator(".mdi").getAttribute("class");
+  assert(hideIconClass.includes("mdi-eye-off-outline"), `${label}: temperature modal hide button uses the eye-off icon`);
+  assert(!hideIconClass.includes("trash"), `${label}: temperature modal hide button does not use a trash icon`);
+  await modalHideButton.click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_off" }, `${label}: hiding temperature posts visibility switch`, before);
+  assert((await page.locator('[data-clockbar-item="temperature"]').getAttribute("class")).includes("sp-clockbar-hidden"), `${label}: hidden temperature is greyed in preview`);
+  await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
+  await page.getByRole("button", { name: "Show", exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_on" }, `${label}: showing temperature posts visibility switch`, before);
+
+  await openClockBarContextMenu("temperature", "Edit Temperature");
+  assert(
+    await page.locator(".sp-ctx-menu").getByText("Hide Temperature", { exact: true }).isVisible(),
+    `${label}: right click menu for temperature includes visibility action`
+  );
+  await page.locator(".sp-ctx-menu").getByText("Hide Temperature", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_off" }, `${label}: hiding temperature posts visibility switch`, before);
+  assert((await page.locator('[data-clockbar-item="temperature"]').getAttribute("class")).includes("sp-clockbar-hidden"), `${label}: hidden temperature is greyed in preview`);
+  await openClockBarContextMenu("temperature", "Show Temperature");
+  await page.locator(".sp-ctx-menu").getByText("Show Temperature", { exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_on" }, `${label}: showing temperature posts visibility switch`, before);
+  assert.strictEqual(await page.locator(".sp-settings-overlay.sp-visible").count(), 0, `${label}: clock bar temperature dialog closes after save`);
 
   const screenBox = await page.locator(".sp-screen").boundingBox();
   const timeBox = await page.locator('[data-clockbar-item="time"][data-clockbar-section="middle"]').boundingBox();
@@ -905,6 +1163,7 @@ async function runCase(browser, testCase) {
 (async function main() {
   const browser = await chromium.launch();
   try {
+    await assertRotationStartupOrdering(browser);
     for (const testCase of CASES) {
       await runCase(browser, testCase);
       await assertMobileDeviceViewport(browser, testCase);

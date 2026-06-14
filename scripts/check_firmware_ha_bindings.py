@@ -600,6 +600,98 @@ def firmware_cover_art_stale_image_errors(path: Path, root: Path) -> list[str]:
     return errors
 
 
+def firmware_cover_art_refresh_errors(path: Path, root: Path) -> list[str]:
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    required_state = (
+        ("cover_art_refresh_needed", "track/source metadata changes as stale artwork"),
+        ("cover_art_download_url", "keep source artwork URLs separate from downloader URLs"),
+        ("cover_art_album", "track album names for artwork refresh decisions"),
+    )
+    for token, message in required_state:
+        if token not in text:
+            errors.append(f"{rel}: {message}")
+
+    download_body = yaml_script_body(text, "cover_art_download")
+    if not download_body:
+        errors.append(f"{rel}: missing cover_art_download script")
+    else:
+        if "/api/media_player_proxy/" not in download_body:
+            errors.append(f"{rel}: only cache-bust Home Assistant media proxy artwork URLs")
+        if "?time=" not in download_body or "&time=" not in download_body:
+            errors.append(f"{rel}: add a refresh marker that preserves existing artwork query strings")
+        if "request_update_url(id(cover_art_download_url))" not in download_body:
+            errors.append(f"{rel}: download through the refresh-aware artwork URL")
+        if (
+            "needs_artwork_refresh" not in download_body
+            or "id(cover_art_refresh_needed) || !id(cover_art_image_available)" not in download_body
+        ):
+            errors.append(f"{rel}: refresh Home Assistant media proxy artwork when no image is currently available")
+
+    for script_id in ("cover_art_deferred_download", "cover_art_prepare_download"):
+        body = yaml_script_body(text, script_id)
+        if not body:
+            errors.append(f"{rel}: missing {script_id} script")
+        elif "id(cover_art_refresh_needed)" not in body:
+            errors.append(f"{rel}: let {script_id} refresh unchanged artwork URLs after metadata changes")
+
+    for script_id in ("cover_art_use_cached_artwork", "cover_art_request_artwork"):
+        body = yaml_script_body(text, script_id)
+        if not body:
+            errors.append(f"{rel}: missing {script_id} script")
+        elif (
+            "chosen == id(cover_art_url)" not in body
+            or "!id(cover_art_image_available) || id(cover_art_refresh_needed)" not in body
+        ):
+            errors.append(f"{rel}: do not exit early from {script_id} when stale artwork needs refresh")
+
+    apply_body = yaml_script_body(text, "cover_art_apply_downloaded_image")
+    if not apply_body:
+        errors.append(f"{rel}: missing cover_art_apply_downloaded_image script")
+    else:
+        if "expected_url" not in apply_body or "id(cover_art_download_url)" not in apply_body:
+            errors.append(f"{rel}: accept the refresh-aware downloader URL when artwork finishes")
+        if "id(cover_art_loaded_url) = id(cover_art_url)" not in apply_body:
+            errors.append(f"{rel}: remember the clean source artwork URL after a download")
+        if "id(cover_art_refresh_needed) = false" not in apply_body:
+            errors.append(f"{rel}: clear stale artwork state only after a replacement image applies")
+
+    if text.count("mark_artwork_refresh_needed();") < 4:
+        errors.append(f"{rel}: mark title, artist, album, and source changes as artwork refresh triggers")
+    if 'std::string("media_album_name"), handle_media_album' not in text:
+        errors.append(f"{rel}: subscribe to and refresh the media_album_name attribute")
+    if "id(cover_art_refresh_needed) = true" not in text:
+        errors.append(f"{rel}: set stale artwork state when track/source metadata changes")
+    playback_started_body = yaml_script_body(text, "cover_art_playback_started")
+    if not playback_started_body:
+        errors.append(f"{rel}: missing cover_art_playback_started script")
+    elif (
+        "!id(cover_art_image_available)" not in playback_started_body
+        or "id(cover_art_retry_count) = 0" not in playback_started_body
+        or "id(cover_art_retry_url).clear()" not in playback_started_body
+    ):
+        errors.append(f"{rel}: reset artwork retry state when playback resumes without a visible image")
+    return errors
+
+
+def firmware_cover_art_disable_errors(path: Path, root: Path) -> list[str]:
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    body = yaml_script_body(text, "cover_art_disable")
+    if not body:
+        errors.append(f"{rel}: missing cover_art_disable script")
+    elif "switch.turn_off: media_player_sleep_prevention_enabled" not in body:
+        errors.append(f"{rel}: turn off media sleep prevention when cover art is disabled")
+    return errors
+
+
 def firmware_image_card_entity_errors(firmware_dir: Path, root: Path) -> list[str]:
     path = firmware_dir / "button_grid_image.h"
     if not path.exists():
@@ -694,8 +786,12 @@ def firmware_image_card_quality_errors(firmware_dir: Path, root: Path) -> list[s
         errors.append(f"{rel}: log image-card modal close events")
     if "image_card_abort_modal_open" not in text or "modal shell setup failed" not in text:
         errors.append(f"{rel}: clean up partially-created image card modals")
-    if "IMAGE_CARD_MODAL_LOADING_MAX_W" not in text or "LV_ALIGN_TOP_RIGHT" not in text:
-        errors.append(f"{rel}: keep image-card modal loading indicator compact")
+    if (
+        "lv_obj_set_size(ui.loading_widget, width, height)" not in text
+        or "lv_obj_align(icon, LV_ALIGN_CENTER" not in text
+        or "LV_ALIGN_OUT_BOTTOM_MID" not in text
+    ):
+        errors.append(f"{rel}: keep image-card modal loading overlay centered")
     if (
         "image_card_show_modal_image(ctx, ctx->image)" not in text
         or "image_card_queue_modal_source_request(ctx)" not in text
@@ -785,6 +881,12 @@ def firmware_artwork_image_auth_errors(path: Path, root: Path) -> list[str]:
         )
     if "config.auth_type = HTTP_AUTH_TYPE_NONE;" not in text:
         errors.append(f"{rel}: explicitly disable HTTP auth for local artwork requests")
+    if (
+        'container->status_code <= 0 && is_ha_media_proxy_url(url)' not in text
+        or "trying artwork bytes anyway" not in text
+        or "container->status_code = HTTP_CODE_OK;" not in text
+    ):
+        errors.append(f"{rel}: allow Home Assistant media proxy artwork to fall back to image-byte detection")
     return errors
 
 
@@ -957,6 +1059,12 @@ def firmware_screen_schedule_screensaver_override_errors(backlight_path: Path, r
         )
         if wake_index == -1 or any(token not in pre_wake_body for token in required_tokens):
             errors.append(f"{rel}: let the night screen schedule override sensor screensaver wake")
+        disabled_wake_index = pre_wake_body.rfind("if (!id(schedule_enabled).state) return true;")
+        schedule_check_index = pre_wake_body.find("id(screen_schedule_check).execute();")
+        if disabled_wake_index == -1 or (
+            schedule_check_index != -1 and disabled_wake_index < schedule_check_index
+        ):
+            errors.append(f"{rel}: let sensor screensaver wake when the screen schedule is disabled")
 
     return errors
 
@@ -1096,6 +1204,8 @@ def run_scan() -> int:
     errors.extend(firmware_cover_request_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_cover_art_external_input_errors(COVER_ART_PATH, ROOT))
     errors.extend(firmware_cover_art_stale_image_errors(COVER_ART_PATH, ROOT))
+    errors.extend(firmware_cover_art_refresh_errors(COVER_ART_PATH, ROOT))
+    errors.extend(firmware_cover_art_disable_errors(COVER_ART_PATH, ROOT))
     errors.extend(firmware_image_card_entity_errors(FIRMWARE_DIR, ROOT))
     errors.extend(firmware_image_card_base_url_errors(FIRMWARE_DIR, ROOT))
     errors.extend(firmware_image_card_quality_errors(FIRMWARE_DIR, ROOT))
@@ -1363,6 +1473,34 @@ def expect_cover_art_stale_image_errors(name: str, text: str, expected: tuple[st
         path.write_text(text, encoding="utf-8")
 
         errors = firmware_cover_art_stale_image_errors(path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_cover_art_refresh_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        path = root / "common" / "device" / "screen_cover_art.yaml"
+        path.parent.mkdir(parents=True)
+        path.write_text(text, encoding="utf-8")
+
+        errors = firmware_cover_art_refresh_errors(path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_cover_art_disable_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        path = root / "common" / "device" / "screen_cover_art.yaml"
+        path.parent.mkdir(parents=True)
+        path.write_text(text, encoding="utf-8")
+
+        errors = firmware_cover_art_disable_errors(path, root)
         for item in expected:
             assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
         if not expected:
@@ -2340,6 +2478,94 @@ def run_self_test() -> int:
         "      - lvgl.widget.hide: cover_art_image_widget\n",
         ("do not show an unavailable cover art message",),
     )
+    expect_cover_art_refresh_errors(
+        "missing stale cover refresh guard",
+        "script:\n"
+        "  - id: cover_art_download\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          id(cover_art_url);\n",
+        (
+            "track/source metadata changes as stale artwork",
+            "subscribe to and refresh the media_album_name attribute",
+        ),
+    )
+    expect_cover_art_refresh_errors(
+        "stale cover refresh guard present",
+        "globals:\n"
+        "  - id: cover_art_refresh_needed\n"
+        "  - id: cover_art_download_url\n"
+        "  - id: cover_art_album\n"
+        "script:\n"
+        "  - id: cover_art_download\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (url.find(\"/api/media_player_proxy/\") != std::string::npos) {\n"
+        "            url += url.find('?') == std::string::npos ? \"?time=\" : \"&time=\";\n"
+        "          }\n"
+        "          const bool needs_artwork_refresh = id(cover_art_refresh_needed) || !id(cover_art_image_available);\n"
+        "          id(cover_art_download_url) = id(cover_art_downloaded_image)->request_update_url(id(cover_art_download_url));\n"
+        "  - id: cover_art_deferred_download\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          id(cover_art_refresh_needed);\n"
+        "  - id: cover_art_prepare_download\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          id(cover_art_refresh_needed);\n"
+        "  - id: cover_art_use_cached_artwork\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (chosen == id(cover_art_url)) {\n"
+        "            if (!id(cover_art_image_available) || id(cover_art_refresh_needed)) {}\n"
+        "          }\n"
+        "  - id: cover_art_request_artwork\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (chosen == id(cover_art_url)) {\n"
+        "            if (!id(cover_art_image_available) || id(cover_art_refresh_needed)) {}\n"
+        "          }\n"
+        "  - id: cover_art_apply_downloaded_image\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          std::string expected_url = id(cover_art_download_url);\n"
+        "          id(cover_art_loaded_url) = id(cover_art_url);\n"
+        "          id(cover_art_refresh_needed) = false;\n"
+        "  - id: cover_art_playback_started\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          if (!id(cover_art_image_available)) {\n"
+        "            id(cover_art_retry_url).clear();\n"
+        "            id(cover_art_retry_count) = 0;\n"
+        "          }\n"
+        "  - id: cover_art_resubscribe\n"
+        "    then:\n"
+        "      - lambda: |-\n"
+        "          id(cover_art_refresh_needed) = true;\n"
+        "          mark_artwork_refresh_needed();\n"
+        "          mark_artwork_refresh_needed();\n"
+        "          mark_artwork_refresh_needed();\n"
+        "          mark_artwork_refresh_needed();\n"
+        "          ha_subscribe_attribute(cover_entity, std::string(\"media_album_name\"), handle_media_album);\n"
+        "          ha_get_attribute(cover_entity, std::string(\"media_album_name\"), handle_media_album);\n",
+        (),
+    )
+    expect_cover_art_disable_errors(
+        "missing sleep prevention reset when cover art is disabled",
+        "script:\n"
+        "  - id: cover_art_disable\n"
+        "    then:\n"
+        "      - script.stop: cover_art_delay_timer\n",
+        ("turn off media sleep prevention",),
+    )
+    expect_cover_art_disable_errors(
+        "sleep prevention reset when cover art is disabled",
+        "script:\n"
+        "  - id: cover_art_disable\n"
+        "    then:\n"
+        "      - switch.turn_off: media_player_sleep_prevention_enabled\n",
+        (),
+    )
     expect_image_card_entity_errors(
         "legacy camera-only image card guard",
         "inline bool image_card_entity_supported(const std::string &entity_id) {\n"
@@ -2418,7 +2644,7 @@ def run_self_test() -> int:
             "keep 4.3-inch P4 tile downloads sized to the tile before modal open",
             "log image-card modal close events",
             "clean up partially-created image card modals",
-            "keep image-card modal loading indicator compact",
+            "keep image-card modal loading overlay centered",
             "show the cached image-card tile while modal-quality image loads",
             "clip image card modal content to rounded panel corners",
             "preserve image card rounded corners while pressed",
@@ -2432,7 +2658,6 @@ def run_self_test() -> int:
         "constexpr int IMAGE_CARD_MAX_CONTEXTS = 6;\n"
         "constexpr int IMAGE_CARD_MODAL_MAX_TARGET_SIDE_PX = 800;\n"
         "constexpr size_t IMAGE_CARD_MEMORY_HEADROOM_BYTES = 96 * 1024;\n"
-        "constexpr lv_coord_t IMAGE_CARD_MODAL_LOADING_MAX_W = 220;\n"
         "inline lv_style_selector_t image_card_pressed_selector() { return LV_STATE_PRESSED; }\n"
         "inline void image_card_apply_corner_clip(lv_obj_t *obj, lv_coord_t radius) {}\n"
         "inline bool image_card_memory_available(ImageCardCtx *ctx, const char *stage,\n"
@@ -2450,7 +2675,9 @@ def run_self_test() -> int:
         "inline void image_card_limit_target_size(lv_coord_t source_width, lv_coord_t source_height,\n"
         "                                         int *target_width, int *target_height) {}\n"
         "inline void image_card_layout_modal_loading(ImageCardCtx *ctx) {\n"
-        "  lv_obj_align(ui.loading_widget, LV_ALIGN_TOP_RIGHT, -margin, margin);\n"
+        "  lv_obj_set_size(ui.loading_widget, width, height);\n"
+        "  lv_obj_align(icon, LV_ALIGN_CENTER, 0, -18);\n"
+        "  lv_obj_align_to(label, icon, LV_ALIGN_OUT_BOTTOM_MID, 0, 8);\n"
         "}\n"
         "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
         "  ctx->image->set_target_size(width, height);\n"
@@ -2765,6 +2992,19 @@ def run_self_test() -> int:
         "              }\n"
         "              return id(screensaver_mode).state == \"sensor\";\n"
         "          then:\n"
+        "            - if:\n"
+        "                condition:\n"
+        "                  lambda: |-\n"
+        "                    if (!id(schedule_enabled).state) return true;\n"
+        "                    return screen_schedule_normal_active(\n"
+        "                      id(screen_schedule_trigger).state,\n"
+        "                      id(schedule_enabled).state,\n"
+        "                      id(presence_detected),\n"
+        "                      now.is_valid(),\n"
+        "                      now.is_valid() ? now.hour : 0,\n"
+        "                      (int) id(schedule_on_hour).state,\n"
+        "                      (int) id(schedule_off_hour).state);\n"
+        "                then:\n"
         "            - script.execute: screensaver_wake\n"
     )
     expect_screen_schedule_screensaver_override_errors(
@@ -2810,12 +3050,25 @@ def run_self_test() -> int:
         ),
         ("override sensor screensaver wake",),
     )
+    expect_screen_schedule_screensaver_override_errors(
+        "sensor screensaver wake ignores disabled schedule",
+        valid_schedule_screensaver_override.replace(
+            "                    if (!id(schedule_enabled).state) return true;\n",
+            "",
+            1,
+        ),
+        ("wake when the screen schedule is disabled",),
+    )
     expect_artwork_image_auth_errors(
         "local artwork image request uses Basic auth",
         "std::shared_ptr<http_request::HttpContainer> ArtworkImage::get_local_idf_(\n"
         "    const std::string &url, const std::vector<http_request::Header> &headers) {\n"
         "  esp_http_client_config_t config = {};\n"
         "  config.auth_type = HTTP_AUTH_TYPE_BASIC;\n"
+        "  if (container->status_code <= 0 && is_ha_media_proxy_url(url)) {\n"
+        "    ESP_LOGW(TAG, \"Home Assistant media proxy returned an unknown HTTP status; trying artwork bytes anyway\");\n"
+        "    container->status_code = HTTP_CODE_OK;\n"
+        "  }\n"
         "}\n",
         (
             "keep local Home Assistant image proxy requests off HTTP Basic auth",
@@ -2828,8 +3081,21 @@ def run_self_test() -> int:
         "    const std::string &url, const std::vector<http_request::Header> &headers) {\n"
         "  esp_http_client_config_t config = {};\n"
         "  config.auth_type = HTTP_AUTH_TYPE_NONE;\n"
+        "  if (container->status_code <= 0 && is_ha_media_proxy_url(url)) {\n"
+        "    ESP_LOGW(TAG, \"Home Assistant media proxy returned an unknown HTTP status; trying artwork bytes anyway\");\n"
+        "    container->status_code = HTTP_CODE_OK;\n"
+        "  }\n"
         "}\n",
         (),
+    )
+    expect_artwork_image_auth_errors(
+        "local artwork image request rejects unknown HA media proxy status",
+        "std::shared_ptr<http_request::HttpContainer> ArtworkImage::get_local_idf_(\n"
+        "    const std::string &url, const std::vector<http_request::Header> &headers) {\n"
+        "  esp_http_client_config_t config = {};\n"
+        "  config.auth_type = HTTP_AUTH_TYPE_NONE;\n"
+        "}\n",
+        ("allow Home Assistant media proxy artwork to fall back to image-byte detection",),
     )
     expect_climate_step_errors(
         "climate ignores whole-number display step",
