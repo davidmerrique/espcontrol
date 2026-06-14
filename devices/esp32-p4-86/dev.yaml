@@ -7,8 +7,7 @@
 substitutions:
   name: "espcontrol-p4-86"
   friendly_name: "EspControl P4-86"
-  espcontrol_component_url: "../.."
-  espcontrol_component_ref: "HEAD"
+  espcontrol_component_source: "../../components"
 
 wifi:
   ssid: !secret wifi_ssid

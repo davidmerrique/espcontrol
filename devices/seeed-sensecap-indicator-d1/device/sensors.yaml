@@ -53,9 +53,8 @@ script:
           cfg.climate_option_value_font = id(font_text_small)->get_lv_font();
           cfg.temperature_unit = id(temperature_unit_select).current_option();
           cfg.timezone = id(timezone_select).current_option();
-          cfg.pause_home_idle = []() {
-            id(home_screen_idle_suspended) = true;
-            id(home_screen_idle_check).stop();
+          cfg.suspend_display_takeover = []() {
+            id(display_takeover_suspended) = true;
             id(screensaver_idle_check).stop();
             id(screensaver_sleep_timer).stop();
             id(screensaver_sleep_sensor).stop();
@@ -73,8 +72,14 @@ script:
             lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);
             id(backlight_apply_brightness).execute();
           };
-          cfg.resume_home_idle = []() {
-            id(home_screen_idle_suspended) = false;
+          cfg.resume_display_takeover = []() {
+            id(display_takeover_suspended) = false;
+            if (id(screensaver_sensor_sleep_pending) &&
+                id(screensaver_mode).state == "sensor" &&
+                !id(presence_detected)) {
+              id(screensaver_sleep_sensor).execute();
+              return;
+            }
             id(home_screen_idle_check).execute();
             id(screensaver_idle_check).execute();
           };
@@ -111,15 +116,7 @@ script:
           grid_refresh_layout(slots, cfg,
             id(button_order).state,
             id(main_page)->obj);
-
-  - id: reset_existing_panel_settings_once
-    then:
-      - lambda: |-
-          const int reset_version = 20260611;
-          if (id(panel_device_settings_reset_version) >= reset_version) return;
-          ESP_LOGI("config", "Preserving stored panel settings across firmware update");
-          id(panel_device_settings_reset_version) = reset_version;
-          global_preferences->sync();
+      - script.execute: clock_bar_apply
 
 esphome:
   on_boot:
@@ -162,9 +159,8 @@ esphome:
             cfg.climate_option_value_font = id(font_text_small)->get_lv_font();
             cfg.temperature_unit = id(temperature_unit_select).current_option();
             cfg.timezone = id(timezone_select).current_option();
-            cfg.pause_home_idle = []() {
-              id(home_screen_idle_suspended) = true;
-              id(home_screen_idle_check).stop();
+            cfg.suspend_display_takeover = []() {
+              id(display_takeover_suspended) = true;
               id(screensaver_idle_check).stop();
               id(screensaver_sleep_timer).stop();
               id(screensaver_sleep_sensor).stop();
@@ -182,8 +178,14 @@ esphome:
               lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);
               id(backlight_apply_brightness).execute();
             };
-            cfg.resume_home_idle = []() {
-              id(home_screen_idle_suspended) = false;
+            cfg.resume_display_takeover = []() {
+              id(display_takeover_suspended) = false;
+              if (id(screensaver_sensor_sleep_pending) &&
+                  id(screensaver_mode).state == "sensor" &&
+                  !id(presence_detected)) {
+                id(screensaver_sleep_sensor).execute();
+                return;
+              }
               id(home_screen_idle_check).execute();
               id(screensaver_idle_check).execute();
             };
@@ -290,9 +292,8 @@ esphome:
             cfg.climate_option_value_font = id(font_text_small)->get_lv_font();
             cfg.temperature_unit = id(temperature_unit_select).current_option();
             cfg.timezone = id(timezone_select).current_option();
-            cfg.pause_home_idle = []() {
-              id(home_screen_idle_suspended) = true;
-              id(home_screen_idle_check).stop();
+            cfg.suspend_display_takeover = []() {
+              id(display_takeover_suspended) = true;
               id(screensaver_idle_check).stop();
               id(screensaver_sleep_timer).stop();
               id(screensaver_sleep_sensor).stop();
@@ -310,8 +311,14 @@ esphome:
               lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);
               id(backlight_apply_brightness).execute();
             };
-            cfg.resume_home_idle = []() {
-              id(home_screen_idle_suspended) = false;
+            cfg.resume_display_takeover = []() {
+              id(display_takeover_suspended) = false;
+              if (id(screensaver_sensor_sleep_pending) &&
+                  id(screensaver_mode).state == "sensor" &&
+                  !id(presence_detected)) {
+                id(screensaver_sleep_sensor).execute();
+                return;
+              }
               id(home_screen_idle_check).execute();
               id(screensaver_idle_check).execute();
             };

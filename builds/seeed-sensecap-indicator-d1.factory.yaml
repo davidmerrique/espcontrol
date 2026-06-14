@@ -9,8 +9,7 @@ substitutions:
   name: "espcontrol-sensecap-d1"
   friendly_name: "Seeed SenseCAP Indicator D1"
   firmware_version: "0.0.0"
-  espcontrol_component_url: "file:///config"
-  espcontrol_component_ref: "HEAD"
+  espcontrol_component_source: "/config/components"
 
 packages:
   core: !include ../devices/seeed-sensecap-indicator-d1/packages.yaml
