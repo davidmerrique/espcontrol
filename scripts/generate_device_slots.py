@@ -41,14 +41,18 @@ def package_substitution_lines(device: dict) -> list[str]:
         lines.append(f'  firmware_version: "{package["firmwareVersion"]}"')
     for key, value in package["substitutions"].items():
         lines.append(f"  {key}: {value}")
+    lines.extend(
+        [
+            '  disable_updates: "false"',
+            '  firmware_update_package_suffix: ${ "_disabled" if disable_updates == "true" else "" }',
+        ]
+    )
     if package.get("ethernetSelectable"):
         frequency = package["backlightPwmFrequency"]
         lines.extend(
             [
                 '  network_transport: "wifi"',
-                '  disable_updates: "false"',
                 '  network_package_suffix: ${ "_ethernet" if network_transport == "ethernet" else "" }',
-                '  firmware_update_package_suffix: ${ "_disabled" if disable_updates == "true" else "" }',
                 f'  backlight_pwm_frequency: ${{ "{frequency["ethernet"]}" if network_transport == "ethernet" else "{frequency["wifi"]}" }}',
             ]
         )
@@ -242,9 +246,7 @@ def package_file_text(device: dict) -> str:
         if package.get("ethernetSelectable")
         else "../../common/device/screen_wifi_setup.yaml"
     )
-    firmware_update_suffix = (
-        "${firmware_update_package_suffix}" if package.get("ethernetSelectable") else ""
-    )
+    firmware_update_suffix = "${firmware_update_package_suffix}"
     provisioning_suffix = (
         "${provisioning_package_suffix}" if package.get("provisioningSelectable") else ""
     )

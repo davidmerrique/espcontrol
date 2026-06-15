@@ -41,6 +41,7 @@ npm run check:fast                  # broader pre-commit check
 | Change saved settings, backups, or compact config strings | [Change Saved Config](playbooks/change-saved-config.md) and [Compatibility Contract](compatibility-contract.md) |
 | Add or change supported hardware | [Add or Change a Supported Device](playbooks/add-supported-device.md) |
 | Change icons, glyphs, or firmware font roles | [Change Fonts or Icons](playbooks/change-fonts-or-icons.md) and [Font Guidelines](font-guidelines.md) |
+| Document or review unofficial screen packages | [Community Device Packages](community-devices.md) |
 | Work out which check to run | [Check Matrix](check-matrix.md) |
 | Diagnose a broken behavior | [Failure Cookbook](failure-cookbook.md) |
 | Understand why the repo is shaped this way | [Architecture Decision Records](adr/README.md) |
@@ -109,6 +110,9 @@ start in the contract and flow outward from there.
   roles and avoid unnecessary new font sizes.
 - [Devices and Builds](devices-and-builds.md) - device profiles, generated
   package files, firmware bundles, and release-facing outputs.
+- [Community Device Packages](community-devices.md) - how unofficial device
+  repositories compose with shared EspControl files while staying outside the
+  release pipeline.
 - [Checks and Releases](checks-and-releases.md) - local verification commands and
   release-sensitive files.
 

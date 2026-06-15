@@ -64,6 +64,42 @@ wifi:
   password: "Your WiFi Password"
 ```
 
+## Community Device Packages
+
+Community device packages are for advanced manual installs on screens that are
+not officially tested by EspControl. They are separate from the browser
+installer and do not get EspControl's automatic firmware update flow.
+
+If a community maintainer gives you a package repository, use the same manual
+setup flow but point the `packages` entry at that repository:
+
+```yaml
+substitutions:
+  name: "espcontrol-community"
+  friendly_name: "EspControl Community"
+  disable_updates: "true"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+packages:
+  setup:
+    url: https://github.com/example/espcontrol-community-device/
+    file: packages.yaml
+    ref: main
+    refresh: 1d
+```
+
+The community package should contain the screen-specific ESPHome files and pull
+shared EspControl files from this project. It must either use an existing
+EspControl web setup profile that matches the screen layout, or set
+`web_server_js_url` to a compatible web setup bundle hosted by that community
+project.
+
+Keep `disable_updates: "true"` for community devices. ESPHome OTA still works,
+so you can update by compiling and installing the community package again.
+
 ## Advanced: Password-Protect the Web Page
 
 EspControl's built-in web page can be protected with a username and password when you compile and install the firmware yourself. This is useful if other people can reach your local network and you do not want them opening the display setup page.

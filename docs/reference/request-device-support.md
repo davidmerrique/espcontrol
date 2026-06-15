@@ -8,7 +8,10 @@ description:
 
 EspControl can only support a new device type properly when we know how Home Assistant exposes it. The easiest way to help is to copy the device's state information from Home Assistant and share it in a GitHub issue.
 
-Sorry, but I can't support additional screens because of the complexity of testing the existing range of devices.
+Official screen support is limited to the tested panels listed in the install
+guide. Additional screens are better handled as community device packages because
+they need hardware-specific testing outside the main release process. See
+[Community Devices](/reference/community-devices) for the manual package path.
 
 ## Find the Device State
 
