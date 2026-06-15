@@ -1,5 +1,6 @@
 {
   "entities": [
+    { "key": "device_profile", "domain": "text_sensor", "name": "Device Profile", "objectIds": ["device_profile"], "groups": ["settings"] },
     { "key": "button_order", "domain": "text", "name": "Button Order", "groups": ["card"] },
     { "key": "screen_theme", "domain": "select", "name": "Screen: Theme", "objectIds": ["screen__theme", "screen_theme"], "groups": ["card"] },
     { "key": "button_on_color", "domain": "text", "name": "Button On Color", "groups": ["card"] },

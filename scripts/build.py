@@ -1264,6 +1264,12 @@ def build_config_block(slug, cfg):
     )
 
 
+def shared_web_config():
+    cfg = web_config(load_device_profiles()["guition-esp32-p4-jc8012p4a1"])
+    cfg["screenSize"] = "Community"
+    return cfg
+
+
 def build_web_devices():
     timezone_options = load_timezone_options()
     devices = {
@@ -1424,12 +1430,24 @@ def sync_web_model(check_only=False):
 
 
 def build_www(check_only=False):
-    """Build per-device www.js from the single source template."""
+    """Build shared and per-device www.js from the single source template."""
     devices = build_web_devices()
+    timezone_options = load_timezone_options()
+    shared_cfg = shared_web_config()
+    shared_cfg["timezoneOptions"] = timezone_options
     source_text = WWW_SOURCE.read_text()
     source_text = replace_types(source_text)
     source_text = replace_modules(source_text)
     dirty = []
+
+    shared_output_path = WWW_OUTPUT_DIR / "www.js"
+    shared_generated = minify_js(replace_config(source_text, "community", shared_cfg))
+    if not shared_output_path.exists() or shared_output_path.read_text() != shared_generated:
+        dirty.append("www")
+        if not check_only:
+            shared_output_path.parent.mkdir(parents=True, exist_ok=True)
+            shared_output_path.write_text(shared_generated)
+            print("  updated docs/public/webserver/www.js")
 
     for slug, cfg in devices.items():
         output_path = WWW_OUTPUT_DIR / slug / "www.js"
@@ -1450,7 +1468,10 @@ def build_www(check_only=False):
     if check_only and dirty:
         print("www.js outputs are out of date. Run 'python scripts/build.py www' to fix:")
         for slug in dirty:
-            print(f"  docs/public/webserver/{slug}/www.js")
+            if slug == "www":
+                print("  docs/public/webserver/www.js")
+            else:
+                print(f"  docs/public/webserver/{slug}/www.js")
     return dirty
 
 

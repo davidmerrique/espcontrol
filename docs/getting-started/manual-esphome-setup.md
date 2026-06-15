@@ -71,34 +71,37 @@ not officially tested by EspControl. They are separate from the browser
 installer and do not get EspControl's automatic firmware update flow.
 
 If a community maintainer gives you a package repository, use the same manual
-setup flow but point the `packages` entry at that repository:
+setup flow, point `community_device_repo` at that repository, and load the
+shared community package from EspControl:
 
 ```yaml
 substitutions:
   name: "espcontrol-community"
   friendly_name: "EspControl Community"
-  disable_updates: "true"
+  community_device_repo: "https://github.com/example/espcontrol-community-device/"
+  community_device_ref: "main"
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
 packages:
-  setup:
-    url: https://github.com/example/espcontrol-community-device/
-    file: packages.yaml
+  espcontrol_community:
+    url: https://github.com/jtenniswood/espcontrol/
+    file: community/device.yaml
     ref: main
     refresh: 1d
 ```
 
-The community package should contain the screen-specific ESPHome files and pull
-shared EspControl files from this project. It must either use an existing
-EspControl web setup profile that matches the screen layout, or set
-`web_server_js_url` to a compatible web setup bundle hosted by that community
-project.
+The community repository should contain only the screen-specific files under
+`device/`: `device.yaml`, `fonts.yaml`, `sensors.yaml`, and `web_profile.yaml`.
+EspControl's shared community package pulls those files in and supplies the
+common setup screens, card configuration, assets, networking, LVGL grid shell,
+and web app.
 
-Keep `disable_updates: "true"` for community devices. ESPHome OTA still works,
-so you can update by compiling and installing the community package again.
+Community devices do not use EspControl's automatic firmware update manifests.
+ESPHome OTA still works, so you can update by compiling and installing the
+community package again.
 
 ## Advanced: Password-Protect the Web Page
 

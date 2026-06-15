@@ -6,7 +6,7 @@
 # =============================================================================
 
 substitutions:
-  web_server_js_url: "https://jtenniswood.github.io/espcontrol/webserver/${device_slug}/www.js?v=${firmware_version}&ui=20260611-livecheck"
+  web_server_js_url: "https://jtenniswood.github.io/espcontrol/webserver/www.js?v=${firmware_version}&ui=20260611-livecheck"
 
 esphome:
   # Enable LVGL's bidirectional text algorithm so right-to-left scripts

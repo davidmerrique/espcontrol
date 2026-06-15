@@ -81,6 +81,7 @@ packages:
   # ---------------------------------------------------------------------------
   entity_names:    !include ../../common/config/entity_names.yaml
   device:          !include device/device.yaml
+  web_profile:     !include device/web_profile.yaml
   icons:           !include ../../common/assets/icons.yaml
   fonts_lg:        !include device/fonts.yaml
   button_theme:    !include ../../common/theme/button.yaml

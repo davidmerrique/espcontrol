@@ -4,6 +4,13 @@
 // =============================================================================
 var ENTITY_CATALOG = {
   "entities": {
+    "device_profile": {
+      "domain": "text_sensor",
+      "name": "Device Profile",
+      "objectIds": [
+        "device_profile"
+      ]
+    },
     "button_order": {
       "domain": "text",
       "name": "Button Order"
@@ -485,27 +492,8 @@ var ENTITY_CATALOG = {
     }
   },
   "groups": {
-    "card": [
-      "button_order",
-      "screen_theme",
-      "button_on_color",
-      "button_off_color",
-      "sensor_card_color"
-    ],
-    "card_slot": [
-      "button_config"
-    ],
-    "subpage_slot": [
-      "subpage_config",
-      "subpage_config_ext",
-      "subpage_config_ext_2",
-      "subpage_config_ext_3",
-      "subpage_config_ext_4",
-      "subpage_config_ext_5",
-      "subpage_config_ext_6",
-      "subpage_config_ext_7"
-    ],
     "settings": [
+      "device_profile",
       "indoor_temp_enable",
       "outdoor_temp_enable",
       "screen_clock_bar",
@@ -568,6 +556,26 @@ var ENTITY_CATALOG = {
       "firmware_auto_update",
       "firmware_update_frequency",
       "developer_experimental_features"
+    ],
+    "card": [
+      "button_order",
+      "screen_theme",
+      "button_on_color",
+      "button_off_color",
+      "sensor_card_color"
+    ],
+    "card_slot": [
+      "button_config"
+    ],
+    "subpage_slot": [
+      "subpage_config",
+      "subpage_config_ext",
+      "subpage_config_ext_2",
+      "subpage_config_ext_3",
+      "subpage_config_ext_4",
+      "subpage_config_ext_5",
+      "subpage_config_ext_6",
+      "subpage_config_ext_7"
     ],
     "settings_optional": [
       "screen_rotation"

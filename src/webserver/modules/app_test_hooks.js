@@ -1,5 +1,15 @@
 if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
   globalThis.__ESPCONTROL_TEST_HOOKS__.config = {
+    applyDeviceProfile: applyDeviceProfile,
+    deviceConfig: function () {
+      return {
+        device: DEVICE_ID,
+        slots: NUM_SLOTS,
+        cols: GRID_COLS,
+        rows: GRID_ROWS,
+        screenSize: CFG.screenSize,
+      };
+    },
     parseButtonConfig: parseButtonConfig,
     serializeButtonConfig: serializeButtonConfig,
     CARD_CONFIG_FIELDS: CARD_CONFIG_FIELDS,

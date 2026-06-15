@@ -1,0 +1,164 @@
+# =============================================================================
+# COMMUNITY DEVICE - Shared EspControl package for unofficial screens
+# =============================================================================
+# User configs include this single package from the EspControl repo and provide
+# community_device_repo/community_device_ref substitutions. The community repo
+# owns only device-specific hardware, fonts, layout profile, and grid wiring
+# files under device/.
+# =============================================================================
+
+substitutions:
+  community_device_repo: ""
+  community_device_ref: "main"
+  device_slug: "community"
+  firmware_manifest_slug: "community"
+  firmware_version: "community"
+  disable_updates: "true"
+  firmware_update_package_suffix: "_disabled"
+  network_package_suffix: ""
+  network_transport: "wifi"
+  screen_width: "480"
+  screen_height: "480"
+  content_width: "380"
+  setup_icon_font_id: font_icon_main
+  setup_title_font_id: font_text_title
+  setup_body_font_id: font_text_body
+  setup_pad_row: "20"
+  setup_loading_pad_row: "40"
+  setup_action_button_width: "200"
+  setup_action_button_height: "56"
+  setup_action_button_radius: "12"
+  icon_font: font_icon_main
+  subpage_chevron_font: font_icon_status
+  label_font: font_text_body
+  media_title_font: font_text_title
+  unit_font: font_text_body
+  sensor_value_font: font_number_value
+  padding: 14px
+  radius: 8px
+  main_page_card_gap: "10"
+  main_page_pad_top: "40"
+  main_page_compact_pad_top: "4"
+  clock_bar_item_gap: "60"
+  clock_bar_visual_gap: "8"
+  clock_font_size: "160"
+  clock_cx: "240"
+  clock_cy: "240"
+  screen_saver_clock_min_brightness: "1"
+  screen_saver_clock_default_brightness: "35"
+  screen_schedule_clock_min_brightness: "1"
+  screen_schedule_clock_default_brightness: "10"
+  cover_art_size: "480"
+  cover_art_x: "0"
+  cover_art_y: "0"
+  cover_art_accent_x: "0"
+  cover_art_accent_y: "0"
+  cover_art_accent_width: "480"
+  cover_art_accent_height: "480"
+  cover_art_accent_bg_opa: "80%"
+  cover_art_accent_opa: "80%"
+  cover_art_panel_x: "0"
+  cover_art_panel_y: "0"
+  cover_art_panel_width: "480"
+  cover_art_panel_height: "480"
+  cover_art_panel_pad_top: "24"
+  cover_art_panel_pad_bottom: "16"
+  cover_art_panel_pad_left: "24"
+  cover_art_panel_pad_right: "24"
+  cover_art_panel_pad_row: "0"
+  cover_art_title_font: "font_cover_art_title"
+  cover_art_title_max_height: "330"
+  cover_art_title_line_space: "0"
+  cover_art_artist_font: "font_cover_art_artist"
+  cover_art_artist_pad_top: "6"
+  cover_art_artist_long_mode: "dot"
+  cover_art_time_font: "font_cover_art_time"
+  cover_art_time_pad_top: "12"
+  cover_art_progress_width: "480"
+  cover_art_progress_height: "4"
+  cover_art_text_color: "0xFFFFFF"
+  cover_art_square_overlay: "true"
+  cover_art_live_image_updates: "true"
+
+defaults:
+  temperature_label_x: "8"
+  temperature_label_y: "8"
+  clock_label_y: "8"
+  network_status_x: "-8"
+  network_status_y: "1"
+  network_status_width: "48"
+  network_status_height: "44"
+  main_page_grid_columns: "[FR(1), FR(1), FR(1)]"
+  main_page_grid_rows: "[FR(1), FR(1), FR(1)]"
+  main_page_pad_bottom: "4"
+  main_page_pad_left: "5"
+  main_page_pad_right: "5"
+
+packages:
+  # Community-owned screen files
+  device:
+    url: ${community_device_repo}
+    file: device/device.yaml
+    ref: ${community_device_ref}
+    refresh: 1d
+  web_profile:
+    url: ${community_device_repo}
+    file: device/web_profile.yaml
+    ref: ${community_device_ref}
+    refresh: 1d
+  fonts_device:
+    url: ${community_device_repo}
+    file: device/fonts.yaml
+    ref: ${community_device_ref}
+    refresh: 1d
+  sensors:
+    url: ${community_device_repo}
+    file: device/sensors.yaml
+    ref: ${community_device_ref}
+    refresh: 1d
+
+  # Shared EspControl files
+  entity_names:    !include ../common/config/entity_names.yaml
+  core_infra:      !include ../common/device/core_infra.yaml
+  icons:           !include ../common/assets/icons.yaml
+  button_theme:    !include ../common/theme/button.yaml
+  colors:          !include ../common/config/colors.yaml
+  button_order:    !include ../common/config/button_order.yaml
+  display_config:  !include ../common/config/display.yaml
+  btn_1:           !include { file: ../common/config/button_template.yaml, vars: { num: "1" } }
+  btn_2:           !include { file: ../common/config/button_template.yaml, vars: { num: "2" } }
+  btn_3:           !include { file: ../common/config/button_template.yaml, vars: { num: "3" } }
+  btn_4:           !include { file: ../common/config/button_template.yaml, vars: { num: "4" } }
+  btn_5:           !include { file: ../common/config/button_template.yaml, vars: { num: "5" } }
+  btn_6:           !include { file: ../common/config/button_template.yaml, vars: { num: "6" } }
+  btn_7:           !include { file: ../common/config/button_template.yaml, vars: { num: "7" } }
+  btn_8:           !include { file: ../common/config/button_template.yaml, vars: { num: "8" } }
+  btn_9:           !include { file: ../common/config/button_template.yaml, vars: { num: "9" } }
+  btn_10:          !include { file: ../common/config/button_template.yaml, vars: { num: "10" } }
+  btn_11:          !include { file: ../common/config/button_template.yaml, vars: { num: "11" } }
+  btn_12:          !include { file: ../common/config/button_template.yaml, vars: { num: "12" } }
+  btn_13:          !include { file: ../common/config/button_template.yaml, vars: { num: "13" } }
+  btn_14:          !include { file: ../common/config/button_template.yaml, vars: { num: "14" } }
+  btn_15:          !include { file: ../common/config/button_template.yaml, vars: { num: "15" } }
+  btn_16:          !include { file: ../common/config/button_template.yaml, vars: { num: "16" } }
+  btn_17:          !include { file: ../common/config/button_template.yaml, vars: { num: "17" } }
+  btn_18:          !include { file: ../common/config/button_template.yaml, vars: { num: "18" } }
+  btn_19:          !include { file: ../common/config/button_template.yaml, vars: { num: "19" } }
+  btn_20:          !include { file: ../common/config/button_template.yaml, vars: { num: "20" } }
+  connectivity:    !include ../common/addon/connectivity.yaml
+  api_navigate:    !include ../common/device/api_navigate.yaml
+  time_sync:       !include ../common/addon/time.yaml
+  backlight:       !include ../common/addon/backlight.yaml
+  bl_schedule:     !include ../common/addon/backlight_schedule.yaml
+  network:         !include ../common/addon/network.yaml
+  memory_diag:     !include ../common/addon/memory_diagnostics.yaml
+  fw_update:       !include ../common/addon/firmware_update_disabled.yaml
+  screen_loading:  !include ../common/device/screen_loading.yaml
+  screen_wifi:     !include ../common/device/screen_wifi_setup.yaml
+  screen_ha:       !include ../common/device/screen_ha_setup.yaml
+  screen_ha_act:   !include ../common/device/screen_ha_actions.yaml
+  screen_setup:    !include ../common/device/screen_button_setup.yaml
+  screen_clock:    !include ../common/device/screen_clock.yaml
+  screen_art:      !include ../common/device/screen_cover_art.yaml
+  image_cards:     !include ../common/device/image_cards_6.yaml
+  lvgl:            !include ../common/device/lvgl_grid.yaml

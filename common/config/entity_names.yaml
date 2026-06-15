@@ -4,6 +4,7 @@
 # =============================================================================
 
 substitutions:
+  entity_device_profile: "Device Profile"
   entity_button_order: "Button Order"
   entity_screen_theme: "Screen: Theme"
   entity_button_on_color: "Button On Color"

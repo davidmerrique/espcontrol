@@ -5,10 +5,9 @@
 //   Screen  - Live grid preview with drag-and-drop button arrangement
 //   Settings - Display, brightness, firmware, and entity configuration
 //
-// Per-device config, web UI modules, and button type plugins are assembled by
-// scripts/build.py. Button types stay in src/webserver/types; the larger UI
-// sections live in src/webserver/modules. Generated device bundles are written
-// to docs/public/webserver/<device>/www.js.
+// The shared web app is assembled by scripts/build.py. Runtime device profile
+// data is loaded from the firmware so official and community device packages
+// own their own layout.
 // Icon data is generated between GENERATED:ICONS / GENERATED:DOMAIN_ICONS.
 // =============================================================================
 
@@ -22,6 +21,51 @@
   var TOTAL_SLOTS = NUM_SLOTS;
   var GRID_COLS = CFG.cols;
   var GRID_ROWS = CFG.rows;
+
+  function mergeDeviceConfig(base, override) {
+    var out = {};
+    var key;
+    base = base && typeof base === "object" ? base : {};
+    override = override && typeof override === "object" ? override : {};
+    for (key in base) out[key] = base[key];
+    for (key in override) {
+      if (
+        override[key] &&
+        typeof override[key] === "object" &&
+        !Array.isArray(override[key]) &&
+        base[key] &&
+        typeof base[key] === "object" &&
+        !Array.isArray(base[key])
+      ) {
+        out[key] = mergeDeviceConfig(base[key], override[key]);
+      } else {
+        out[key] = override[key];
+      }
+    }
+    return out;
+  }
+
+  function applyDeviceProfile(profile) {
+    if (!profile || typeof profile !== "object") return false;
+    var cfg = profile.config && typeof profile.config === "object" ? profile.config : profile;
+    var slots = parseInt(String(cfg.slots || ""), 10);
+    var cols = parseInt(String(cfg.cols || ""), 10);
+    if (!isFinite(slots) || slots < 1 || !isFinite(cols) || cols < 1) return false;
+    var id = String(profile.device || profile.id || profile.slug || DEVICE_ID || "community").trim();
+    CFG = mergeDeviceConfig(CFG, cfg);
+    DEVICE_ID = id || DEVICE_ID;
+    NUM_SLOTS = slots;
+    TOTAL_SLOTS = NUM_SLOTS;
+    GRID_COLS = cols;
+    GRID_ROWS = parseInt(String(CFG.rows || ""), 10) || Math.ceil(NUM_SLOTS / GRID_COLS);
+    if (typeof state === "object" && state) {
+      while (state.grid.length < TOTAL_SLOTS) state.grid.push(0);
+      while (state.buttons.length < TOTAL_SLOTS) {
+        state.buttons.push({ entity: "", label: "", icon: "Auto", icon_on: "Auto", sensor: "", unit: "", type: "", precision: "", options: "" });
+      }
+    }
+    return true;
+  }
 
   function isPortraitRotation(value) {
     value = String(value == null ? "0" : value);
